@@ -115,5 +115,10 @@ def g():
 def foo():
     g()
 
+
+a = matricks.Assign(lhs='a',rhs='b')
+print(a)
+
 with matricks.dbg():
     g()
+

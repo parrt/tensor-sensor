@@ -22,6 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 import inspect
+import typing
 from collections import namedtuple
 
 ADDOP     = {'+', '-'}
@@ -40,13 +41,75 @@ def idchar(c): # include '.'; assume single char here
 
 # Parse tree definitions
 
-Assign      = namedtuple('Assign',      ['lhs', 'rhs'])
-Call        = namedtuple('Call',        ['name','args'])
-Index       = namedtuple('Index',       ['name','index'])
-BinaryOp    = namedtuple('BinaryOp',    ['op','a','b'])
-UnaryOp     = namedtuple('UnaryOp',     ['op','opnd'])
-ListLiteral = namedtuple('ListLiteral', ['elems'])
-SubExpr     = namedtuple('SubExpr',     ['e'])  # record parens for later display to keep precedence
+class ParseTreeNode:
+    def __str__(self):
+        return "<ParseTreeNode>"
+    def __repr__(self):
+        args = [v+'='+self.__dict__[v].__repr__() for v in self.__dict__]
+        args = ','.join(args)
+        return f"{self.__class__.__name__}({args})"
+
+class Assign(ParseTreeNode):
+    def __init__(self, lhs, rhs):
+        self.lhs, self.rhs = lhs, rhs
+    def __str__(self):
+        return str(self.lhs)+'='+str(self.rhs)
+
+class Call(ParseTreeNode):
+    def __init__(self, name, args):
+        self.name = name
+        self.args = args
+    def __str__(self):
+        if isinstance(self.args,list):
+            args_ = ','.join([str(a) for a in self.args])
+        else:
+            args_ = str(self.args)
+        return f"{self.name}({args_})"
+
+class Index(ParseTreeNode):
+    def __init__(self, name, index):
+        self.name = name
+        self.index = index
+    def __str__(self):
+        i = self.index
+        if isinstance(i,list):
+            i = ','.join(str(v) for v in i)
+        return f"{self.name}[{i}]"
+
+class BinaryOp(ParseTreeNode):
+    def __init__(self, op, a, b):
+        self.op, self.a, self.b = op, a, b
+    def __str__(self):
+        return f"{self.a}{self.op}{self.b}"
+
+class UnaryOp(ParseTreeNode):
+    def __init__(self, op, opnd):
+        self.op = op
+        self.opnd = opnd
+    def __str__(self):
+        return f"{self.op}{self.opnd}"
+
+class ListLiteral(ParseTreeNode):
+    def __init__(self, elems):
+        self.elems = elems
+    def __str__(self):
+        return f"[{','.join(str(e) for e in self.elems)}]"
+
+class SubExpr(ParseTreeNode):
+    # record parens for later display to keep precedence
+    def __init__(self, e):
+        self.e = e
+    def __str__(self):
+        return f"({self.e})"
+
+class Atom(ParseTreeNode):
+    def __init__(self, s):
+        self.s = s
+    def __repr__(self):
+        return self.s
+    def __str__(self):
+        return self.s
+
 
 class PyExprParser:
     def __init__(self, code):
@@ -122,7 +185,7 @@ class PyExprParser:
         elif self.isatom() or self.isgroup():
             atom = self.LA(1)
             self.t += 1  # match name or number
-            return atom
+            return Atom(atom)
         else:
             print("error")
 

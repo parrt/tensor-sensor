@@ -27,35 +27,41 @@ import re
 def check(s,expected):
     p = PyExprParser(s)
     t = p.parse()
-    result = str(t)
-    result = re.sub(r"\s+", "", result)
+
+    s = re.sub(r"\s+", "", s)
+    result_str = str(t)
+    result_str = re.sub(r"\s+", "", result_str)
+    assert result_str==s
+
+    result_repr = repr(t)
+    result_repr = re.sub(r"\s+", "", result_repr)
     expected = re.sub(r"\s+", "", expected)
-    print("result", result)
+    print("result", result_repr)
     print("expected", expected)
-    assert result==expected
+    assert result_repr==expected
 
 
 def test_index():
-    check("a[:,i,j]", "Index(name='a', index=[':', 'i', 'j'])")
+    check("a[:,i,j]", "Index(name=a, index=[:, i, j])")
 
 
 def test_literal_list():
     check("[[1, 2], [3, 4]]",
-          "ListLiteral(elems=[ListLiteral(elems=['1', '2']), ListLiteral(elems=['3', '4'])])")
+          "ListLiteral(elems=[ListLiteral(elems=[1, 2]), ListLiteral(elems=[3, 4])])")
 
 
 def test_literal_array():
     check("np.array([[1, 2], [3, 4]])",
-          "Call(name='np.array', args=ListLiteral(elems=[ListLiteral(elems=['1', '2']), ListLiteral(elems=['3', '4'])]))")
+          "Call(name=np.array, args=ListLiteral(elems=[ListLiteral(elems=[1, 2]), ListLiteral(elems=[3, 4])]))")
 
 
 def test_method():
     check("h = torch.tanh(h)",
-          "Assign(lhs='h', rhs=Call(name='torch.tanh', args='h'))")
+          "Assign(lhs=h, rhs=Call(name=torch.tanh, args=h))")
 
 
 def test_parens():
-    check("(a+b)*c", "BinaryOp(op='*',a=SubExpr(e=BinaryOp(op='+',a='a',b='b')),b='c')")
+    check("(a+b)*c", "BinaryOp(op='*',a=SubExpr(e=BinaryOp(op='+',a=a,b=b)),b=c)")
 
 
 def test_arith():
@@ -63,25 +69,25 @@ def test_arith():
           """BinaryOp(op='+',
                       a=BinaryOp(op='*',
                                  a=SubExpr(e=BinaryOp(op='-',
-                                                      a='1',
-                                                      b='z')),
-                                 b='h'),
-                      b=BinaryOp(op='*',a='z',b='h_'))""")
+                                                      a=1,
+                                                      b=z)),
+                                 b=h),
+                      b=BinaryOp(op='*',a=z,b=h_))""")
 
 
 def test_chained_op():
     check("a + b + c",
           """BinaryOp(op='+',
-                      a=BinaryOp(op='+', a='a', b='b'),
-                      b='c')""")
+                      a=BinaryOp(op='+', a=a, b=b),
+                      b=c)""")
 
 
 def test_matrix_arith():
     check("self.Whz@h + self.Uxz@x + self.bz",
           """BinaryOp(op='+',
                       a=BinaryOp(op='+',
-                                 a=BinaryOp(op='@', a='self.Whz', b='h'),
-                                 b=BinaryOp(op='@', a='self.Uxz', b='x')),
-                      b='self.bz')""")
+                                 a=BinaryOp(op='@', a=self.Whz, b=h),
+                                 b=BinaryOp(op='@', a=self.Uxz, b=x)),
+                      b=self.bz)""")
 
 
