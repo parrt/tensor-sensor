@@ -61,33 +61,33 @@ def test_method():
 
 
 def test_parens():
-    check("(a+b)*c", "BinaryOp(op='*',a=SubExpr(e=BinaryOp(op='+',a=a,b=b)),b=c)")
+    check("(a+b)*c", "BinaryOp(op=<STAR:*>,a=SubExpr(e=BinaryOp(op=<PLUS:+>,a=a,b=b)),b=c)")
 
 
 def test_arith():
     check("(1-z)*h + z*h_",
-          """BinaryOp(op='+',
-                      a=BinaryOp(op='*',
-                                 a=SubExpr(e=BinaryOp(op='-',
+          """BinaryOp(op=<PLUS:+>,
+                      a=BinaryOp(op=<STAR:*>,
+                                 a=SubExpr(e=BinaryOp(op=<MINUS:->,
                                                       a=1,
                                                       b=z)),
                                  b=h),
-                      b=BinaryOp(op='*',a=z,b=h_))""")
+                      b=BinaryOp(op=<STAR:*>,a=z,b=h_))""")
 
 
 def test_chained_op():
     check("a + b + c",
-          """BinaryOp(op='+',
-                      a=BinaryOp(op='+', a=a, b=b),
+          """BinaryOp(op=<PLUS:+>,
+                      a=BinaryOp(op=<PLUS:+>, a=a, b=b),
                       b=c)""")
 
 
 def test_matrix_arith():
     check("self.Whz@h + self.Uxz@x + self.bz",
-          """BinaryOp(op='+',
-                      a=BinaryOp(op='+',
-                                 a=BinaryOp(op='@', a=self.Whz, b=h),
-                                 b=BinaryOp(op='@', a=self.Uxz, b=x)),
+          """BinaryOp(op=<PLUS:+>,
+                      a=BinaryOp(op=<PLUS:+>,
+                                 a=BinaryOp(op=<AT:@>, a=self.Whz, b=h),
+                                 b=BinaryOp(op=<AT:@>, a=self.Uxz, b=x)),
                       b=self.bz)""")
 
 

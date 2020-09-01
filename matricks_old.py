@@ -25,28 +25,24 @@ import inspect
 import typing
 import sys
 from collections import namedtuple
-from tokenize import tokenize, TokenInfo,\
-    NUMBER, STRING, NAME, OP, ENDMARKER, LPAR, LSQB, RPAR, RSQB, EQUAL, COMMA, COLON,\
-    PLUS, MINUS, STAR, SLASH, AT, PERCENT, TILDE, DOT
-import token
+from tokenize import tokenize, TokenInfo, NUMBER, STRING, NAME, OP
 from io import BytesIO
 
-ADDOP     = {PLUS, MINUS}
-MULOP     = {STAR, SLASH, AT, PERCENT}
-UNARYOP   = {TILDE}
-# OPERATORS = {'+', '-', '*', '/', '@', '%', '!', '~'}
-# SYMBOLS   = OPERATORS.union({'(', ')', '[', ']', '=', ',', ':'})
+ADDOP     = {'+', '-'}
+MULOP     = {'*', '/', '@', '%'}
+UNARYOP   = {'!', '~'}
+OPERATORS = {'+', '-', '*', '/', '@', '%', '!', '~'}
+SYMBOLS   = OPERATORS.union({'(', ')', '[', ']', '=', ',', ':'})
+EOF       = '<EOF>'
 
-# def idstart(c):
-#     return c[0].isalpha() or c[0]=='_'
-#
-# def idchar(c): # include '.'; assume single char here
-#     return c.isalpha() or c.isdigit() or c == '_' or c == '.'
+def idstart(c):
+    return c[0].isalpha() or c[0]=='_'
+
+def idchar(c): # include '.'; assume single char here
+    return c.isalpha() or c.isdigit() or c == '_' or c == '.'
 
 
 # Parse tree definitions
-# I found package ast in python3 lib after I built this. whoops. No biggie.
-# This tree structure is easier to visit for my purposes here.
 
 class ParseTreeNode:
     def eval(self, frame):
@@ -139,20 +135,12 @@ class SubExpr(ParseTreeNode):
         return f"({self.e})"
 
 class Atom(ParseTreeNode):
-    def __init__(self, nametok):
-        self.nametok = nametok
+    def __init__(self, s):
+        self.s = s
     def __repr__(self):
-        return self.nametok.value
+        return self.s
     def __str__(self):
-        return self.nametok.value
-
-class String(ParseTreeNode):
-    def __init__(self, stok):
-        self.stok = stok
-    def __repr__(self):
-        return f"'{self.stok.value}'"
-    def __str__(self):
-        return f"'{self.stok.value}'"
+        return self.s
 
 
 class PyExprParser:
@@ -165,13 +153,13 @@ class PyExprParser:
         # print("\nparse", self.code)
         # print(self.tokens)
         s = self.statement()
-        self.match(ENDMARKER)
+        self.match(EOF)
         return s
 
     def statement(self):
         lhs = self.expression()
         rhs = None
-        if self.LA(1) == EQUAL:
+        if self.LA(1) == '=':
             self.t += 1
             rhs = self.expression()
             return Assign(lhs,rhs)
@@ -181,18 +169,22 @@ class PyExprParser:
         return self.addexpr()
 
     def addexpr(self):
+        elist = []
         root = self.multexpr()
         while self.LA(1) in ADDOP:
-            op = self.LT(1)
+            op = self.LA(1)
+            elist.append(self.LA(1))
             self.t += 1
             b = self.multexpr()
             root = BinaryOp(op, root, b)
         return root
 
     def multexpr(self):
+        elist = []
         root = self.unaryexpr()
         while self.LA(1) in MULOP:
-            op = self.LT(1)
+            op = self.LA(1)
+            elist.append(self.LA(1))
             self.t += 1
             b = self.unaryexpr()
             root = BinaryOp(op, root, b)
@@ -200,173 +192,130 @@ class PyExprParser:
 
     def unaryexpr(self):
         if self.LA(1) in UNARYOP:
-            op = self.LT(1)
+            op = self.LA(1)
             self.t += 1
             e = self.unaryexpr()
             return UnaryOp(op, e)
         elif self.isatom() or self.isgroup():
             return self.postexpr()
         else:
-            print(f"missing unary expr at: {self.LT(1)}")
+            print(f"missing unary expr at: {self.LA(1)}")
 
     def postexpr(self):
         e = self.atom()
-        if self.LA(1)==LPAR:
+        if self.LA(1)=='(':
             return self.funccall(e)
-        if self.LA(1)==LSQB:
+        if self.LA(1) == '[':
             return self.index(e)
         return e
 
     def atom(self):
-        if self.LA(1) == LPAR:
+        if self.LA(1) == '(':
             return self.subexpr()
-        elif self.LA(1) == LSQB:
+        elif self.LA(1) == '[':
             return self.listatom()
-        elif self.isatom() or self.isgroup() or self.LA(1)==COLON:
-            atom = self.LT(1)
+        elif self.isatom() or self.isgroup():
+            atom = self.LA(1)
             self.t += 1  # match name or number
             return Atom(atom)
         else:
             print("error")
 
     def funccall(self, f):
-        self.match(LPAR)
+        self.match('(')
         el = None
-        if self.LA(1)!=RPAR:
+        if self.LA(1)!=')':
             el = self.exprlist()
-        self.match(RPAR)
+        self.match(')')
         return Call(f, el)
 
     def index(self, e):
-        self.match(LSQB)
+        self.match('[')
         el = self.exprlist()
-        self.match(RSQB)
+        self.match(']')
         return Index(e, el)
 
     def exprlist(self):
         elist = []
         e = self.expression()
         elist.append(e)
-        while self.LA(1)==COMMA:
-            self.match(COMMA)
+        while self.LA(1)==',':
+            self.match(',')
             e = self.expression()
             elist.append(e)
         return elist if len(elist)>1 else elist[0]
 
     def subexpr(self):
-        self.match(LPAR)
+        self.match('(')
         e = self.expression()
-        self.match(RPAR)
+        self.match(')')
         return SubExpr(e)
 
     def listatom(self):
-        self.match(LSQB)
+        self.match('[')
         e = self.exprlist()
-        self.match(RSQB)
+        self.match(']')
         return ListLiteral(e)
 
     def isatom(self):
-        return self.LA(1) in {NUMBER, NAME, STRING, COLON}
-        # return idstart(self.LA(1)) or self.LA(1).isdigit() or self.LA(1)==':'
+        return idstart(self.LA(1)) or self.LA(1).isdigit() or self.LA(1)==':'
 
     def isgroup(self):
-        return self.LA(1)==LPAR or self.LA(1)==LSQB
+        return self.LA(1)=='(' or self.LA(1)=='['
 
     def LA(self, i):
-        return self.LT(i).type
-
-    def LT(self, i):
         ahead = self.t + i - 1
         if ahead >= len(self.tokens):
-            return ENDMARKER
+            return EOF
         return self.tokens[ahead]
 
-    def match(self, type):
-        if self.LA(1)!=type:
-            print(f"mismatch token {self.LT(1)}, looking for {token.tok_name[type]}")
+    def match(self, token):
+        if self.LA(1)!=token:
+            print(f"mismatch token {self.LA(1)}, looking for {token}")
         self.t += 1
 
 
-class Token:
-    def __init__(self, type, value):
-        self.type, self.value = type, value
-    def __repr__(self):
-        return f"<{token.tok_name[self.type]}:{self.value}>"
-    def __str__(self):
-        return self.value
-
-def mytokenize(s):
-    tokensO = tokenize(BytesIO(s.encode('utf-8')).readline)
-    tokens = []
-    for tok in tokensO:
-        type, value, _, _, _ = tok
-        if type in {NUMBER, STRING, NAME, OP, ENDMARKER}:
-            tokens.append(Token(tok.exact_type,value))
-        else:
-            print("ignoring", type, value)
-
-    # Scan for "a.b.c.d" type patterns and combine into NAME
-    tokens2 = []
-    i = 0
-    while i<len(tokens):
-        if tokens[i].type==NAME:
-            start = i
-            i += 1
-            while tokens[i].type==DOT:
-                i += 2 # skip over ". name"
-            tokens2.append(Token(NAME,''.join(str(t) for t in tokens[start:i])))
-        else:
-            tokens2.append(tokens[i])
-            i += 1
-    tokens = tokens2
-    return tokens#+[Token(ENDMARKER,"<EOF>")]
-
-# def mytokenize(code):
-#     n = len(code)
-#     i = 0
+# def mytokenize(s):
+#     tokensO = tokenize(BytesIO(s.encode('utf-8')).readline)
 #     tokens = []
-#     while i<len(code):
-#         if idstart(code[i]):
-#             v = []
-#             while i<n and idchar(code[i]):
-#                 v.append(code[i])
-#                 i += 1
-#             tokens.append(''.join(v))
-#         elif code[i].isdigit():
-#             num = []
-#             while i<n and code[i].isdigit():
-#                 num.append(code[i])
-#                 i += 1
-#             tokens.append(''.join(num))
-#         elif code[i] in SYMBOLS:
-#             op = code[i]
-#             i += 1
-#             tokens.append(op)
-#         elif code[i] in {'r','u','f'} and code[i+1] in {'\'', '"'}:
-#             quote = code[i]
-#             i += 1
-#             start = i
-#             while i<n and code[i]!=quote:
-#                 if code[i]=='\\':
-#                     i += 1
-#                 i += 1
-#             tokens.append(code[start:i])
-#         elif code[i] in {'\'', '"'}:
-#             quote = code[i]
-#             i += 1
-#             start = i
-#             while i<n and code[i]!=quote:
-#                 if code[i]=='\\':
-#                     i += 1
-#                 i += 1
-#             tokens.append(code[start:i])
-#         elif code[i] in {' ','\t'}:
-#             i += 1
+#     for tok in tokensO:
+#         type, value, _, _, _ = tok
+#         if type in {NUMBER, STRING, NAME, OP}:
+#             tokens.append(value)
 #         else:
-#             print("skip", code[i])
-#             i += 1
-#     print("tokens", tokens)
+#             print("ignoring", type, value)
+#
 #     return tokens + [EOF]
+
+def mytokenize(code):
+    n = len(code)
+    i = 0
+    tokens = []
+    while i<len(code):
+        if idstart(code[i]):
+            v = []
+            while i<n and idchar(code[i]):
+                v.append(code[i])
+                i += 1
+            tokens.append(''.join(v))
+        elif code[i].isdigit():
+            num = []
+            while i<n and code[i].isdigit():
+                num.append(code[i])
+                i += 1
+            tokens.append(''.join(num))
+        elif code[i] in SYMBOLS:
+            op = code[i]
+            i += 1
+            tokens.append(op)
+        elif code[i] in {'\'','"'}:
+            # use built-in tokenizer for strings
+        elif code[i] in {' ','\t'}:
+            i += 1
+        else:
+            print("skip", code[i])
+            i += 1
+    return tokens + [EOF]
 
 
 class dbg:
