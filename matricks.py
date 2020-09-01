@@ -21,6 +21,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+import inspect
 from collections import namedtuple
 
 ADDOP     = {'+', '-'}
@@ -38,13 +39,13 @@ def idchar(c): # include '.'; assume single char here
 
 
 Assign = namedtuple('Assign', ['lhs', 'rhs'])
-Add = namedtuple('Add', ['opnds'])
-Mult = namedtuple('Mult', ['opnds'])
 Call = namedtuple('Call', ['name','args'])
 Index = namedtuple('Index', ['name','index'])
+BinaryOp = namedtuple('BinaryOp', ['op','a','b'])
+UnaryOp = namedtuple('UnaryOp', ['op','opnd'])
+ListLiteral = namedtuple('ListLiteral', ['elems'])
 
 class PyExprParser:
-
     def __init__(self, code):
         self.code = code
         self.tokens = tokenize(code)
@@ -71,36 +72,36 @@ class PyExprParser:
 
     def addexpr(self):
         elist = []
-        e = self.multexpr()
-        elist.append(e)
+        root = self.multexpr()
         while self.LA(1) in ADDOP:
+            op = self.LA(1)
             elist.append(self.LA(1))
             self.t += 1
-            e = self.multexpr()
-            elist.append(e)
-        return Add(elist) if len(elist)>1 else elist[0]
+            b = self.multexpr()
+            root = BinaryOp(op, root, b)
+        return root
 
     def multexpr(self):
         elist = []
-        e = self.unaryexpr()
-        elist.append(e)
+        root = self.unaryexpr()
         while self.LA(1) in MULOP:
+            op = self.LA(1)
             elist.append(self.LA(1))
             self.t += 1
-            e = self.unaryexpr()
-            elist.append(e)
-        return elist if len(elist)>1 else elist[0]
+            b = self.unaryexpr()
+            root = BinaryOp(op, root, b)
+        return root
 
     def unaryexpr(self):
         if self.LA(1) in UNARYOP:
             op = self.LA(1)
             self.t += 1
             e = self.unaryexpr()
-            return [op, e]
+            return UnaryOp(op, e)
         elif self.isatom() or self.isgroup():
             return self.postexpr()
         else:
-            print(f"missing atom at: {self.LA(1)}")
+            print(f"missing unary expr at: {self.LA(1)}")
 
     def postexpr(self):
         e = self.atom()
@@ -156,7 +157,7 @@ class PyExprParser:
         self.match('[')
         e = self.exprlist()
         self.match(']')
-        return e
+        return ListLiteral(e)
 
     def isatom(self):
         return idstart(self.LA(1)) or self.LA(1).isdigit() or self.LA(1)==':'
@@ -205,22 +206,44 @@ def tokenize(code):
     return tokens + [EOF]
 
 
-# p = PyExprParser("a[:,i,j]")
-# t = p.parse()
-# print(t)
+class dbg:
+    def __init__(self):
+        pass
 
-lines = """
-a[:,i,j]
-W = np.array([[1, 2], [3, 4]])
-z = torch.sigmoid(self.Whz@h    + self.Uxz@x  + self.bz)
-r = torch.sigmoid(self.Whr@h    + self.Uxr@x  + self.br)
-h_ = torch.tanh(self.Whh_@(r*h) + self.Uxh_@x + self.bh_)
-h = torch.tanh( (1-z)*h + z*h_ )
-""".strip().split('\n')
+    def __enter__(self):
+        return self
 
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        if exc_type is not None:
+            if not self.is_interesting_exception(exc_value):
+                return
+            print("exception:", exc_value, exc_traceback)
+            # traceback.print_tb(exc_traceback, limit=5, file=sys.stdout)
+            exc_frame = self.deepest_frame(exc_traceback)
+            module, name, filename, line, code = self.info(exc_frame)
+            print('info', module, name, filename, line, code)
+            #raise RuntimeError("foo") from exc_value
+            # Reuse exception but overwrite the message
+            exc_value.args = ["was:" + exc_value.args[0]]
 
-for code in lines:
-    # print(tokenize(code))
-    p = PyExprParser(code)
-    t = p.parse()
-    print(t)
+    def is_interesting_exception(self, e):
+        if "THTensorMath" in e.args[0] or \
+           " tensor " in e.args[0] or \
+           " tensors " in e.args[0]:
+            return True
+        return False
+
+    def deepest_frame(self, exc_traceback):
+        tb = exc_traceback
+        while tb.tb_next != None:
+            tb = tb.tb_next
+        return tb.tb_frame
+
+    def info(self, frame):
+        module = frame.f_globals['__name__']
+        info = inspect.getframeinfo(frame)
+        code = info.code_context[0].strip()
+        filename, line = info.filename, info.lineno
+        name = info.function
+        return module, name, filename, line, code
+
