@@ -38,12 +38,15 @@ def idchar(c): # include '.'; assume single char here
     return c.isalpha() or c.isdigit() or c == '_' or c == '.'
 
 
-Assign = namedtuple('Assign', ['lhs', 'rhs'])
-Call = namedtuple('Call', ['name','args'])
-Index = namedtuple('Index', ['name','index'])
-BinaryOp = namedtuple('BinaryOp', ['op','a','b'])
-UnaryOp = namedtuple('UnaryOp', ['op','opnd'])
+# Parse tree definitions
+
+Assign      = namedtuple('Assign',      ['lhs', 'rhs'])
+Call        = namedtuple('Call',        ['name','args'])
+Index       = namedtuple('Index',       ['name','index'])
+BinaryOp    = namedtuple('BinaryOp',    ['op','a','b'])
+UnaryOp     = namedtuple('UnaryOp',     ['op','opnd'])
 ListLiteral = namedtuple('ListLiteral', ['elems'])
+SubExpr     = namedtuple('SubExpr',     ['e'])  # record parens for later display to keep precedence
 
 class PyExprParser:
     def __init__(self, code):
@@ -151,7 +154,7 @@ class PyExprParser:
         self.match('(')
         e = self.expression()
         self.match(')')
-        return e
+        return SubExpr(e)
 
     def listatom(self):
         self.match('[')
@@ -227,11 +230,9 @@ class dbg:
             exc_value.args = ["was:" + exc_value.args[0]]
 
     def is_interesting_exception(self, e):
-        if "THTensorMath" in e.args[0] or \
-           " tensor " in e.args[0] or \
-           " tensors " in e.args[0]:
-            return True
-        return False
+        sentinels = {'matmul', 'THTensorMath', 'tensor', 'tensors', 'dimension'}
+        msg = e.args[0]
+        return sum([s in msg for s in sentinels])>0
 
     def deepest_frame(self, exc_traceback):
         tb = exc_traceback

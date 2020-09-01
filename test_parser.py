@@ -55,12 +55,18 @@ def test_method():
 
 
 def test_parens():
-    check("(r*h)", "BinaryOp(op='*', a='r', b='h')")
+    check("(a+b)*c", "BinaryOp(op='*',a=SubExpr(e=BinaryOp(op='+',a='a',b='b')),b='c')")
 
 
 def test_arith():
     check("(1-z)*h + z*h_",
-          "BinaryOp(op='+', a=BinaryOp(op='*', a=BinaryOp(op='-', a='1', b='z'), b='h'), b=BinaryOp(op='*', a='z', b='h_'))")
+          """BinaryOp(op='+',
+                      a=BinaryOp(op='*',
+                                 a=SubExpr(e=BinaryOp(op='-',
+                                                      a='1',
+                                                      b='z')),
+                                 b='h'),
+                      b=BinaryOp(op='*',a='z',b='h_'))""")
 
 
 def test_chained_op():

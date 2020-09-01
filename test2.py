@@ -116,4 +116,4 @@ def foo():
     g()
 
 with matricks.dbg():
-    foo()
+    g()
