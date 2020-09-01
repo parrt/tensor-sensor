@@ -42,8 +42,11 @@ def idchar(c): # include '.'; assume single char here
 # Parse tree definitions
 
 class ParseTreeNode:
+    def eval(self, frame):
+        "Evaluate the expression represented by this (sub)tree in context of frame"
+        return eval(str(self), frame.f_locals, frame.f_globals)
     def __str__(self):
-        return "<ParseTreeNode>"
+        pass
     def __repr__(self):
         args = [v+'='+self.__dict__[v].__repr__() for v in self.__dict__]
         args = ','.join(args)
@@ -118,8 +121,8 @@ class PyExprParser:
         self.t = 0 # current lookahead
 
     def parse(self):
-        print("\nparse", self.code)
-        print(self.tokens)
+        # print("\nparse", self.code)
+        # print(self.tokens)
         s = self.statement()
         self.match(EOF)
         return s
