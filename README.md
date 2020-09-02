@@ -41,10 +41,10 @@ with matricks.dbg():
 which then emits the following better error message:
 
 ```
-Call torch.dot(b,b) has arg b w/shape torch.Size([2, 1]), arg b w/shape torch.Size([2, 1])
+Call torch.dot(b,b) has arg b w/shape [2, 1], arg b w/shape [2, 1]
 ```
 
-Here’s another default error message that is almost helpful for expression W @ z:
+Here’s another default error message that is almost helpful for expression `W @ z`:
 
 ```
 RuntimeError: size mismatch, get 2, 2x2,3
@@ -53,5 +53,5 @@ RuntimeError: size mismatch, get 2, 2x2,3
 But this library gives:
 
 ```
-Operation @ has operand W w/shape torch.Size([2, 2]) and operand z w/shape torch.Size([3])
+Operation @ has operand W w/shape [2, 2] and operand z w/shape [3]
 ```

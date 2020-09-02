@@ -108,7 +108,7 @@ def g():
     b = torch.tensor([9, 10]).reshape(2, 1)
     x = torch.tensor([4, 5]).reshape(2, 1)
     z = torch.tensor([1,2,3])
-    # z + z + W @ z
+    z + z + W @ z
     # W @ z
     # np.dot(b, b)
     W @ torch.dot(b,b)+ torch.eye(2,2)@x + z

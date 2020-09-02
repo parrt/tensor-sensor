@@ -60,7 +60,7 @@ with matricks.dbg():
 
 which then emits the following better error message:
 
-Call torch.dot(b,b) has arg b w/shape torch.Size([2, 1]), arg b w/shape torch.Size([2, 1])
+Call torch.dot(b,b) has arg b w/shape [2, 1], arg b w/shape [2, 1]
 
 The with statement allows me to trap exceptions that occur and then I
 literally parse the Python code of the offending line, build an
