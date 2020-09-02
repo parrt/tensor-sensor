@@ -93,7 +93,7 @@ pip install tensor-sensor
 which gives you module `tsensor`.
 
 
-## Deploy
+## Deploy (parrt's use)
 
 ```bash
 $ python setup.py sdist upload 
@@ -105,4 +105,3 @@ Or download and install locally
 $ cd ~/github/tensor-sensor
 $ pip install .
 ```
-
