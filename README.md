@@ -1,4 +1,4 @@
-# matricks
+# Tensor Sensor
 
 The goal of this library is to generate more helpful exception
 messages for numpy/pytorch matrix algebra expressions.  Because the
