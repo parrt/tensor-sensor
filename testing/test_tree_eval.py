@@ -45,6 +45,20 @@ def test_var():
     a = 34
     check("a", 34)
 
+def test_member_var():
+    class A:
+        def __init__(self):
+            self.a = 34
+    x = A()
+    check("x.a", 34)
+
+def test_member_func():
+    class A:
+        def f(self, a):
+            return a+4
+    x = A()
+    check("x.f(30)", 34)
+
 def test_index():
     a = [1,2,3]
     check("a[2]", 3)

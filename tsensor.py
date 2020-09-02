@@ -103,7 +103,8 @@ class IncrEvalTrap(BaseException):
 
 # Parse tree definitions
 # I found package ast in python3 lib after I built this. whoops. No biggie.
-# This tree structure is easier to visit for my purposes here.
+# This tree structure is easier to visit for my purposes here. Also lets me
+# control the kinds of statements I process.
 
 class ParseTreeNode:
     def __init__(self):
@@ -187,6 +188,22 @@ class Index(ParseTreeNode):
         i = self.index
         i = ','.join(str(v) for v in i)
         return f"{self.name}[{i}]"
+
+class Member(ParseTreeNode):
+    def __init__(self, obj, member):
+        super().__init__()
+        self.obj = obj
+        self.member = member
+    def eval(self, frame):
+        self.obj.eval(frame)
+        # don't eval member as it's just a name to look up in obj
+        return super().eval(frame)
+    @property
+    def left(self): return self.obj
+    @property
+    def right(self): return self.member
+    def __str__(self):
+        return f"{self.obj}.{self.member}"
 
 class BinaryOp(ParseTreeNode):
     def __init__(self, op, lhs, rhs):
@@ -325,17 +342,38 @@ class PyExprParser:
             e = self.unaryexpr()
             return UnaryOp(op, e)
         elif self.isatom() or self.isgroup():
-            return self.postexpr()
+            return self.memberexpr()
         else:
             print(f"missing unary expr at: {self.LT(1)}")
 
+    def memberexpr(self):
+        root = self.postexpr()
+        while self.LA(1)==DOT:
+            self.match(DOT)
+            m = self.postexpr()
+            root = Member(root, m)
+        return root
+
     def postexpr(self):
-        e = self.atom()
-        if self.LA(1)==LPAR:
-            return self.funccall(e)
-        if self.LA(1)==LSQB:
-            return self.index(e)
-        return e
+        root = self.atom()
+        while self.LA(1) in {LPAR, LSQB, DOT}:
+            if self.LA(1)==LPAR:
+                self.match(LPAR)
+                el = None
+                if self.LA(1) != RPAR:
+                    el = self.exprlist()
+                self.match(RPAR)
+                return Call(root, el)
+            if self.LA(1)==LSQB:
+                self.match(LSQB)
+                el = self.exprlist()
+                self.match(RSQB)
+                return Index(root, el)
+            if self.LA(1)==DOT:
+                self.match(DOT)
+                m = Atom(self.match(NAME))
+                root = Member(root, m)
+        return root
 
     def atom(self):
         if self.LA(1) == LPAR:
@@ -348,20 +386,6 @@ class PyExprParser:
             return Atom(atom)
         else:
             print("error")
-
-    def funccall(self, f):
-        self.match(LPAR)
-        el = None
-        if self.LA(1)!=RPAR:
-            el = self.exprlist()
-        self.match(RPAR)
-        return Call(f, el)
-
-    def index(self, e):
-        self.match(LSQB)
-        el = self.exprlist()
-        self.match(RSQB)
-        return Index(e, el)
 
     def exprlist(self):
         elist = []
@@ -404,7 +428,9 @@ class PyExprParser:
     def match(self, type):
         if self.LA(1)!=type:
             print(f"mismatch token {self.LT(1)}, looking for {token.tok_name[type]}")
+        tok = self.LT(1)
         self.t += 1
+        return tok
 
 
 def mytokenize(s):
@@ -417,22 +443,23 @@ def mytokenize(s):
         else:
             # print("ignoring", type, value)
             pass
-
-    # Scan for "a.b.c.d" type patterns and combine into NAME
-    tokens2 = []
-    i = 0
-    while i<len(tokens):
-        if tokens[i].type==NAME:
-            start = i
-            i += 1
-            while tokens[i].type==DOT:
-                i += 2 # skip over ". name"
-            tokens2.append(Token(NAME,''.join(str(t) for t in tokens[start:i])))
-        else:
-            tokens2.append(tokens[i])
-            i += 1
-    tokens = tokens2
-    return tokens#+[Token(ENDMARKER,"<EOF>")]
+    return tokens
+    #
+    # # Scan for "a.b.c.d" type patterns and combine into NAME
+    # tokens2 = []
+    # i = 0
+    # while i<len(tokens):
+    #     if tokens[i].type==NAME:
+    #         start = i
+    #         i += 1
+    #         while tokens[i].type==DOT:
+    #             i += 2 # skip over ". name"
+    #         tokens2.append(Token(NAME,''.join(str(t) for t in tokens[start:i])))
+    #     else:
+    #         tokens2.append(tokens[i])
+    #         i += 1
+    # tokens = tokens2
+    # return tokens#+[Token(ENDMARKER,"<EOF>")]
 
 
 class dbg:

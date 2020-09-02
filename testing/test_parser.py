@@ -56,12 +56,15 @@ def test_literal_list():
 
 def test_literal_array():
     check("np.array([[1, 2], [3, 4]])",
-          "Call(name=np.array, args=[ListLiteral(elems=[ListLiteral(elems=[1, 2]), ListLiteral(elems=[3, 4])])])")
+          """
+          Call(name=Member(obj=np,member=array),
+               args=[ListLiteral(elems=[ListLiteral(elems=[1,2]),ListLiteral(elems=[3,4])])])
+          """)
 
 
 def test_method():
     check("h = torch.tanh(h)",
-          "Assign(lhs=h, rhs=Call(name=torch.tanh, args=[h]))")
+          "Assign(lhs=h,rhs=Call(name=Member(obj=torch,member=tanh),args=[h]))")
 
 
 def test_parens():
@@ -87,11 +90,12 @@ def test_chained_op():
 
 
 def test_matrix_arith():
-    check("self.Whz@h + self.Uxz@x + self.bz",
-          """BinaryOp(op=<PLUS:+>,
-                      lhs=BinaryOp(op=<PLUS:+>,
-                                 lhs=BinaryOp(op=<AT:@>, lhs=self.Whz, rhs=h),
-                                 rhs=BinaryOp(op=<AT:@>, lhs=self.Uxz, rhs=x)),
-                      rhs=self.bz)""")
-
+    check("self.Whz@h + Uxz@x + bz",
+          """
+          BinaryOp(op=<PLUS:+>,
+                   lhs=BinaryOp(op=<PLUS:+>,
+                                lhs=BinaryOp(op=<AT:@>,lhs=Member(obj=self,member=Whz),rhs=h),
+                                rhs=BinaryOp(op=<AT:@>,lhs=Uxz,rhs=x)),
+                   rhs=bz)
+          """)
 
