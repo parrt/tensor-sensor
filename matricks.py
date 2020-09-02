@@ -66,6 +66,9 @@ class ParseTreeNode:
 class Assign(ParseTreeNode):
     def __init__(self, lhs, rhs):
         self.lhs, self.rhs = lhs, rhs
+    def eval(self, frame):
+        "Only consider rhs of assignment"
+        return eval(str(self.rhs), frame.f_locals, frame.f_globals)
     @property
     def left(self): return self.lhs
     @property
@@ -303,7 +306,8 @@ def mytokenize(s):
         if type in {NUMBER, STRING, NAME, OP, ENDMARKER}:
             tokens.append(Token(tok.exact_type,value))
         else:
-            print("ignoring", type, value)
+            # print("ignoring", type, value)
+            pass
 
     # Scan for "a.b.c.d" type patterns and combine into NAME
     tokens2 = []
@@ -387,20 +391,35 @@ class dbg:
             print('info', module, name, filename, line, code)
             #raise RuntimeError("foo") from exc_value
 
+            augment = ""
             try:
                 p = PyExprParser(code)
                 t = p.parse()
                 try:
                     incr_eval(t, exc_frame)
                 except IncrEvalTrap as exc:
-                    print(exc, exc.expr)
-                # result = t.eval(exc_frame)
-                # print("result", result)
+                    subexpr = exc.expr
+                    # print("trapped at", subexpr)
+                    if subexpr.left is not None:
+                        left = subexpr.left.eval(exc_frame)
+                        # print(subexpr.left, left)
+                        if self.has_shape(left):
+                            # print(subexpr.left, "shape", left.shape)
+                            augment += f"{subexpr.left}.shape={left.shape}"
+                    if subexpr.right is not None:
+                        right = subexpr.right.eval(exc_frame)
+                        # print(subexpr.right, right)
+                        if self.has_shape(right):
+                            # print(subexpr.right, "shape", right.shape)
+                            augment += f"\n{subexpr.right}.shape={right.shape}"
             except BaseException as e:
                 print(f"exception while eval({code})", e)
 
             # Reuse exception but overwrite the message
-            exc_value.args = ["was:" + exc_value.args[0]]
+            exc_value.args = [exc_value.args[0]+"\n"+augment]
+
+    def has_shape(self, v):
+        return hasattr(v, "shape")
 
     def is_interesting_exception(self, e):
         sentinels = {'matmul', 'THTensorMath', 'tensor', 'tensors', 'dimension'}
@@ -435,7 +454,9 @@ def incr_eval(tree, frame):
         for t in tree:
             incr_eval(t, frame)
         return
-    if tree.left is not None and tree.right is not None: # binary
+    if isinstance(tree, Assign):
+        incr_eval(tree.right, frame)
+    elif tree.left is not None and tree.right is not None: # binary
         incr_eval(tree.left, frame)
         incr_eval(tree.right, frame)
     elif tree.left is not None: # unary

@@ -102,7 +102,7 @@ def f():
 def g():
     W = torch.tensor([[1, 2], [3, 4]])
     b = torch.tensor([9, 10]).reshape(2, 1)
-    W @ torch.tensor([[1,2,3]])
+    z = W@b + W@torch.tensor([[1,2,3]])
     W[33, 33] = 3
     x = torch.tensor([4, 5]).reshape(2, 1)
     b = np.abs( W @ b + x )

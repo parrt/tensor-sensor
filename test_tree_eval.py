@@ -38,6 +38,9 @@ def check(s,expected):
 def test_int():
     check("34", 34)
 
+def test_assign():
+    check("a = 34", 34)
+
 def test_var():
     a = 34
     check("a", 34)

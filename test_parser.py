@@ -41,6 +41,10 @@ def check(s,expected):
     assert result_repr==expected
 
 
+def test_assign():
+    check("a = 3", "Assign(lhs=a,rhs=3)")
+
+
 def test_index():
     check("a[:,i,j]", "Index(name=a, index=[:, i, j])")
 
