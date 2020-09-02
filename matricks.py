@@ -22,19 +22,38 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 import inspect
-import typing
 import sys
+from io import BytesIO
 import traceback
 import torch
-from tokenize import tokenize, TokenInfo,\
+import token
+from tokenize import tokenize,\
     NUMBER, STRING, NAME, OP, ENDMARKER, LPAR, LSQB, RPAR, RSQB, EQUAL, COMMA, COLON,\
     PLUS, MINUS, STAR, SLASH, AT, PERCENT, TILDE, DOT
-import token
-from io import BytesIO
+
 
 ADDOP     = {PLUS, MINUS}
 MULOP     = {STAR, SLASH, AT, PERCENT}
 UNARYOP   = {TILDE}
+
+
+class Token:
+    def __init__(self, type, value):
+        self.type, self.value = type, value
+    def __repr__(self):
+        return f"<{token.tok_name[self.type]}:{self.value}>"
+    def __str__(self):
+        return self.value
+
+
+class IncrEvalTrap(BaseException):
+    """
+    Used during re-evaluation of python line that threw exception to trap which
+    subexpression caused the problem.
+    """
+    def __init__(self, offending_expr):
+        self.offending_expr = offending_expr # where in tree did we get exception?
+
 
 # Parse tree definitions
 # I found package ast in python3 lib after I built this. whoops. No biggie.
@@ -95,7 +114,7 @@ class Call(ParseTreeNode):
     def explain(self):
         arg_msgs = []
         for a in self.args:
-            ashape = shape(a.value)
+            ashape = _shape(a.value)
             if ashape:
                 arg_msgs.append(f"arg {a} w/shape {ashape}")
         return f"Call {self} has " + ', '.join(arg_msgs)
@@ -131,8 +150,8 @@ class BinaryOp(ParseTreeNode):
         return super().eval(frame)
     def explain(self):
         opnd_msgs = []
-        lshape = shape(self.lhs.value)
-        rshape = shape(self.rhs.value)
+        lshape = _shape(self.lhs.value)
+        rshape = _shape(self.rhs.value)
         if lshape:
             opnd_msgs.append(f"operand {self.lhs} w/shape {lshape}")
         if rshape:
@@ -340,14 +359,6 @@ class PyExprParser:
         self.t += 1
 
 
-class Token:
-    def __init__(self, type, value):
-        self.type, self.value = type, value
-    def __repr__(self):
-        return f"<{token.tok_name[self.type]}:{self.value}>"
-    def __str__(self):
-        return self.value
-
 def mytokenize(s):
     tokensO = tokenize(BytesIO(s.encode('utf-8')).readline)
     tokens = []
@@ -374,53 +385,6 @@ def mytokenize(s):
             i += 1
     tokens = tokens2
     return tokens#+[Token(ENDMARKER,"<EOF>")]
-
-# def mytokenize(code):
-#     n = len(code)
-#     i = 0
-#     tokens = []
-#     while i<len(code):
-#         if idstart(code[i]):
-#             v = []
-#             while i<n and idchar(code[i]):
-#                 v.append(code[i])
-#                 i += 1
-#             tokens.append(''.join(v))
-#         elif code[i].isdigit():
-#             num = []
-#             while i<n and code[i].isdigit():
-#                 num.append(code[i])
-#                 i += 1
-#             tokens.append(''.join(num))
-#         elif code[i] in SYMBOLS:
-#             op = code[i]
-#             i += 1
-#             tokens.append(op)
-#         elif code[i] in {'r','u','f'} and code[i+1] in {'\'', '"'}:
-#             quote = code[i]
-#             i += 1
-#             start = i
-#             while i<n and code[i]!=quote:
-#                 if code[i]=='\\':
-#                     i += 1
-#                 i += 1
-#             tokens.append(code[start:i])
-#         elif code[i] in {'\'', '"'}:
-#             quote = code[i]
-#             i += 1
-#             start = i
-#             while i<n and code[i]!=quote:
-#                 if code[i]=='\\':
-#                     i += 1
-#                 i += 1
-#             tokens.append(code[start:i])
-#         elif code[i] in {' ','\t'}:
-#             i += 1
-#         else:
-#             print("skip", code[i])
-#             i += 1
-#     print("tokens", tokens)
-#     return tokens + [EOF]
 
 
 class dbg:
@@ -456,17 +420,6 @@ class dbg:
                 explanation = subexpr.explain()
                 if explanation is not None:
                     augment = explanation
-                # # print("trapped at", subexpr)
-                # if subexpr.left is not None:
-                #     if self.has_shape(subexpr.left.value):
-                #         # print(subexpr.left, "shape", left.shape)
-                #         augment += f"Operand {subexpr.left} has shape {subexpr.left.value.shape}"
-                # if subexpr.right is not None:
-                #     # right = subexpr.right.eval(exc_frame)
-                #     # print(subexpr.right, right)
-                #     if self.has_shape(subexpr.right.value):
-                #         # print(subexpr.right, "shape", right.shape)
-                #         augment += f" and {subexpr.right} has shape {subexpr.right.value.shape}"
         except BaseException as e:
             print(f"exception while eval({code})", e)
             traceback.print_tb(e.__traceback__, limit=5, file=sys.stdout)
@@ -500,38 +453,9 @@ class dbg:
         name = info.function
         return module, name, filename, line, code
 
-def shape(v):
+def _shape(v):
     if hasattr(v, "shape"):
         if isinstance(v.shape, torch.Size):
             return list(v.shape)
         return v.shape
     return None
-
-
-class IncrEvalTrap(BaseException):
-    def __init__(self, offending_expr):
-        self.offending_expr = offending_expr # where in tree did we get exception?
-
-
-def incr_eval(tree, frame):
-    "Incrementally evaluate all subexpressions, looking for operation that fails; return that subtree"
-    if tree is None:
-        return
-    # if isinstance(tree, list): # must be args list or expr list
-    #     for t in tree:
-    #         t.value = incr_eval(t, frame)
-    #     return
-    # if isinstance(tree, Assign):
-    #     incr_eval(tree.right, frame)
-    # elif tree.left is not None and tree.right is not None: # binary
-    #     incr_eval(tree.left, frame)
-    #     incr_eval(tree.right, frame)
-    # elif tree.left is not None: # unary
-    #     incr_eval(tree.left, frame)
-    try:
-        # try to do this operator and, if successfull, store result in tree node
-        tree.eval(frame)
-    except:
-        raise IncrEvalTrap(tree)
-    # else all is well, just return to larger subexpr up the tree
-

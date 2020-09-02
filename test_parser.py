@@ -36,8 +36,8 @@ def check(s,expected):
     result_repr = repr(t)
     result_repr = re.sub(r"\s+", "", result_repr)
     expected = re.sub(r"\s+", "", expected)
-    print("result", result_repr)
-    print("expected", expected)
+    # print("result", result_repr)
+    # print("expected", expected)
     assert result_repr==expected
 
 

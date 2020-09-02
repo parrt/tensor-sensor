@@ -33,7 +33,7 @@ def check(s,expected):
     t = p.parse()
     bad_subexpr = None
     try:
-        incr_eval(t, caller)
+        t.eval(caller)
     except IncrEvalTrap as exc:
         bad_subexpr = str(exc.offending_expr)
     assert bad_subexpr==expected
