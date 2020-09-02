@@ -8,8 +8,8 @@ import torch
 
 import numpy as np
 
-from matricks import dbg
-import matricks
+from tsensor import dbg
+import tsensor
 
 class Tracer:
     def __init__(self, modules=['__main__']):
@@ -124,6 +124,6 @@ def foo():
     g()
 
 
-with matricks.dbg():
+with tsensor.dbg():
     g()
 

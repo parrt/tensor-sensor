@@ -33,8 +33,8 @@ shape of relevant operands are.  This library that lets you
 do this:
 
 ```
-import matricks
-with matricks.dbg():
+import tsensor
+with tsensor.dbg():
     W @ torch.dot(b,b)+ torch.eye(2,2)@x + z
 ```
 
