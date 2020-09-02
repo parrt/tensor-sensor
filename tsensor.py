@@ -27,6 +27,7 @@ from io import BytesIO
 import traceback
 import torch
 import token
+import keyword
 from tokenize import tokenize,\
     NUMBER, STRING, NAME, OP, ENDMARKER, LPAR, LSQB, RPAR, RSQB, EQUAL, COMMA, COLON,\
     PLUS, MINUS, STAR, SLASH, AT, PERCENT, TILDE, DOT
@@ -301,9 +302,12 @@ class PyExprParser:
     def parse(self):
         # print("\nparse", self.code)
         # print(self.tokens)
-        s = self.statement()
-        self.match(ENDMARKER)
-        return s
+        # only process assignments and expressions
+        if not keyword.iskeyword(self.tokens[0].value):
+            s = self.statement()
+            self.match(ENDMARKER)
+            return s
+        return None
 
     def statement(self):
         lhs = self.expression()
@@ -528,6 +532,66 @@ class dbg:
         filename, line = info.filename, info.lineno
         name = info.function
         return module, name, filename, line, code
+
+class Tracer:
+    def __init__(self, modules=['__main__'], filenames=[]):
+        self.modules = modules
+        self.filenames = filenames
+        self.exceptions = set()
+
+    def listener(self, frame, event, arg):
+        module = frame.f_globals['__name__']
+        if module not in self.modules:
+            return
+
+        info = inspect.getframeinfo(frame)
+        filename, line = info.filename, info.lineno
+        name = info.function
+        if len(self.filenames)>0 and filename not in self.filenames:
+            return
+
+        if event=='call':
+            self.call_listener(module, name, filename, line)
+            return self.listener
+
+        # TODO: ignore c_call etc...
+
+        if event=='line':
+            self.line_listener(module, name, filename, line, info)
+
+        return None
+
+    def call_listener(self, module, name, filename, line):
+        # print(f"A call encountered in {module}.{name}() at {filename}:{line}")
+        pass
+
+    def line_listener(self, module, name, filename, line, info):
+        code = info.code_context[0].strip()
+        if code.startswith("sys.settrace(None)"):
+            return
+        p = PyExprParser(code)
+        t = p.parse()
+        if t is not None:
+            print(f"A line encountered in {module}.{name}() at {filename}:{line}")
+            print("\t", code)
+            print("\t", repr(t))
+
+
+class explain:
+    def __enter__(self):
+        print("ON trace")
+        tr = Tracer()
+        sys.settrace(tr.listener)
+        frame = sys._getframe()
+        prev = frame.f_back # get block wrapped in "with"
+        # if frame.f_back is None:
+        # prev = stack()[2]
+        prev.f_trace = tr.listener
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        sys.settrace(None)
+        print("OFF trace")
+
 
 def _shape(v):
     if hasattr(v, "shape"):
