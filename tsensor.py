@@ -150,9 +150,9 @@ class Assign(ParseTreeNode):
         return str(self.lhs)+'='+str(self.rhs)
 
 class Call(ParseTreeNode):
-    def __init__(self, name, args):
+    def __init__(self, func, args):
         super().__init__()
-        self.name = name
+        self.func = func
         self.args = args
     def eval(self, frame):
         for a in self.args:
@@ -171,12 +171,12 @@ class Call(ParseTreeNode):
     def left(self): return self.args
     def __str__(self):
         args_ = ','.join([str(a) for a in self.args])
-        return f"{self.name}({args_})"
+        return f"{self.func}({args_})"
 
 class Index(ParseTreeNode):
-    def __init__(self, name, index):
+    def __init__(self, arr, index):
         super().__init__()
-        self.name = name
+        self.arr = arr
         self.index = index
     def eval(self, frame):
         for i in self.index:
@@ -187,7 +187,7 @@ class Index(ParseTreeNode):
     def __str__(self):
         i = self.index
         i = ','.join(str(v) for v in i)
-        return f"{self.name}[{i}]"
+        return f"{self.arr}[{i}]"
 
 class Member(ParseTreeNode):
     def __init__(self, obj, member):
@@ -342,36 +342,37 @@ class PyExprParser:
             e = self.unaryexpr()
             return UnaryOp(op, e)
         elif self.isatom() or self.isgroup():
-            return self.memberexpr()
+            return self.postexpr()
         else:
             print(f"missing unary expr at: {self.LT(1)}")
 
-    def memberexpr(self):
-        root = self.postexpr()
-        while self.LA(1)==DOT:
-            self.match(DOT)
-            m = self.postexpr()
-            root = Member(root, m)
-        return root
+    # def memberexpr(self):
+    #     root = self.postexpr()
+    #     while self.LA(1)==DOT:
+    #         self.match(DOT)
+    #         m = self.postexpr()
+    #         root = Member(root, m)
+    #     return root
 
     def postexpr(self):
         root = self.atom()
         while self.LA(1) in {LPAR, LSQB, DOT}:
             if self.LA(1)==LPAR:
                 self.match(LPAR)
-                el = None
+                el = []
                 if self.LA(1) != RPAR:
                     el = self.exprlist()
                 self.match(RPAR)
-                return Call(root, el)
+                root = Call(root, el)
             if self.LA(1)==LSQB:
                 self.match(LSQB)
                 el = self.exprlist()
                 self.match(RSQB)
-                return Index(root, el)
+                root = Index(root, el)
             if self.LA(1)==DOT:
                 self.match(DOT)
-                m = Atom(self.match(NAME))
+                m = self.match(NAME)
+                m = Atom(m)
                 root = Member(root, m)
         return root
 
@@ -380,9 +381,9 @@ class PyExprParser:
             return self.subexpr()
         elif self.LA(1) == LSQB:
             return self.listatom()
-        elif self.isatom() or self.isgroup() or self.LA(1)==COLON:
+        elif self.LA(1) in {NUMBER, NAME, STRING, COLON, COLON}:
             atom = self.LT(1)
-            self.t += 1  # match name or number
+            self.t += 1
             return Atom(atom)
         else:
             print("error")

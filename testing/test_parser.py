@@ -46,7 +46,7 @@ def test_assign():
 
 
 def test_index():
-    check("a[:,i,j]", "Index(name=a, index=[:, i, j])")
+    check("a[:,i,j]", "Index(arr=a, index=[:, i, j])")
 
 
 def test_literal_list():
@@ -57,18 +57,42 @@ def test_literal_list():
 def test_literal_array():
     check("np.array([[1, 2], [3, 4]])",
           """
-          Call(name=Member(obj=np,member=array),
+          Call(func=Member(obj=np,member=array),
                args=[ListLiteral(elems=[ListLiteral(elems=[1,2]),ListLiteral(elems=[3,4])])])
           """)
 
 
 def test_method():
     check("h = torch.tanh(h)",
-          "Assign(lhs=h,rhs=Call(name=Member(obj=torch,member=tanh),args=[h]))")
+          "Assign(lhs=h,rhs=Call(func=Member(obj=torch,member=tanh),args=[h]))")
+
+
+def test_field():
+    check("a.b", "Member(obj=a,member=b)")
+
+
+def test_member_func():
+    check("a.f()", "Call(func=Member(obj=a,member=f),args=[])")
+
+
+def test_field2():
+    check("a.b.c", "Member(obj=Member(obj=a,member=b),member=c)")
+
+
+def test_field_and_func():
+    check("a.f().c", "Member(obj=Call(func=Member(obj=a,member=f),args=[]),member=c)")
 
 
 def test_parens():
     check("(a+b)*c", "BinaryOp(op=<STAR:*>,lhs=SubExpr(e=BinaryOp(op=<PLUS:+>,lhs=a,rhs=b)),rhs=c)")
+
+
+def test_field_array():
+    check("a.b[34]", "Index(arr=Member(obj=a,member=b),index=[34])")
+
+
+def test_field_array_func():
+    check("a.b[34].f()", "Call(func=Member(obj=Index(arr=Member(obj=a,member=b),index=[34]),member=f),args=[])")
 
 
 def test_arith():
