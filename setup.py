@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='tensor-sensor',
-    version='0.1',
+    version='0.1a',
     url='https://github.com/parrt/tensor-sensor',
     license='MIT',
     py_modules=['tsensor'],
