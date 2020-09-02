@@ -35,7 +35,7 @@ def check(s,expected):
     try:
         incr_eval(t, caller)
     except IncrEvalTrap as exc:
-        bad_subexpr = str(exc.expr)
+        bad_subexpr = str(exc.offending_expr)
     assert bad_subexpr==expected
 
 

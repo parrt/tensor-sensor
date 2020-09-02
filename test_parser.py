@@ -56,42 +56,42 @@ def test_literal_list():
 
 def test_literal_array():
     check("np.array([[1, 2], [3, 4]])",
-          "Call(name=np.array, args=ListLiteral(elems=[ListLiteral(elems=[1, 2]), ListLiteral(elems=[3, 4])]))")
+          "Call(name=np.array, args=[ListLiteral(elems=[ListLiteral(elems=[1, 2]), ListLiteral(elems=[3, 4])])])")
 
 
 def test_method():
     check("h = torch.tanh(h)",
-          "Assign(lhs=h, rhs=Call(name=torch.tanh, args=h))")
+          "Assign(lhs=h, rhs=Call(name=torch.tanh, args=[h]))")
 
 
 def test_parens():
-    check("(a+b)*c", "BinaryOp(op=<STAR:*>,a=SubExpr(e=BinaryOp(op=<PLUS:+>,a=a,b=b)),b=c)")
+    check("(a+b)*c", "BinaryOp(op=<STAR:*>,lhs=SubExpr(e=BinaryOp(op=<PLUS:+>,lhs=a,rhs=b)),rhs=c)")
 
 
 def test_arith():
     check("(1-z)*h + z*h_",
           """BinaryOp(op=<PLUS:+>,
-                      a=BinaryOp(op=<STAR:*>,
-                                 a=SubExpr(e=BinaryOp(op=<MINUS:->,
-                                                      a=1,
-                                                      b=z)),
-                                 b=h),
-                      b=BinaryOp(op=<STAR:*>,a=z,b=h_))""")
+                      lhs=BinaryOp(op=<STAR:*>,
+                                 lhs=SubExpr(e=BinaryOp(op=<MINUS:->,
+                                                      lhs=1,
+                                                      rhs=z)),
+                                 rhs=h),
+                      rhs=BinaryOp(op=<STAR:*>,lhs=z,rhs=h_))""")
 
 
 def test_chained_op():
     check("a + b + c",
           """BinaryOp(op=<PLUS:+>,
-                      a=BinaryOp(op=<PLUS:+>, a=a, b=b),
-                      b=c)""")
+                      lhs=BinaryOp(op=<PLUS:+>, lhs=a, rhs=b),
+                      rhs=c)""")
 
 
 def test_matrix_arith():
     check("self.Whz@h + self.Uxz@x + self.bz",
           """BinaryOp(op=<PLUS:+>,
-                      a=BinaryOp(op=<PLUS:+>,
-                                 a=BinaryOp(op=<AT:@>, a=self.Whz, b=h),
-                                 b=BinaryOp(op=<AT:@>, a=self.Uxz, b=x)),
-                      b=self.bz)""")
+                      lhs=BinaryOp(op=<PLUS:+>,
+                                 lhs=BinaryOp(op=<AT:@>, lhs=self.Whz, rhs=h),
+                                 rhs=BinaryOp(op=<AT:@>, lhs=self.Uxz, rhs=x)),
+                      rhs=self.bz)""")
 
 

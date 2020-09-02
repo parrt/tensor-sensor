@@ -24,7 +24,8 @@ SOFTWARE.
 import inspect
 import typing
 import sys
-from collections import namedtuple
+import traceback
+import torch
 from tokenize import tokenize, TokenInfo,\
     NUMBER, STRING, NAME, OP, ENDMARKER, LPAR, LSQB, RPAR, RSQB, EQUAL, COMMA, COLON,\
     PLUS, MINUS, STAR, SLASH, AT, PERCENT, TILDE, DOT
@@ -34,41 +35,47 @@ from io import BytesIO
 ADDOP     = {PLUS, MINUS}
 MULOP     = {STAR, SLASH, AT, PERCENT}
 UNARYOP   = {TILDE}
-# OPERATORS = {'+', '-', '*', '/', '@', '%', '!', '~'}
-# SYMBOLS   = OPERATORS.union({'(', ')', '[', ']', '=', ',', ':'})
-
-# def idstart(c):
-#     return c[0].isalpha() or c[0]=='_'
-#
-# def idchar(c): # include '.'; assume single char here
-#     return c.isalpha() or c.isdigit() or c == '_' or c == '.'
-
 
 # Parse tree definitions
 # I found package ast in python3 lib after I built this. whoops. No biggie.
 # This tree structure is easier to visit for my purposes here.
 
 class ParseTreeNode:
+    def __init__(self):
+        self.value = None # used during evaluation
     def eval(self, frame):
-        "Evaluate the expression represented by this (sub)tree in context of frame"
-        return eval(str(self), frame.f_locals, frame.f_globals)
+        """
+        Evaluate the expression represented by this (sub)tree in context of frame.
+        Try any exception found while evaluating and remember which operation that
+        was in this tree
+        """
+        try:
+            self.value = eval(str(self), frame.f_locals, frame.f_globals)
+        except:
+            raise IncrEvalTrap(self)
+        # print(self, "=>", self.value)
+        return self.value
     @property
     def left(self): return None
     @property
     def right(self): return None
+    def explain(self):
+        return None
     def __str__(self):
         pass
     def __repr__(self):
-        args = [v+'='+self.__dict__[v].__repr__() for v in self.__dict__]
+        args = [v+'='+self.__dict__[v].__repr__() for v in self.__dict__ if v!='value' or self.__dict__['value'] is not None]
         args = ','.join(args)
         return f"{self.__class__.__name__}({args})"
 
 class Assign(ParseTreeNode):
     def __init__(self, lhs, rhs):
+        super().__init__()
         self.lhs, self.rhs = lhs, rhs
     def eval(self, frame):
-        "Only consider rhs of assignment"
-        return eval(str(self.rhs), frame.f_locals, frame.f_globals)
+        "Only consider rhs of assignment where our expr errors will occur"
+        self.value = self.rhs.eval(frame)
+        return self.value
     @property
     def left(self): return self.lhs
     @property
@@ -78,43 +85,74 @@ class Assign(ParseTreeNode):
 
 class Call(ParseTreeNode):
     def __init__(self, name, args):
+        super().__init__()
         self.name = name
         self.args = args
+    def eval(self, frame):
+        for a in self.args:
+            a.eval(frame)
+        return super().eval(frame)
+    def explain(self):
+        arg_msgs = []
+        for a in self.args:
+            ashape = shape(a.value)
+            if ashape:
+                arg_msgs.append(f"arg {a} w/shape {ashape}")
+        return f"Call {self} has " + ', '.join(arg_msgs)
     @property
     def left(self): return self.args
     def __str__(self):
-        if isinstance(self.args,list):
-            args_ = ','.join([str(a) for a in self.args])
-        else:
-            args_ = str(self.args)
+        args_ = ','.join([str(a) for a in self.args])
         return f"{self.name}({args_})"
 
 class Index(ParseTreeNode):
     def __init__(self, name, index):
+        super().__init__()
         self.name = name
         self.index = index
+    def eval(self, frame):
+        for i in self.index:
+            i.eval(frame)
+        return super().eval(frame)
     @property
     def left(self): return self.index
     def __str__(self):
         i = self.index
-        if isinstance(i,list):
-            i = ','.join(str(v) for v in i)
+        i = ','.join(str(v) for v in i)
         return f"{self.name}[{i}]"
 
 class BinaryOp(ParseTreeNode):
-    def __init__(self, op, a, b):
-        self.op, self.a, self.b = op, a, b
+    def __init__(self, op, lhs, rhs):
+        super().__init__()
+        self.op, self.lhs, self.rhs = op, lhs, rhs
+    def eval(self, frame):
+        self.lhs.eval(frame)
+        self.rhs.eval(frame)
+        return super().eval(frame)
+    def explain(self):
+        opnd_msgs = []
+        lshape = shape(self.lhs.value)
+        rshape = shape(self.rhs.value)
+        if lshape:
+            opnd_msgs.append(f"operand {self.lhs} w/shape {lshape}")
+        if rshape:
+            opnd_msgs.append(f"operand {self.rhs} w/shape {rshape}")
+        return f"Operation {self.op} has " + ' and '.join(opnd_msgs)
     @property
-    def left(self): return self.a
+    def left(self): return self.lhs
     @property
-    def right(self): return self.b
+    def right(self): return self.rhs
     def __str__(self):
-        return f"{self.a}{self.op}{self.b}"
+        return f"{self.lhs}{self.op}{self.rhs}"
 
 class UnaryOp(ParseTreeNode):
     def __init__(self, op, opnd):
+        super().__init__()
         self.op = op
         self.opnd = opnd
+    def eval(self, frame):
+        self.opnd.eval(frame)
+        return super().eval(frame)
     @property
     def left(self): return self.opnd
     def __str__(self):
@@ -122,7 +160,12 @@ class UnaryOp(ParseTreeNode):
 
 class ListLiteral(ParseTreeNode):
     def __init__(self, elems):
+        super().__init__()
         self.elems = elems
+    def eval(self, frame):
+        for i in self.elems:
+            i.eval(frame)
+        return super().eval(frame)
     @property
     def left(self): return self.elems
     def __str__(self):
@@ -135,7 +178,11 @@ class ListLiteral(ParseTreeNode):
 class SubExpr(ParseTreeNode):
     # record parens for later display to keep precedence
     def __init__(self, e):
+        super().__init__()
         self.e = e
+    def eval(self, frame):
+        self.e.eval(frame)
+        return self.e.value # don't re-evaluate
     @property
     def left(self): return self.e
     def __str__(self):
@@ -143,14 +190,17 @@ class SubExpr(ParseTreeNode):
 
 class Atom(ParseTreeNode):
     def __init__(self, nametok):
+        super().__init__()
         self.nametok = nametok
     def __repr__(self):
-        return self.nametok.value
+        v = f"{{{self.value}}}" if hasattr(self,'value') and self.value is not None else ""
+        return self.nametok.value+v
     def __str__(self):
         return self.nametok.value
 
 class String(ParseTreeNode):
     def __init__(self, stok):
+        super().__init__()
         self.stok = stok
     def __repr__(self):
         return f"'{self.stok.value}'"
@@ -254,7 +304,7 @@ class PyExprParser:
             self.match(COMMA)
             e = self.expression()
             elist.append(e)
-        return elist if len(elist)>1 else elist[0]
+        return elist# if len(elist)>1 else elist[0]
 
     def subexpr(self):
         self.match(LPAR)
@@ -384,85 +434,103 @@ class dbg:
         if exc_type is not None:
             if not self.is_interesting_exception(exc_value):
                 return
-            print("exception:", exc_value, exc_traceback)
+            # print("exception:", exc_value, exc_traceback)
             # traceback.print_tb(exc_traceback, limit=5, file=sys.stdout)
             exc_frame = self.deepest_frame(exc_traceback)
             module, name, filename, line, code = self.info(exc_frame)
-            print('info', module, name, filename, line, code)
-            #raise RuntimeError("foo") from exc_value
+            # print('info', module, name, filename, line, code)
+            if code is not None:
+                # could be internal like "__array_function__ internals" in numpy
+                self.process_exception(code, exc_frame, exc_value)
 
-            augment = ""
+    def process_exception(self, code, exc_frame, exc_value):
+        augment = ""
+        try:
+            p = PyExprParser(code)
+            t = p.parse()
             try:
-                p = PyExprParser(code)
-                t = p.parse()
-                try:
-                    incr_eval(t, exc_frame)
-                except IncrEvalTrap as exc:
-                    subexpr = exc.expr
-                    # print("trapped at", subexpr)
-                    if subexpr.left is not None:
-                        left = subexpr.left.eval(exc_frame)
-                        # print(subexpr.left, left)
-                        if self.has_shape(left):
-                            # print(subexpr.left, "shape", left.shape)
-                            augment += f"{subexpr.left}.shape={left.shape}"
-                    if subexpr.right is not None:
-                        right = subexpr.right.eval(exc_frame)
-                        # print(subexpr.right, right)
-                        if self.has_shape(right):
-                            # print(subexpr.right, "shape", right.shape)
-                            augment += f"\n{subexpr.right}.shape={right.shape}"
-            except BaseException as e:
-                print(f"exception while eval({code})", e)
-
-            # Reuse exception but overwrite the message
-            exc_value.args = [exc_value.args[0]+"\n"+augment]
-
-    def has_shape(self, v):
-        return hasattr(v, "shape")
+                t.eval(exc_frame)
+            except IncrEvalTrap as exc:
+                subexpr = exc.offending_expr
+                # print("trap evaluating:\n", repr(subexpr), "\nin", repr(t))
+                explanation = subexpr.explain()
+                if explanation is not None:
+                    augment = explanation
+                # # print("trapped at", subexpr)
+                # if subexpr.left is not None:
+                #     if self.has_shape(subexpr.left.value):
+                #         # print(subexpr.left, "shape", left.shape)
+                #         augment += f"Operand {subexpr.left} has shape {subexpr.left.value.shape}"
+                # if subexpr.right is not None:
+                #     # right = subexpr.right.eval(exc_frame)
+                #     # print(subexpr.right, right)
+                #     if self.has_shape(subexpr.right.value):
+                #         # print(subexpr.right, "shape", right.shape)
+                #         augment += f" and {subexpr.right} has shape {subexpr.right.value.shape}"
+        except BaseException as e:
+            print(f"exception while eval({code})", e)
+            traceback.print_tb(e.__traceback__, limit=5, file=sys.stdout)
+        # Reuse exception but overwrite the message
+        exc_value.args = [exc_value.args[0] + "\n" + augment]
 
     def is_interesting_exception(self, e):
-        sentinels = {'matmul', 'THTensorMath', 'tensor', 'tensors', 'dimension'}
+        sentinels = {'matmul', 'THTensorMath', 'tensor', 'tensors', 'dimension',
+                     'not aligned', 'size mismatch'}
         msg = e.args[0]
         return sum([s in msg for s in sentinels])>0
 
     def deepest_frame(self, exc_traceback):
         tb = exc_traceback
-        while tb.tb_next != None:
+        # don't trace into internals of numpy etc... with filenames like '<__array_function__ internals>'
+        while tb.tb_next != None and not tb.tb_next.tb_frame.f_code.co_filename.startswith('<'):
             tb = tb.tb_next
         return tb.tb_frame
 
     def info(self, frame):
-        module = frame.f_globals['__name__']
+        if hasattr(frame, '__name__'):
+            module = frame.f_globals['__name__']
+        else:
+            module = None
         info = inspect.getframeinfo(frame)
-        code = info.code_context[0].strip()
+        if info.code_context is not None:
+            code = info.code_context[0].strip()
+        else:
+            code = None
         filename, line = info.filename, info.lineno
         name = info.function
         return module, name, filename, line, code
 
+def shape(v):
+    if hasattr(v, "shape"):
+        if isinstance(v.shape, torch.Size):
+            return list(v.shape)
+        return v.shape
+    return None
+
 
 class IncrEvalTrap(BaseException):
-    def __init__(self, expr):
-        self.expr = expr # where in tree did we get exception?
+    def __init__(self, offending_expr):
+        self.offending_expr = offending_expr # where in tree did we get exception?
 
 
 def incr_eval(tree, frame):
     "Incrementally evaluate all subexpressions, looking for operation that fails; return that subtree"
     if tree is None:
         return
-    if isinstance(tree, list): # must be args list or expr list
-        for t in tree:
-            incr_eval(t, frame)
-        return
-    if isinstance(tree, Assign):
-        incr_eval(tree.right, frame)
-    elif tree.left is not None and tree.right is not None: # binary
-        incr_eval(tree.left, frame)
-        incr_eval(tree.right, frame)
-    elif tree.left is not None: # unary
-        incr_eval(tree.left, frame)
+    # if isinstance(tree, list): # must be args list or expr list
+    #     for t in tree:
+    #         t.value = incr_eval(t, frame)
+    #     return
+    # if isinstance(tree, Assign):
+    #     incr_eval(tree.right, frame)
+    # elif tree.left is not None and tree.right is not None: # binary
+    #     incr_eval(tree.left, frame)
+    #     incr_eval(tree.right, frame)
+    # elif tree.left is not None: # unary
+    #     incr_eval(tree.left, frame)
     try:
-        tree.eval(frame) # try to do this operator
+        # try to do this operator and, if successfull, store result in tree node
+        tree.eval(frame)
     except:
         raise IncrEvalTrap(tree)
     # else all is well, just return to larger subexpr up the tree
