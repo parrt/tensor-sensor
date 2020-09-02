@@ -41,7 +41,7 @@ with tsensor.dbg():
 which then emits the following better error message:
 
 ```
-Call torch.dot(b,b) has arg b w/shape [2, 1], arg b w/shape [2, 1]
+Cause: torch.dot(b,b) tensor arg b w/shape [2, 1], arg b w/shape [2, 1]
 ```
 
 Here’s another default error message that is almost helpful for expression `W @ z`:
@@ -53,5 +53,56 @@ RuntimeError: size mismatch, get 2, 2x2,3
 But this library gives:
 
 ```
-Operation @ has operand W w/shape [2, 2] and operand z w/shape [3]
+Cause: @ on tensor operand W w/shape [2, 2] and operand z w/shape [3]
 ```
+
+Non-tensor args/values are ignored.
+
+```
+with tsensor.dbg():
+    torch.dot(b, 3)
+```
+
+gives:
+
+```
+TypeError: dot(): argument 'tensor' (position 2) must be Tensor, not int
+Cause: torch.dot(b,3) tensor arg b w/shape [2, 1]
+```
+
+If there are no tensor args, it just shows the cause:
+
+```
+with tsensor.dbg():
+    z.reshape(1,2,2)
+```
+
+gives:
+
+```
+RuntimeError: shape '[1, 2, 2]' is invalid for input of size 3
+Cause: z.reshape(1,2,2)
+```
+
+## Install
+
+```
+pip install tensor-sensor
+```
+
+which gives you module `tsensor`.
+
+
+## Deploy
+
+```bash
+$ python setup.py sdist upload 
+```
+
+Or download and install locally
+
+```bash
+$ cd ~/github/tensor-sensor
+$ pip install .
+```
+

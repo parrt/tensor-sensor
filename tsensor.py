@@ -163,7 +163,9 @@ class Call(ParseTreeNode):
             ashape = _shape(a.value)
             if ashape:
                 arg_msgs.append(f"arg {a} w/shape {ashape}")
-        return f"Call {self} has " + ', '.join(arg_msgs)
+        if len(arg_msgs)==0:
+            return f"Cause: {self}"
+        return f"Cause: {self} tensor " + ', '.join(arg_msgs)
     @property
     def left(self): return self.args
     def __str__(self):
@@ -202,7 +204,7 @@ class BinaryOp(ParseTreeNode):
             opnd_msgs.append(f"operand {self.lhs} w/shape {lshape}")
         if rshape:
             opnd_msgs.append(f"operand {self.rhs} w/shape {rshape}")
-        return f"Operation {self.op} has " + ' and '.join(opnd_msgs)
+        return f"Cause: {self.op} on tensor " + ' and '.join(opnd_msgs)
     @property
     def left(self): return self.lhs
     @property
@@ -474,7 +476,7 @@ class dbg:
 
     def is_interesting_exception(self, e):
         sentinels = {'matmul', 'THTensorMath', 'tensor', 'tensors', 'dimension',
-                     'not aligned', 'size mismatch'}
+                     'not aligned', 'size mismatch', 'shape', 'shapes'}
         msg = e.args[0]
         return sum([s in msg for s in sentinels])>0
 
