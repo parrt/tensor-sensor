@@ -123,9 +123,8 @@ class ParseTreeNode:
         # print(self, "=>", self.value)
         return self.value
     @property
-    def left(self): return None
-    @property
-    def right(self): return None
+    def kids(self):
+        return []
     def explain(self):
         return None
     def __str__(self):
@@ -144,9 +143,8 @@ class Assign(ParseTreeNode):
         self.value = self.rhs.eval(frame)
         return self.value
     @property
-    def left(self): return self.lhs
-    @property
-    def right(self): return self.rhs
+    def kids(self):
+        return [self.lhs, self.rhs]
     def __str__(self):
         return str(self.lhs)+'='+str(self.rhs)
 
@@ -169,7 +167,8 @@ class Call(ParseTreeNode):
             return f"Cause: {self}"
         return f"Cause: {self} tensor " + ', '.join(arg_msgs)
     @property
-    def left(self): return self.args
+    def kids(self):
+        return [self.func]+self.args
     def __str__(self):
         args_ = ','.join([str(a) for a in self.args])
         return f"{self.func}({args_})"
@@ -184,7 +183,8 @@ class Index(ParseTreeNode):
             i.eval(frame)
         return super().eval(frame)
     @property
-    def left(self): return self.index
+    def kids(self):
+        return [self.arr] + self.index
     def __str__(self):
         i = self.index
         i = ','.join(str(v) for v in i)
@@ -200,9 +200,8 @@ class Member(ParseTreeNode):
         # don't eval member as it's just a name to look up in obj
         return super().eval(frame)
     @property
-    def left(self): return self.obj
-    @property
-    def right(self): return self.member
+    def kids(self):
+        return [self.obj, self.member]
     def __str__(self):
         return f"{self.obj}.{self.member}"
 
@@ -224,9 +223,8 @@ class BinaryOp(ParseTreeNode):
             opnd_msgs.append(f"operand {self.rhs} w/shape {rshape}")
         return f"Cause: {self.op} on tensor " + ' and '.join(opnd_msgs)
     @property
-    def left(self): return self.lhs
-    @property
-    def right(self): return self.rhs
+    def kids(self):
+        return [self.lhs, self.rhs]
     def __str__(self):
         return f"{self.lhs}{self.op}{self.rhs}"
 
@@ -239,7 +237,8 @@ class UnaryOp(ParseTreeNode):
         self.opnd.eval(frame)
         return super().eval(frame)
     @property
-    def left(self): return self.opnd
+    def kids(self):
+        return [self.opnd]
     def __str__(self):
         return f"{self.op}{self.opnd}"
 
@@ -252,7 +251,8 @@ class ListLiteral(ParseTreeNode):
             i.eval(frame)
         return super().eval(frame)
     @property
-    def left(self): return self.elems
+    def kids(self):
+        return self.elems
     def __str__(self):
         if isinstance(self.elems,list):
             elems_ = ','.join(str(e) for e in self.elems)
@@ -269,28 +269,20 @@ class SubExpr(ParseTreeNode):
         self.e.eval(frame)
         return self.e.value # don't re-evaluate
     @property
-    def left(self): return self.e
+    def kids(self):
+        return [self.e]
     def __str__(self):
         return f"({self.e})"
 
 class Atom(ParseTreeNode):
-    def __init__(self, nametok):
+    def __init__(self, token):
         super().__init__()
-        self.nametok = nametok
+        self.token = token
     def __repr__(self):
         v = f"{{{self.value}}}" if hasattr(self,'value') and self.value is not None else ""
-        return self.nametok.value+v
+        return self.token.value + v
     def __str__(self):
-        return self.nametok.value
-
-class String(ParseTreeNode):
-    def __init__(self, stok):
-        super().__init__()
-        self.stok = stok
-    def __repr__(self):
-        return f"'{self.stok.value}'"
-    def __str__(self):
-        return f"'{self.stok.value}'"
+        return self.token.value
 
 
 class PyExprParser:
