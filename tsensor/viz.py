@@ -1,7 +1,10 @@
-import graphviz
 import sys
+import graphviz
 
+from tsensor.explain import _shape
 from tsensor.parse import *
+from tsensor.ast import *
+
 
 
 def matrix_html(nrows, ncols, label, fontsize=12, fontname="Consolas", dimfontsize=9, color="#cfe2d4"):
@@ -19,9 +22,9 @@ def matrix_html(nrows, ncols, label, fontsize=12, fontname="Consolas", dimfontsi
     if nrows==1:
         h = 15
     html = f"""
-    <table fixedsize="true" width="{w}" height="{h+2*fontsize*1.3}" BORDER="0" CELLPADDING="0" CELLBORDER="1" CELLSPACING="0">
+    <table fixedsize="true" width="{w}" height="{h+2*fontsize*1.1}" BORDER="0" CELLPADDING="0" CELLBORDER="1" CELLSPACING="0">
     <tr>
-    <td fixedsize="true" width="{w}" height="{fontsize*1.3}" cellspacing="0" cellpadding="0" border="0" valign="top" align="center">
+    <td fixedsize="true" width="{w}" height="{fontsize*1.1}" cellspacing="0" cellpadding="0" border="0" valign="bottom" align="center">
     <font face="{fontname}" color="#444443" point-size="{dimfontsize}">{sz}</font>
     </td>
     </tr>
@@ -32,6 +35,13 @@ def matrix_html(nrows, ncols, label, fontsize=12, fontname="Consolas", dimfontsi
     </tr>
     </table>"""
     return html
+
+
+W = torch.tensor([[1, 2], [3, 4], [5, 6]])
+b = torch.tensor([9, 10]).reshape(2, 1)
+x = torch.tensor([4, 5]).reshape(2, 1)
+h = torch.tensor([1, 2])
+a = 3
 
 p = PyExprParser("b = W@b + h.dot(h)")
 print(p.tokens)
@@ -63,10 +73,10 @@ spread = .2
 
 s += f'{{ rank=same; '
 for t in p.tokens:
-    if t.type!=tsensor.ENDMARKER:
+    if t.type!=ENDMARKER:
         x = tok2node[t] if t in tok2node else t
         shape = ""
-        sh = tsensor._shape(x.value)
+        sh = _shape(x.value)
         label = f'<font face="{fontname}" color="#444443" point-size="{fontsize}">{t.value}</font>'
         matrixcolor="#cfe2d4"
         vectorcolor="#fefecd"
@@ -76,15 +86,17 @@ for t in p.tokens:
             elif len(sh)==2:
                 label = matrix_html(sh[0],sh[1],t.value,fontname=fontname,fontsize=fontsize,color=matrixcolor)
         # margin/width don't seem to do anything for shape=plain
-        if t.type==tsensor.DOT:
+        if t.type==DOT:
             spread=.1
-        if t.type==tsensor.EQUAL:
+        if t.type==EQUAL:
             spread=.25
-        if t.type in tsensor.ADDOP:
+        if t.type in ADDOP:
             spread=.5
-        if t.type in tsensor.MULOP:
+        if t.type in MULOP:
             spread=.2
         s += f'leaf{id(x)} [shape=box penwidth=0 margin=.001 width={spread} label=<{label}>]\n'
 s += '}\n'
 
 s += "}\n"
+
+graphviz.Source(s).view()

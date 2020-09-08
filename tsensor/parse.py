@@ -246,12 +246,3 @@ def mytokenize(s):
             # print("ignoring", type, value)
             pass
     return tokens
-
-
-def walk(t, pre=lambda x:None, post=lambda x:None):
-    if t is None:
-        return
-    pre(t)
-    for sub in t.kids:
-        walk(sub, pre, post)
-    post(t)

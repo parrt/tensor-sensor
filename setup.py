@@ -2,10 +2,10 @@ from setuptools import setup
 
 setup(
     name='tensor-sensor',
-    version='0.1a2',
+    version='0.1a3',
     url='https://github.com/parrt/tensor-sensor',
     license='MIT',
-    py_modules=['tsensor'],
+    py_modules=['tsensor.parse', 'tsensor.ast', 'tsensor.explain', 'tsensor.viz'],
     author='Terence Parr',
     author_email='parrt@cs.usfca.edu',
     python_requires='>=3.6',

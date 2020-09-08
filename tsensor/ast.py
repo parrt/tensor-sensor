@@ -185,6 +185,45 @@ class Atom(ParseTreeNode):
         return self.token.value
 
 
+def postorder(t):
+    nodes = []
+    _postorder(t, nodes)
+    return nodes
+
+
+def _postorder(t, nodes):
+    if t is None:
+        return
+    for sub in t.kids:
+        _postorder(sub, nodes)
+    nodes.append(t)
+
+
+def leaves(t):
+    nodes = []
+    _leaves(t, nodes)
+    return nodes
+
+
+def _leaves(t, nodes):
+    if t is None:
+        return
+    if len(t.kids) == 0:
+        nodes.append(t)
+        return
+    for sub in t.kids:
+        _leaves(sub, nodes)
+
+
+def walk(t, pre=lambda x: None, post=lambda x: None):
+    if t is None:
+        return
+    pre(t)
+    for sub in t.kids:
+        walk(sub, pre, post)
+    post(t)
+
+
 class IncrEvalTrap(BaseException):
     """
     Used during re-evaluation of python line that threw exception to trap which
@@ -192,14 +231,3 @@ class IncrEvalTrap(BaseException):
     """
     def __init__(self, offending_expr):
         self.offending_expr = offending_expr # where in tree did we get exception?
-
-
-
-def _shape(v):
-    if hasattr(v, "shape"):
-        if isinstance(v.shape, torch.Size):
-            if len(v.shape)==0:
-                return None
-            return list(v.shape)
-        return v.shape
-    return None
