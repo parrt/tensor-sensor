@@ -28,7 +28,7 @@ from tokenize import tokenize,\
     NUMBER, STRING, NAME, OP, ENDMARKER, LPAR, LSQB, RPAR, RSQB, EQUAL, COMMA, COLON,\
     PLUS, MINUS, STAR, SLASH, AT, PERCENT, TILDE, DOT
 
-from tsensor.ast import *
+import tsensor.ast
 
 """
 The goal of this library is to generate more helpful exception
@@ -108,11 +108,11 @@ class PyExprParser:
 
     def statement(self):
         lhs = self.expression()
-        rhs = None
         if self.LA(1) == EQUAL:
+            eq = self.LT(1)
             self.t += 1
             rhs = self.expression()
-            return Assign(lhs,rhs)
+            return tsensor.ast.Assign(lhs,rhs)
         return lhs
 
     def expression(self):
@@ -124,7 +124,7 @@ class PyExprParser:
             op = self.LT(1)
             self.t += 1
             b = self.multexpr()
-            root = BinaryOp(op, root, b)
+            root = tsensor.ast.BinaryOp(op, root, b)
         return root
 
     def multexpr(self):
@@ -133,7 +133,7 @@ class PyExprParser:
             op = self.LT(1)
             self.t += 1
             b = self.unaryexpr()
-            root = BinaryOp(op, root, b)
+            root = tsensor.ast.BinaryOp(op, root, b)
         return root
 
     def unaryexpr(self):
@@ -141,7 +141,7 @@ class PyExprParser:
             op = self.LT(1)
             self.t += 1
             e = self.unaryexpr()
-            return UnaryOp(op, e)
+            return tsensor.ast.UnaryOp(op, e)
         elif self.isatom() or self.isgroup():
             return self.postexpr()
         else:
@@ -164,17 +164,17 @@ class PyExprParser:
                 if self.LA(1) != RPAR:
                     el = self.exprlist()
                 self.match(RPAR)
-                root = Call(root, el)
+                root = tsensor.ast.Call(root, el)
             if self.LA(1)==LSQB:
                 self.match(LSQB)
                 el = self.exprlist()
                 self.match(RSQB)
-                root = Index(root, el)
+                root = tsensor.ast.Index(root, el)
             if self.LA(1)==DOT:
                 self.match(DOT)
                 m = self.match(NAME)
-                m = Atom(m)
-                root = Member(root, m)
+                m = tsensor.ast.Atom(m)
+                root = tsensor.ast.Member(root, m)
         return root
 
     def atom(self):
@@ -185,7 +185,7 @@ class PyExprParser:
         elif self.LA(1) in {NUMBER, NAME, STRING, COLON, COLON}:
             atom = self.LT(1)
             self.t += 1
-            return Atom(atom)
+            return tsensor.ast.Atom(atom)
         else:
             print("error")
 
@@ -203,13 +203,13 @@ class PyExprParser:
         self.match(LPAR)
         e = self.expression()
         self.match(RPAR)
-        return SubExpr(e)
+        return tsensor.ast.SubExpr(e)
 
     def listatom(self):
         self.match(LSQB)
         e = self.exprlist()
         self.match(RSQB)
-        return ListLiteral(e)
+        return tsensor.ast.ListLiteral(e)
 
     def isatom(self):
         return self.LA(1) in {NUMBER, NAME, STRING, COLON}

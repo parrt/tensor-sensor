@@ -1,7 +1,8 @@
 import sys
 import traceback
+import torch
 
-from tsensor.parse import *
+import tsensor.parse
 
 class dbg:
     def __init__(self):
@@ -26,11 +27,11 @@ class dbg:
     def process_exception(self, code, exc_frame, exc_value):
         augment = ""
         try:
-            p = PyExprParser(code)
+            p = tsensor.parse.PyExprParser(code)
             t = p.parse()
             try:
                 t.eval(exc_frame)
-            except IncrEvalTrap as exc:
+            except tsensor.parse.IncrEvalTrap as exc:
                 subexpr = exc.offending_expr
                 # print("trap evaluating:\n", repr(subexpr), "\nin", repr(t))
                 explanation = subexpr.explain()
@@ -105,7 +106,7 @@ class Tracer:
         code = info.code_context[0].strip()
         if code.startswith("sys.settrace(None)"):
             return
-        p = PyExprParser(code)
+        p = tsensor.parse.PyExprParser(code)
         t = p.parse()
         if t is not None:
             print(f"A line encountered in {module}.{name}() at {filename}:{line}")

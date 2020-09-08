@@ -1,4 +1,5 @@
 import torch
+from tsensor.explain import _shape
 
 # Parse tree definitions
 # I found package ast in python3 lib after I built this. whoops. No biggie.
@@ -8,6 +9,8 @@ import torch
 class ParseTreeNode:
     def __init__(self):
         self.value = None # used during evaluation
+        # self.start = 0 # start token index  UNUSED
+        # self.len = 0   # how many tokens?   UNUSED
     def eval(self, frame):
         """
         Evaluate the expression represented by this (sub)tree in context of frame.
@@ -20,6 +23,9 @@ class ParseTreeNode:
             raise IncrEvalTrap(self)
         # print(self, "=>", self.value)
         return self.value
+    @property
+    def opstr(self): # the associated token if atom or representative token if operation
+        return None
     @property
     def kids(self):
         return []
@@ -40,6 +46,9 @@ class Assign(ParseTreeNode):
         "Only consider rhs of assignment where our expr errors will occur"
         self.value = self.rhs.eval(frame)
         return self.value
+    @property
+    def opstr(self):
+        return str(self.lhs)
     @property
     def kids(self):
         return [self.lhs, self.rhs]
@@ -65,6 +74,9 @@ class Call(ParseTreeNode):
         if len(arg_msgs)==0:
             return f"Cause: {self}"
         return f"Cause: {self} tensor " + ', '.join(arg_msgs)
+    @property
+    def opstr(self):
+        return str(self.func)
     @property
     def kids(self):
         return [self.func]+self.args
@@ -123,6 +135,9 @@ class BinaryOp(ParseTreeNode):
             opnd_msgs.append(f"operand {self.rhs} w/shape {rshape}")
         return f"Cause: {self.op} on tensor " + ' and '.join(opnd_msgs)
     @property
+    def opstr(self): # the associated token if atom or representative token if operation
+        return self.op.value
+    @property
     def kids(self):
         return [self.lhs, self.rhs]
     def __str__(self):
@@ -136,6 +151,9 @@ class UnaryOp(ParseTreeNode):
     def eval(self, frame):
         self.opnd.eval(frame)
         return super().eval(frame)
+    @property
+    def opstr(self):
+        return self.op.value
     @property
     def kids(self):
         return [self.opnd]
@@ -178,6 +196,9 @@ class Atom(ParseTreeNode):
     def __init__(self, token):
         super().__init__()
         self.token = token
+    @property
+    def opstr(self):
+        return self.token.value
     def __repr__(self):
         v = f"{{{self.value}}}" if hasattr(self,'value') and self.value is not None else ""
         return self.token.value + v
