@@ -30,7 +30,7 @@ class clarify:
     def process_exception(self, code, exc_frame, exc_value):
         augment = ""
         try:
-            p = tsensor.parse.PyExprParser(code)
+            p = tsensor.parsing.PyExprParser(code)
             t = p.parse()
             try:
                 t.eval(exc_frame)
@@ -110,13 +110,13 @@ class TensorTracer:
         code = info.code_context[0].strip()
         if code.startswith("sys.settrace(None)"):
             return
-        p = tsensor.parse.PyExprParser(code)
+        p = tsensor.parsing.PyExprParser(code)
         t = p.parse()
         if t is not None:
             # print(f"A line encountered in {module}.{name}() at {filename}:{line}")
             # print("\t", code)
             # print("\t", repr(t))
-            html = tsensor.viz.pyviz_graphviz(code, frame)
+            html = tsensor.viz.pyviz(code, frame)
             g = graphviz.Source(html)
             display(SVG(g.pipe(format="svg", quiet=True)))
             # g.render(quiet=True)
@@ -140,6 +140,19 @@ class explain:
     def __exit__(self, exc_type, exc_val, exc_tb):
         sys.settrace(None)
         # print("OFF trace")
+
+
+def eval(statement:str, frame=None):
+    """
+    Parse statement and return ast. Evaluate ast in context of
+    frame if available, which sets the value field of all ast nodes.
+    Overall result is in root.value.
+    """
+    p = tsensor.parsing.PyExprParser(statement)
+    root = p.parse()
+    if frame is not None:
+        root.eval(frame)
+    return root
 
 
 def _shape(v):

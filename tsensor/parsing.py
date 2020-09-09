@@ -90,6 +90,19 @@ class Token:
         return self.value
 
 
+def mytokenize(s):
+    tokensO = tokenize(BytesIO(s.encode('utf-8')).readline)
+    tokens = []
+    for tok in tokensO:
+        type, value, _, _, _ = tok
+        if type in {NUMBER, STRING, NAME, OP, ENDMARKER}:
+            tokens.append(Token(tok.exact_type,value))
+        else:
+            # print("ignoring", type, value)
+            pass
+    return tokens
+
+
 class PyExprParser:
     def __init__(self, code):
         self.code = code
@@ -112,7 +125,7 @@ class PyExprParser:
             eq = self.LT(1)
             self.t += 1
             rhs = self.expression()
-            return tsensor.ast.Assign(lhs,rhs)
+            return tsensor.ast.Assign(eq,lhs,rhs)
         return lhs
 
     def expression(self):
@@ -171,10 +184,10 @@ class PyExprParser:
                 self.match(RSQB)
                 root = tsensor.ast.Index(root, el)
             if self.LA(1)==DOT:
-                self.match(DOT)
+                op = self.match(DOT)
                 m = self.match(NAME)
                 m = tsensor.ast.Atom(m)
-                root = tsensor.ast.Member(root, m)
+                root = tsensor.ast.Member(op, root, m)
         return root
 
     def atom(self):
@@ -235,14 +248,7 @@ class PyExprParser:
         return tok
 
 
-def mytokenize(s):
-    tokensO = tokenize(BytesIO(s.encode('utf-8')).readline)
-    tokens = []
-    for tok in tokensO:
-        type, value, _, _, _ = tok
-        if type in {NUMBER, STRING, NAME, OP, ENDMARKER}:
-            tokens.append(Token(tok.exact_type,value))
-        else:
-            # print("ignoring", type, value)
-            pass
-    return tokens
+def parse(statement:str):
+    "Parse statement and return ast and token objects."
+    p = tsensor.parsing.PyExprParser(statement)
+    return p.parse(), p.tokens

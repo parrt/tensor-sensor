@@ -1,8 +1,10 @@
-__all__ = ["ast", "parse", "viz", "analysis"]
+__all__ = ["ast", "parsing", "viz", "analysis"]
 
 # These classes are the primary user interface so import them directly
 import tsensor.ast
-import tsensor.parse
+import tsensor.parsing
 import tsensor.viz
 import tsensor.analysis
-from tsensor.analysis import explain, clarify
+from tsensor.analysis import explain, clarify, eval
+from tsensor.parsing import parse
+from tsensor.viz import pyviz, astviz

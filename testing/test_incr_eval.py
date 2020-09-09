@@ -22,7 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 from tsensor.ast import IncrEvalTrap
-from tsensor.parse import PyExprParser
+from tsensor.parsing import PyExprParser
 import sys
 import numpy as np
 import torch

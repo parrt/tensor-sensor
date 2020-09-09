@@ -38,16 +38,16 @@ class ParseTreeNode:
         return f"{self.__class__.__name__}({args})"
 
 class Assign(ParseTreeNode):
-    def __init__(self, lhs, rhs):
+    def __init__(self, op, lhs, rhs):
         super().__init__()
-        self.lhs, self.rhs = lhs, rhs
+        self.op, self.lhs, self.rhs = op, lhs, rhs
     def eval(self, frame):
         self.value = self.rhs.eval(frame)
         self.lhs.value = self.value
         return self.value
     @property
     def opstr(self):
-        return str(self.lhs)
+        return self.op.value
     @property
     def kids(self):
         return [self.lhs, self.rhs]
@@ -75,7 +75,10 @@ class Call(ParseTreeNode):
         return f"Cause: {self} tensor " + ', '.join(arg_msgs)
     @property
     def opstr(self):
-        return str(self.func)
+        fname = str(self.func)
+        if isinstance(self.func, Member):
+            fname = str(self.func.member)
+        return fname+"()"
     @property
     def kids(self):
         return [self.func]+self.args
@@ -102,14 +105,18 @@ class Index(ParseTreeNode):
         return f"{self.arr}[{i}]"
 
 class Member(ParseTreeNode):
-    def __init__(self, obj, member):
+    def __init__(self, op, obj, member):
         super().__init__()
+        self.op = op # always DOT
         self.obj = obj
         self.member = member
     def eval(self, frame):
         self.obj.eval(frame)
         # don't eval member as it's just a name to look up in obj
         return super().eval(frame)
+    @property
+    def opstr(self): # the associated token if atom or representative token if operation
+        return self.op.value
     @property
     def kids(self):
         return [self.obj, self.member]
