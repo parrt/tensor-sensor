@@ -73,16 +73,32 @@ def pyviz_graphviz(statement, frame,
     p = tsensor.parse.PyExprParser(statement)
     root = p.parse()
     print(root)
+    print(repr(root))
     nodes = tsensor.ast.postorder(root)
     atoms = tsensor.ast.leaves(root)
     atomsS = set(atoms)
     ops = [nd for nd in nodes if nd not in atomsS] # keep order
 
+    result = root.eval(frame)
+
+    ignore = set()
+
+    def foo(t):
+        print("walk", t, repr(t), tsensor.ast._shape(t.value))
+        if isinstance(t,tsensor.ast.Member):
+            if tsensor.ast._shape(t.obj.value) is None:
+                print("\tignore", t)
+                ignore.add(t)
+        else:
+            if tsensor.ast._shape(t.value) is None:
+                print("\tignore", t)
+                ignore.add(t)
+    tsensor.ast.walk(root, post=foo)
+
+    print("ignore",[str(n) for n in ignore])
     # map tokens to nodes so we can get variable values
     tok2node = {nd.token:nd for nd in atoms}
     print(tok2node)
-
-    result = root.eval(frame)
 
     gr = gtype+" "+gname+""" {
         nodesep=.0;
@@ -123,26 +139,31 @@ def pyviz_graphviz(statement, frame,
         t2 = p.tokens[i + 1]
         gr += f'leaf{id(t)} -> leaf{id(t2)} [style=invis];\n'
 
-    # Draw internal ops nodes
-    for nd in ops:
-        # x = tok2node[t] if t in tok2node else t
-        label = internal_label(nd)
-        gr += f'node{id(nd)} [shape=box penwidth=0 margin=0 height=.3 label=<{label}>]\n'
-        # gr += f'node{id(nd)} [shape=box penwidth=0 height=.3 margin=0 label=<<font face="Consolas" color="#444443" point-size="12">{nd}</font>>]\n'
-
-    # Link internal nodes to other nodes or leaves
-    for nd in nodes:
-        kids = nd.kids
-        if isinstance(nd, tsensor.ast.Member):
-            continue
-        if isinstance(nd, tsensor.ast.Call) and isinstance(nd.kids[0], tsensor.ast.Member):
-            print('ignore', nd.func, kids)
-            kids = kids[1:]
-        for sub in kids:
-            if sub in atomsS:
-                gr += f'node{id(nd)} -> leaf{id(sub.token)} [dir=back, penwidth="0.5", color="#444443", arrowsize=.4];\n'
-            else:
-                gr += f'node{id(nd)} -> node{id(sub)} [dir=back, penwidth="0.5", color="#444443", arrowsize=.4];\n'
+    # # Draw internal ops nodes
+    # for nd in ops:
+    #     # x = tok2node[t] if t in tok2node else t
+    #     # if isinstance(nd, tsensor.ast.Member):
+    #     #     continue
+    #     for sub in nd.kids:
+    #         if tsensor.ast._shape(sub.value) is None:
+    #             continue
+    #     label = internal_label(nd)
+    #     gr += f'node{id(nd)} [shape=box penwidth=0 margin=0 height=.3 label=<{label}>]\n'
+    #     # gr += f'node{id(nd)} [shape=box penwidth=0 height=.3 margin=0 label=<<font face="Consolas" color="#444443" point-size="12">{nd}</font>>]\n'
+    #
+    # # Link internal nodes to other nodes or leaves
+    # for nd in nodes:
+    #     kids = nd.kids
+    #     # if isinstance(nd, tsensor.ast.Member) and tsensor.ast._shape(nd.obj) is None:
+    #     #     continue
+    #     # if isinstance(nd, tsensor.ast.Call) and isinstance(nd.kids[0], tsensor.ast.Member):
+    #     #     print('ignore', nd.func, kids)
+    #     #     kids = kids[1:]
+    #     for sub in kids:
+    #         if sub in atomsS:
+    #             gr += f'node{id(nd)} -> leaf{id(sub.token)} [dir=back, penwidth="0.5", color="#444443", arrowsize=.4];\n'
+    #         else:
+    #             gr += f'node{id(nd)} -> node{id(sub)} [dir=back, penwidth="0.5", color="#444443", arrowsize=.4];\n'
 
     gr += "}\n"
     return gr

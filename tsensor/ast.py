@@ -1,4 +1,3 @@
-import torch
 from tsensor.explain import _shape
 
 # Parse tree definitions
@@ -43,8 +42,8 @@ class Assign(ParseTreeNode):
         super().__init__()
         self.lhs, self.rhs = lhs, rhs
     def eval(self, frame):
-        "Only consider rhs of assignment where our expr errors will occur"
         self.value = self.rhs.eval(frame)
+        self.lhs.value = self.value
         return self.value
     @property
     def opstr(self):
