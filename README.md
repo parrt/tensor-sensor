@@ -34,7 +34,7 @@ do this:
 
 ```
 import tsensor
-with tsensor.dbg():
+with tsensor.clarify():
     W @ torch.dot(b,b)+ torch.eye(2,2)@x + z
 ```
 
@@ -59,7 +59,7 @@ Cause: @ on tensor operand W w/shape [2, 2] and operand z w/shape [3]
 Non-tensor args/values are ignored.
 
 ```
-with tsensor.dbg():
+with tsensor.clarify():
     torch.dot(b, 3)
 ```
 
@@ -73,7 +73,7 @@ Cause: torch.dot(b,3) tensor arg b w/shape [2, 1]
 If there are no tensor args, it just shows the cause:
 
 ```
-with tsensor.dbg():
+with tsensor.clarify():
     z.reshape(1,2,2)
 ```
 

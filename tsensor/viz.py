@@ -73,8 +73,8 @@ def pyviz_graphviz(statement, frame,
 
     p = tsensor.parse.PyExprParser(statement)
     root = p.parse()
-    print(root)
-    print(repr(root))
+    # print(root)
+    # print(repr(root))
     nodes = tsensor.ast.postorder(root)
     atoms = tsensor.ast.leaves(root)
     atomsS = set(atoms)
@@ -84,25 +84,26 @@ def pyviz_graphviz(statement, frame,
 
     ignore = set()
 
-    def foo(t):
-        print("walk", t, repr(t), tsensor.analysis._shape(t.value))
-        if isinstance(t,tsensor.ast.Member):
-            if tsensor.analysis._shape(t.obj.value) is None:
-                print("\tignore", t)
-                ignore.add(t)
-        else:
-            if tsensor.analysis._shape(t.value) is None:
-                print("\tignore", t)
-                ignore.add(t)
-    tsensor.ast.walk(root, post=foo)
-
-    print("ignore",[str(n) for n in ignore])
+    # def foo(t):
+    #     # print("walk", t, repr(t), tsensor.analysis._shape(t.value))
+    #     if isinstance(t,tsensor.ast.Member):
+    #         if tsensor.analysis._shape(t.obj.value) is None:
+    #             # print("\tignore", t)
+    #             ignore.add(t)
+    #     else:
+    #         if tsensor.analysis._shape(t.value) is None:
+    #             # print("\tignore", t)
+    #             ignore.add(t)
+    # tsensor.ast.walk(root, post=foo)
+    # print("ignore",[str(n) for n in ignore])
+    #
     # map tokens to nodes so we can get variable values
     tok2node = {nd.token:nd for nd in atoms}
-    print(tok2node)
+    # print(tok2node)
 
     gr = gtype+" "+gname+""" {
-        nodesep=.0;
+        margin=0;
+        nodesep=.01;
         ranksep=.3;
         rankdir=BT;
         ordering=out; # keep order of leaves
@@ -110,22 +111,23 @@ def pyviz_graphviz(statement, frame,
 
     fontname="Consolas"
     fontsize=12
-    spread = .2
+    spread = 0
 
     # Gen leaf nodes
     for i in range(len(p.tokens)):
         t = p.tokens[i]
         if t.type!=token.ENDMARKER:
             label = elem_label(t)
+            _spread = spread
             if t.type==token.DOT:
-                spread=.1
-            if t.type==token.EQUAL:
-                spread=.25
-            if t.type in tsensor.parse.ADDOP:
-                spread=.5
-            if t.type in tsensor.parse.MULOP:
-                spread=.2
-            gr += f'leaf{id(t)} [shape=box penwidth=0 margin=.001 width={spread} label=<{label}>]\n'
+                _spread=.1
+            elif t.type==token.EQUAL:
+                _spread=.25
+            elif t.type in tsensor.parse.ADDOP:
+                _spread=.4
+            elif t.type in tsensor.parse.MULOP:
+                _spread=.2
+            gr += f'leaf{id(t)} [shape=box penwidth=0 margin=.001 width={_spread} label=<{label}>]\n'
 
     # Make sure leaves are on same level
     gr += f'{{ rank=same; '
@@ -168,20 +170,3 @@ def pyviz_graphviz(statement, frame,
 
     gr += "}\n"
     return gr
-
-if __name__ == '__main__':
-    import torch
-    W = torch.tensor([[1, 2], [3, 4], [5, 6]])
-    b = torch.tensor([9, 10]).reshape(2, 1)
-    x = torch.tensor([4, 5]).reshape(2, 1)
-    h = torch.tensor([1, 2])
-    a = 3
-
-    frame = sys._getframe()
-    html1 = pyviz_graphviz("b = W@b + h.dot(h) + torch.abs(torch.tensor(34))", frame)
-    # html2 = pyviz_html("b = W.T@W")
-
-    #html = f"digraph foo {{ compound=true; rankdir=TB;\n {html1} {html2} G1 -> G2 }}"
-
-    # graphviz.Source(html1).view()
-    graphviz.Source(html1).view()

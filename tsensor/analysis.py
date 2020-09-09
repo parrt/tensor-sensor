@@ -2,8 +2,10 @@ import sys
 import traceback
 import torch
 import inspect
+import graphviz
+from IPython.display import display, SVG
 
-import tsensor.parse
+import tsensor
 
 class clarify:
     def __init__(self):
@@ -32,7 +34,7 @@ class clarify:
             t = p.parse()
             try:
                 t.eval(exc_frame)
-            except tsensor.parse.IncrEvalTrap as exc:
+            except tsensor.ast.IncrEvalTrap as exc:
                 subexpr = exc.offending_expr
                 # print("trap evaluating:\n", repr(subexpr), "\nin", repr(t))
                 explanation = subexpr.explain()
@@ -71,8 +73,9 @@ class clarify:
         name = info.function
         return module, name, filename, line, code
 
-class Tracer:
-    def __init__(self, modules=['__main__'], filenames=[]):
+class TensorTracer:
+    def __init__(self, format="svg", modules=['__main__'], filenames=[]):
+        self.format = format
         self.modules = modules
         self.filenames = filenames
         self.exceptions = set()
@@ -95,7 +98,7 @@ class Tracer:
         # TODO: ignore c_call etc...
 
         if event=='line':
-            self.line_listener(module, name, filename, line, info)
+            self.line_listener(module, name, filename, line, info, frame)
 
         return None
 
@@ -103,32 +106,40 @@ class Tracer:
         # print(f"A call encountered in {module}.{name}() at {filename}:{line}")
         pass
 
-    def line_listener(self, module, name, filename, line, info):
+    def line_listener(self, module, name, filename, line, info, frame):
         code = info.code_context[0].strip()
         if code.startswith("sys.settrace(None)"):
             return
         p = tsensor.parse.PyExprParser(code)
         t = p.parse()
         if t is not None:
-            print(f"A line encountered in {module}.{name}() at {filename}:{line}")
-            print("\t", code)
-            print("\t", repr(t))
+            # print(f"A line encountered in {module}.{name}() at {filename}:{line}")
+            # print("\t", code)
+            # print("\t", repr(t))
+            html = tsensor.viz.pyviz_graphviz(code, frame)
+            g = graphviz.Source(html)
+            display(SVG(g.pipe(format="svg", quiet=True)))
+            # g.render(quiet=True)
+            # if self.format=='svg':
+            #     tmp = tempfile.gettempdir()
+            #     svgfilename = os.path.join(tmp, f"DTreeViz_{os.getpid()}.svg")
+            #     display(SVG(g))
+            # else:
+            #     display(g)
 
 
 class explain:
-    def __enter__(self):
-        print("ON trace")
-        tr = Tracer()
+    def __enter__(self, format="svg"):
+        # print("ON trace")
+        tr = TensorTracer(format=format)
         sys.settrace(tr.listener)
         frame = sys._getframe()
         prev = frame.f_back # get block wrapped in "with"
-        # if frame.f_back is None:
-        # prev = stack()[2]
         prev.f_trace = tr.listener
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         sys.settrace(None)
-        print("OFF trace")
+        # print("OFF trace")
 
 
 def _shape(v):
