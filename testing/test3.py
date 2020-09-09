@@ -19,7 +19,7 @@ class A:
     def f(self):
         return 99
 
-with tsensor.explain():
+with tsensor.analysis():
     a = A()
     a.b
     a.f()

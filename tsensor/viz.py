@@ -2,8 +2,9 @@ import sys
 import graphviz
 import token
 
+import tsensor
 import tsensor.ast
-import tsensor.explain
+import tsensor.analysis
 import tsensor.parse
 
 def matrix_html(nrows, ncols, label, fontsize=12, fontname="Consolas", dimfontsize=9, color="#cfe2d4"):
@@ -42,7 +43,7 @@ def pyviz_graphviz(statement, frame,
 
     def elem_label(token_or_node):
         x = tok2node[token_or_node] if token_or_node in tok2node else token_or_node
-        sh = tsensor.ast._shape(x.value) # get value for this node in tree
+        sh = tsensor.analysis._shape(x.value) # get value for this node in tree
         label = f'<font face="{fontname}" color="#444443" point-size="{fontsize}">{token_or_node}</font>'
         if sh is not None:
             if len(sh) == 1:
@@ -84,13 +85,13 @@ def pyviz_graphviz(statement, frame,
     ignore = set()
 
     def foo(t):
-        print("walk", t, repr(t), tsensor.ast._shape(t.value))
+        print("walk", t, repr(t), tsensor.analysis._shape(t.value))
         if isinstance(t,tsensor.ast.Member):
-            if tsensor.ast._shape(t.obj.value) is None:
+            if tsensor.analysis._shape(t.obj.value) is None:
                 print("\tignore", t)
                 ignore.add(t)
         else:
-            if tsensor.ast._shape(t.value) is None:
+            if tsensor.analysis._shape(t.value) is None:
                 print("\tignore", t)
                 ignore.add(t)
     tsensor.ast.walk(root, post=foo)
@@ -168,19 +169,19 @@ def pyviz_graphviz(statement, frame,
     gr += "}\n"
     return gr
 
+if __name__ == '__main__':
+    import torch
+    W = torch.tensor([[1, 2], [3, 4], [5, 6]])
+    b = torch.tensor([9, 10]).reshape(2, 1)
+    x = torch.tensor([4, 5]).reshape(2, 1)
+    h = torch.tensor([1, 2])
+    a = 3
 
-import torch
-W = torch.tensor([[1, 2], [3, 4], [5, 6]])
-b = torch.tensor([9, 10]).reshape(2, 1)
-x = torch.tensor([4, 5]).reshape(2, 1)
-h = torch.tensor([1, 2])
-a = 3
+    frame = sys._getframe()
+    html1 = pyviz_graphviz("b = W@b + h.dot(h) + torch.abs(torch.tensor(34))", frame)
+    # html2 = pyviz_html("b = W.T@W")
 
-frame = sys._getframe()
-html1 = pyviz_graphviz("b = W@b + h.dot(h) + torch.abs(torch.tensor(34))", frame)
-# html2 = pyviz_html("b = W.T@W")
+    #html = f"digraph foo {{ compound=true; rankdir=TB;\n {html1} {html2} G1 -> G2 }}"
 
-#html = f"digraph foo {{ compound=true; rankdir=TB;\n {html1} {html2} G1 -> G2 }}"
-
-# graphviz.Source(html1).view()
-graphviz.Source(html1).view()
+    # graphviz.Source(html1).view()
+    graphviz.Source(html1).view()

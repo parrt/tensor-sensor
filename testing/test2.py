@@ -35,6 +35,6 @@ def foo():
     g()
 
 
-with tsensor.dbg():
+with tsensor.clarify():
     g()
 

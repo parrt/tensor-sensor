@@ -1,4 +1,4 @@
-from tsensor.explain import _shape
+import tsensor
 
 # Parse tree definitions
 # I found package ast in python3 lib after I built this. whoops. No biggie.
@@ -67,7 +67,7 @@ class Call(ParseTreeNode):
     def explain(self):
         arg_msgs = []
         for a in self.args:
-            ashape = _shape(a.value)
+            ashape = tsensor.analysis._shape(a.value)
             if ashape:
                 arg_msgs.append(f"arg {a} w/shape {ashape}")
         if len(arg_msgs)==0:
@@ -126,8 +126,8 @@ class BinaryOp(ParseTreeNode):
         return super().eval(frame)
     def explain(self):
         opnd_msgs = []
-        lshape = _shape(self.lhs.value)
-        rshape = _shape(self.rhs.value)
+        lshape = tsensor.analysis._shape(self.lhs.value)
+        rshape = tsensor.analysis._shape(self.rhs.value)
         if lshape:
             opnd_msgs.append(f"operand {self.lhs} w/shape {lshape}")
         if rshape:
