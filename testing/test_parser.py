@@ -42,7 +42,7 @@ def check(s,expected):
 
 
 def test_assign():
-    check("a = 3", "Assign(lhs=a,rhs=3)")
+    check("a = 3", "Assign(op=<EQUAL:=>,lhs=a,rhs=3)")
 
 
 def test_index():
@@ -57,30 +57,30 @@ def test_literal_list():
 def test_literal_array():
     check("np.array([[1, 2], [3, 4]])",
           """
-          Call(func=Member(obj=np,member=array),
+          Call(func=Member(op=<DOT:.>,obj=np,member=array),
                args=[ListLiteral(elems=[ListLiteral(elems=[1,2]),ListLiteral(elems=[3,4])])])
           """)
 
 
 def test_method():
     check("h = torch.tanh(h)",
-          "Assign(lhs=h,rhs=Call(func=Member(obj=torch,member=tanh),args=[h]))")
+          "Assign(op=<EQUAL:=>,lhs=h,rhs=Call(func=Member(op=<DOT:.>,obj=torch,member=tanh),args=[h]))")
 
 
 def test_field():
-    check("a.b", "Member(obj=a,member=b)")
+    check("a.b", "Member(op=<DOT:.>,obj=a,member=b)")
 
 
 def test_member_func():
-    check("a.f()", "Call(func=Member(obj=a,member=f),args=[])")
+    check("a.f()", "Call(func=Member(op=<DOT:.>,obj=a,member=f),args=[])")
 
 
 def test_field2():
-    check("a.b.c", "Member(obj=Member(obj=a,member=b),member=c)")
+    check("a.b.c", "Member(op=<DOT:.>,obj=Member(op=<DOT:.>,obj=a,member=b),member=c)")
 
 
 def test_field_and_func():
-    check("a.f().c", "Member(obj=Call(func=Member(obj=a,member=f),args=[]),member=c)")
+    check("a.f().c", "Member(op=<DOT:.>,obj=Call(func=Member(op=<DOT:.>,obj=a,member=f),args=[]),member=c)")
 
 
 def test_parens():
@@ -88,11 +88,11 @@ def test_parens():
 
 
 def test_field_array():
-    check("a.b[34]", "Index(arr=Member(obj=a,member=b),index=[34])")
+    check("a.b[34]", "Index(arr=Member(op=<DOT:.>,obj=a,member=b),index=[34])")
 
 
 def test_field_array_func():
-    check("a.b[34].f()", "Call(func=Member(obj=Index(arr=Member(obj=a,member=b),index=[34]),member=f),args=[])")
+    check("a.b[34].f()", "Call(func=Member(op=<DOT:.>,obj=Index(arr=Member(op=<DOT:.>,obj=a,member=b),index=[34]),member=f),args=[])")
 
 
 def test_arith():
@@ -118,7 +118,7 @@ def test_matrix_arith():
           """
           BinaryOp(op=<PLUS:+>,
                    lhs=BinaryOp(op=<PLUS:+>,
-                                lhs=BinaryOp(op=<AT:@>,lhs=Member(obj=self,member=Whz),rhs=h),
+                                lhs=BinaryOp(op=<AT:@>,lhs=Member(op=<DOT:.>,obj=self,member=Whz),rhs=h),
                                 rhs=BinaryOp(op=<AT:@>,lhs=Uxz,rhs=x)),
                    rhs=bz)
           """)

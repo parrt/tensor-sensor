@@ -38,7 +38,7 @@ with tsensor.clarify():
     W @ torch.dot(b,b)+ torch.eye(2,2)@x + z
 ```
 
-which then emits the following better error message:
+which then augments the exception message with the following clarification:
 
 ```
 Cause: torch.dot(b,b) tensor arg b w/shape [2, 1], arg b w/shape [2, 1]
@@ -50,7 +50,7 @@ Here’s another default error message that is almost helpful for expression `W 
 RuntimeError: size mismatch, get 2, 2x2,3
 ```
 
-But this library gives:
+But tensor-sensor gives:
 
 ```
 Cause: @ on tensor operand W w/shape [2, 2] and operand z w/shape [3]
@@ -83,6 +83,33 @@ gives:
 RuntimeError: shape '[1, 2, 2]' is invalid for input of size 3
 Cause: z.reshape(1,2,2)
 ```
+
+## Visualizations
+
+For more, see [examples.ipynb](testing/examples.ipynb).
+
+```python
+import tsensor
+import graphviz
+import torch
+import sys
+
+W = torch.tensor([[1, 2], [3, 4]])
+b = torch.tensor([9, 10]).reshape(2, 1)
+x = torch.tensor([4, 5]).reshape(2, 1)
+h = torch.tensor([1,2])
+
+with tsensor.explain():
+    a = torch.relu(x)
+    b = W @ b + h.dot(h)
+```
+
+Displays this in a notebook:
+
+<img src="images/sample-1.svg">
+
+<img src="images/sample-2.svg">
+
 
 ## Install
 

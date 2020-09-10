@@ -74,11 +74,13 @@ class clarify:
         return module, name, filename, line, code
 
 class TensorTracer:
-    def __init__(self, format="svg", modules=['__main__'], filenames=[]):
+    def __init__(self, savefig:str=None, format="svg", modules=['__main__'], filenames=[]):
+        self.savefig = savefig
         self.format = format
         self.modules = modules
         self.filenames = filenames
         self.exceptions = set()
+        self.linecount = 0
 
     def listener(self, frame, event, arg):
         module = frame.f_globals['__name__']
@@ -110,15 +112,24 @@ class TensorTracer:
         code = info.code_context[0].strip()
         if code.startswith("sys.settrace(None)"):
             return
+        self.linecount += 1
         p = tsensor.parsing.PyExprParser(code)
         t = p.parse()
         if t is not None:
             # print(f"A line encountered in {module}.{name}() at {filename}:{line}")
             # print("\t", code)
             # print("\t", repr(t))
-            html = tsensor.viz.pyviz(code, frame)
-            g = graphviz.Source(html)
-            display(SVG(g.pipe(format="svg", quiet=True)))
+            g = tsensor.viz.pyviz(code, frame)
+            dotfilename = f"{self.savefig}-{self.linecount}.dot"
+            svgfilename = f"{self.savefig}-{self.linecount}.svg"
+            if self.savefig is not None:
+                g.save(dotfilename)
+                # g.render(format="svg", quiet=True, view=False)
+                cmd = ["dot", f"-Tsvg", "-o", svgfilename, dotfilename]
+                # print(' '.join(cmd))
+                graphviz.backend.run(cmd, capture_output=True, check=True, quiet=True)
+            else:
+                display(SVG(g.pipe(format="svg", quiet=True)))
             # g.render(quiet=True)
             # if self.format=='svg':
             #     tmp = tempfile.gettempdir()
@@ -129,20 +140,24 @@ class TensorTracer:
 
 
 class explain:
+    def __init__(self, savefig=None):
+        self.savefig = savefig
+
     def __enter__(self, format="svg"):
         # print("ON trace")
-        tr = TensorTracer(format=format)
-        sys.settrace(tr.listener)
+        self.tracer = TensorTracer(self.savefig,format=format)
+        sys.settrace(self.tracer.listener)
         frame = sys._getframe()
         prev = frame.f_back # get block wrapped in "with"
-        prev.f_trace = tr.listener
+        prev.f_trace = self.tracer.listener
+        return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         sys.settrace(None)
         # print("OFF trace")
 
 
-def eval(statement:str, frame=None):
+def eval(statement:str, frame=None) -> (tsensor.ast.ParseTreeNode, object):
     """
     Parse statement and return ast. Evaluate ast in context of
     frame if available, which sets the value field of all ast nodes.
@@ -152,7 +167,7 @@ def eval(statement:str, frame=None):
     root = p.parse()
     if frame is not None:
         root.eval(frame)
-    return root
+    return root, root.value
 
 
 def _shape(v):
