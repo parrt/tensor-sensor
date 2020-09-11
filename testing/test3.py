@@ -1,30 +1,12 @@
-import sys
-import traceback
-import trace
-import inspect
-import dis
-from inspect import currentframe, getframeinfo, stack
-import torch
-import numpy as np
-
 import tsensor
+import tensorflow as tf
 
+W = tf.constant([[1, 2], [3, 4]])
+b = tf.reshape(tf.constant([[9, 10]]), (2, 1))
+x = tf.reshape(tf.constant([[8, 5, 7]]), (3, 1))
 
-from collections import namedtuple
-Foo = namedtuple("Foo", ["c", "d"])
+def foo():
+    with tsensor.clarify():
+        print(b + x + 3)
 
-class A:
-    def __init__(self):
-        self.b = Foo(33,"hi")
-    def f(self):
-        return 99
-
-with tsensor.analysis():
-    a = A()
-    a.b
-    a.f()
-    a.b.c
-    a.b.c.d()
-    W = torch.tensor([[1, 2], [3, 4]])
-    b = torch.tensor([9, 10]).reshape(2, 1)
-    z = W@b
+foo()

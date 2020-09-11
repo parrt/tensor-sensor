@@ -1,12 +1,10 @@
 # Tensor Sensor
 
 The goal of this library is to generate more helpful exception
-messages for numpy/pytorch matrix algebra expressions.  Because the
-matrix algebra in pytorch and numpy are all done in C/C++, they do not
+messages for numpy/pytorch/tensorflow matrix algebra expressions.  Because the
+matrix algebra in these libraries is all done in C/C++, they do not
 have access to the Python execution environment so they are literally
-unable to give information about which Python variables caused the
-problem.  Only by catching the exception and then analyzing the Python
-code can we get this kind of an error message.
+unable to give information about which Python variables and subexpression caused the problem.  Only by catching the exception and then analyzing/re-executing the Python code can we get this kind of an error message.
 
 The Python `with` statement allows me to trap exceptions that occur
 and then I literally parse the Python code of the offending line, build an
@@ -118,6 +116,17 @@ pip install tensor-sensor
 ```
 
 which gives you module `tsensor`.
+
+```
+$ pip list | grep -i flow
+tensorflow                         2.3.0
+tensorflow-estimator               2.3.0
+$ pip list | grep -i numpy
+numpy                              1.18.5
+numpydoc                           1.1.0
+$ pip list | grep -i torch
+torch                              1.6.0
+```
 
 
 ## Deploy (parrt's use)

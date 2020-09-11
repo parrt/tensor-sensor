@@ -1,3 +1,4 @@
+import os
 import sys
 import traceback
 import torch
@@ -12,6 +13,7 @@ class clarify:
         pass
 
     def __enter__(self):
+        self.frame = sys._getframe().f_back # where do we start tracking
         return self
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
@@ -44,20 +46,40 @@ class clarify:
             print(f"exception while eval({code})", e)
             traceback.print_tb(e.__traceback__, limit=5, file=sys.stdout)
         # Reuse exception but overwrite the message
-        exc_value.args = [exc_value.args[0] + "\n" + augment]
+        if len(exc_value.args)==0:
+            exc_value._message = exc_value.message + "\n" + augment
+        else:
+            exc_value.args = [exc_value.args[0] + "\n" + augment]
 
     def is_interesting_exception(self, e):
         sentinels = {'matmul', 'THTensorMath', 'tensor', 'tensors', 'dimension',
                      'not aligned', 'size mismatch', 'shape', 'shapes'}
-        msg = e.args[0]
+        if len(e.args)==0:
+            msg = e.message
+        else:
+            msg = e.args[0]
         return sum([s in msg for s in sentinels])>0
 
     def deepest_frame(self, exc_traceback):
+        """
+        Don't trace into internals of numpy/torch/tensorflow; we want to reset frame
+        to where in the user's python code it asked the tensor lib to perform an
+        invalid operation.
+
+        To detect libraries, look for code whose filename has "site-packages/{package}"
+        """
         tb = exc_traceback
-        # don't trace into internals of numpy etc... with filenames like '<__array_function__ internals>'
-        while tb.tb_next != None and not tb.tb_next.tb_frame.f_code.co_filename.startswith('<'):
+        packages = ['numpy','torch','tensorflow']
+        packages = [os.path.join('site-packages',p) for p in packages]
+        prev = tb
+        while tb != None:
+            filename = tb.tb_frame.f_code.co_filename
+            reached_lib = [p in filename for p in packages]
+            if sum(reached_lib)>0:
+                break
+            prev = tb
             tb = tb.tb_next
-        return tb.tb_frame
+        return prev.tb_frame
 
     def info(self, frame):
         if hasattr(frame, '__name__'):
