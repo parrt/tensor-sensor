@@ -17,7 +17,9 @@ class QuietGraphvizWrapper(graphviz.Source):
         return self.pipe(format='svg', quiet=True).decode(self._encoding)
 
 
-def pyviz(statement:str, frame) -> graphviz.Source:
+def pyviz(statement:str, frame=None) -> graphviz.Source:
+    if frame is None: # use frame of caller
+        frame = sys._getframe().f_back
     return QuietGraphvizWrapper(pyviz_dot(statement, frame))
 
 def pyviz_dot(statement:str, frame,
@@ -158,11 +160,11 @@ def pyviz_dot(statement:str, frame,
     return gr
 
 
-def astviz(statement:str) -> graphviz.Source:
+def astviz(statement:str, frame=None) -> graphviz.Source:
     return QuietGraphvizWrapper(astviz_dot(statement))
 
 
-def astviz_dot(statement:str) -> str:
+def astviz_dot(statement:str, frame=None) -> str:
     def internal_label(node):
         text = str(node)
         if node.opstr:
@@ -171,6 +173,8 @@ def astviz_dot(statement:str) -> str:
         return label
 
     root, tokens = tsensor.parsing.parse(statement)
+    if frame is not None:
+        root.eval(frame)
 
     nodes = tsensor.ast.postorder(root)
     atoms = tsensor.ast.leaves(root)

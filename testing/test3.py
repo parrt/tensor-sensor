@@ -7,6 +7,6 @@ x = tf.reshape(tf.constant([[8, 5, 7]]), (3, 1))
 
 def foo():
     with tsensor.clarify():
-        print(b + x + 3)
+        b + (x + 3)
 
 foo()

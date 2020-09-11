@@ -190,8 +190,8 @@ class SubExpr(ParseTreeNode):
         super().__init__()
         self.e = e
     def eval(self, frame):
-        self.e.eval(frame)
-        return self.e.value # don't re-evaluate
+        self.value = self.e.eval(frame)
+        return self.value # don't re-evaluate
     @property
     def kids(self):
         return [self.e]

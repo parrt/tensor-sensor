@@ -4,7 +4,10 @@ import traceback
 import torch
 import inspect
 import graphviz
+import tempfile
+
 from IPython.display import display, SVG
+from IPython import get_ipython
 
 import tsensor
 
@@ -152,14 +155,10 @@ class TensorTracer:
                 # print(' '.join(cmd))
                 graphviz.backend.run(cmd, capture_output=True, check=True, quiet=True)
             else:
-                display(SVG(g.pipe(format="svg", quiet=True)))
-            # g.render(quiet=True)
-            # if self.format=='svg':
-            #     tmp = tempfile.gettempdir()
-            #     svgfilename = os.path.join(tmp, f"DTreeViz_{os.getpid()}.svg")
-            #     display(SVG(g))
-            # else:
-            #     display(g)
+                if get_ipython() is None:
+                    g.view(filename=tempfile.mktemp('.dot'), quiet=True)
+                else:
+                    display(SVG(g.pipe(format="svg", quiet=True)))
 
 
 class explain:
@@ -188,8 +187,9 @@ def eval(statement:str, frame=None) -> (tsensor.ast.ParseTreeNode, object):
     """
     p = tsensor.parsing.PyExprParser(statement)
     root = p.parse()
-    if frame is not None:
-        root.eval(frame)
+    if frame is None: # use frame of caller
+        frame = sys._getframe().f_back
+    root.eval(frame)
     return root, root.value
 
 
