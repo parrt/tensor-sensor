@@ -15,10 +15,10 @@ class GRU:
         self.a = 3
 
 
-W = torch.tensor([[1, 2], [3, 4], [5, 6]])
+W = torch.tensor([[1, 2], [3, 4]])
 b = torch.tensor([9, 10]).reshape(2, 1)
 x = torch.tensor([4, 5]).reshape(2, 1)
-h = torch.tensor([1, 2])
+h = torch.tensor([1,2])
 a = 3
 
 with tsensor.explain(savefig="/tmp/sample") as e:
