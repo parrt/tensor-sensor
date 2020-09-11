@@ -71,6 +71,7 @@ class clarify:
         tb = exc_traceback
         packages = ['numpy','torch','tensorflow']
         packages = [os.path.join('site-packages',p) for p in packages]
+        packages += ['<__array_function__'] # numpy seems to not have real filename
         prev = tb
         while tb != None:
             filename = tb.tb_frame.f_code.co_filename
