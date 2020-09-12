@@ -21,6 +21,8 @@ x = torch.tensor([4, 5]).reshape(2, 1)
 h = torch.tensor([1,2])
 a = 3
 
+root, tokens = tsensor.parsing.parse("W*", hush_errors=False)
+
 g = tsensor.astviz("b = W@b + (h+3).dot(h) + torch.abs(torch.tensor(34))", sys._getframe())
 g.view()
 

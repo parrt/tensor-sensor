@@ -37,6 +37,8 @@ class clarify:
         try:
             p = tsensor.parsing.PyExprParser(code)
             t = p.parse()
+            if t is None: # Couldn't parse the code; must ignore
+                return
             try:
                 t.eval(exc_frame)
             except tsensor.ast.IncrEvalTrap as exc:

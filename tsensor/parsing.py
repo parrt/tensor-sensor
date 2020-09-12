@@ -24,7 +24,7 @@ SOFTWARE.
 from io import BytesIO
 import token
 import keyword
-from tokenize import tokenize,\
+from tokenize import tokenize, TokenInfo,\
     NUMBER, STRING, NAME, OP, ENDMARKER, LPAR, LSQB, RPAR, RSQB, EQUAL, COMMA, COLON,\
     PLUS, MINUS, STAR, SLASH, AT, PERCENT, TILDE, DOT
 
@@ -80,7 +80,6 @@ ADDOP     = {PLUS, MINUS}
 MULOP     = {STAR, SLASH, AT, PERCENT}
 UNARYOP   = {TILDE}
 
-
 class Token:
     def __init__(self, type, value):
         self.type, self.value = type, value
@@ -100,12 +99,15 @@ def mytokenize(s):
         else:
             # print("ignoring", type, value)
             pass
+    # It leaves ENDMARKER on end. set text to "<EOF>"
+    tokens[-1].value = "<EOF>"
     return tokens
 
 
 class PyExprParser:
-    def __init__(self, code):
+    def __init__(self, code:str, hush_errors=True):
         self.code = code
+        self.hush_errors = hush_errors
         self.tokens = mytokenize(code)
         self.t = 0 # current lookahead
 
@@ -113,11 +115,18 @@ class PyExprParser:
         # print("\nparse", self.code)
         # print(self.tokens)
         # only process assignments and expressions
+        root = None
         if not keyword.iskeyword(self.tokens[0].value):
-            s = self.statement()
-            self.match(ENDMARKER)
-            return s
-        return None
+            if self.hush_errors:
+                try:
+                    root = self.statement()
+                    self.match(ENDMARKER)
+                except SyntaxError as e:
+                    root = None
+            else:
+                root = self.statement()
+                self.match(ENDMARKER)
+        return root
 
     def statement(self):
         lhs = self.expression()
@@ -158,7 +167,7 @@ class PyExprParser:
         elif self.isatom() or self.isgroup():
             return self.postexpr()
         else:
-            print(f"missing unary expr at: {self.LT(1)}")
+            self.error(f"missing unary expr at: {self.LT(1)}")
 
     # def memberexpr(self):
     #     root = self.postexpr()
@@ -200,7 +209,7 @@ class PyExprParser:
             self.t += 1
             return tsensor.ast.Atom(atom)
         else:
-            print("error")
+            self.error("unknown or missing atom:"+str(self.LT(1)))
 
     def exprlist(self):
         elist = []
@@ -237,18 +246,21 @@ class PyExprParser:
     def LT(self, i):
         ahead = self.t + i - 1
         if ahead >= len(self.tokens):
-            return ENDMARKER
+            return self.tokens[-1] # return last (end marker)
         return self.tokens[ahead]
 
     def match(self, type):
         if self.LA(1)!=type:
-            print(f"mismatch token {self.LT(1)}, looking for {token.tok_name[type]}")
+            self.error(f"mismatch token {self.LT(1)}, looking for {token.tok_name[type]}")
         tok = self.LT(1)
         self.t += 1
         return tok
 
+    def error(self, msg):
+        raise SyntaxError(msg)
 
-def parse(statement:str):
+
+def parse(statement:str, hush_errors=True):
     "Parse statement and return ast and token objects."
-    p = tsensor.parsing.PyExprParser(statement)
+    p = tsensor.parsing.PyExprParser(statement, hush_errors=hush_errors)
     return p.parse(), p.tokens
