@@ -6,5 +6,7 @@ b = tf.reshape(tf.constant([[9, 10]]), (2, 1))
 x = tf.reshape(tf.constant([[8, 5, 7]]), (3, 1))
 z = 0
 
-with tsensor.clarify():
-    z += b + x * 3
+tsensor.parse("z /= b + x * 3", hush_errors=False)
+#
+# with tsensor.clarify():
+#     z += b + x * 3

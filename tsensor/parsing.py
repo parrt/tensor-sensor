@@ -25,8 +25,12 @@ from io import BytesIO
 import token
 import keyword
 from tokenize import tokenize, TokenInfo,\
-    NUMBER, STRING, NAME, OP, ENDMARKER, LPAR, LSQB, RPAR, RSQB, EQUAL, COMMA, COLON,\
-    PLUS, MINUS, STAR, SLASH, AT, PERCENT, TILDE, DOT
+    NUMBER, STRING, NAME, OP, ENDMARKER, LPAR, LSQB, RPAR, RSQB, COMMA, COLON,\
+    PLUS, MINUS, STAR, SLASH, AT, PERCENT, TILDE, DOT,\
+    NOTEQUAL, PERCENTEQUAL, AMPEREQUAL, DOUBLESTAREQUAL, STAREQUAL, PLUSEQUAL,\
+    MINEQUAL, DOUBLESLASHEQUAL, SLASHEQUAL, COLONEQUAL, LEFTSHIFTEQUAL,\
+    LESSEQUAL, EQUAL, EQEQUAL, GREATEREQUAL, RIGHTSHIFTEQUAL, ATEQUAL,\
+    CIRCUMFLEXEQUAL, VBAREQUAL
 
 import tsensor.ast
 
@@ -78,6 +82,25 @@ Operation @ has operand W w/shape torch.Size([2, 2]) and operand z w/shape torch
 
 ADDOP     = {PLUS, MINUS}
 MULOP     = {STAR, SLASH, AT, PERCENT}
+ASSIGNOP  = {NOTEQUAL,
+             PERCENTEQUAL,
+             AMPEREQUAL,
+             DOUBLESTAREQUAL,
+             STAREQUAL,
+             PLUSEQUAL,
+             MINEQUAL,
+             DOUBLESLASHEQUAL,
+             SLASHEQUAL,
+             COLONEQUAL,
+             LEFTSHIFTEQUAL,
+             LESSEQUAL,
+             EQUAL,
+             EQEQUAL,
+             GREATEREQUAL,
+             RIGHTSHIFTEQUAL,
+             ATEQUAL,
+             CIRCUMFLEXEQUAL,
+             VBAREQUAL}
 UNARYOP   = {TILDE}
 
 class Token:
@@ -119,22 +142,24 @@ class PyExprParser:
         if not keyword.iskeyword(self.tokens[0].value):
             if self.hush_errors:
                 try:
-                    root = self.statement()
+                    root = self.assignment_or_expr()
                     self.match(ENDMARKER)
                 except SyntaxError as e:
                     root = None
             else:
-                root = self.statement()
+                root = self.assignment_or_expr()
                 self.match(ENDMARKER)
         return root
 
-    def statement(self):
+    def assignment_or_expr(self):
         lhs = self.expression()
-        if self.LA(1) == EQUAL:
+        if self.LA(1) in ASSIGNOP:
             eq = self.LT(1)
             self.t += 1
             rhs = self.expression()
             return tsensor.ast.Assign(eq,lhs,rhs)
+        else:
+            self.error(f"tsensor parser can't handle '{self.code}' at '{self.LT(1)}'")
         return lhs
 
     def expression(self):
