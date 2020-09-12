@@ -161,7 +161,7 @@ def pyviz_dot(statement:str, frame,
 
 
 def astviz(statement:str, frame=None) -> graphviz.Source:
-    return QuietGraphvizWrapper(astviz_dot(statement))
+    return QuietGraphvizWrapper(astviz_dot(statement, frame))
 
 
 def astviz_dot(statement:str, frame=None) -> str:
@@ -169,8 +169,15 @@ def astviz_dot(statement:str, frame=None) -> str:
         text = str(node)
         if node.opstr:
             text = node.opstr
-        label = f'<font face="{fontname}" color="#444443" point-size="{fontsize}">{text}</font>'
-        return label
+        sh = tsensor.analysis._shape(node.value)
+        if sh is None:
+            return f'<font face="{fontname}" color="#444443" point-size="{fontsize}">{text}</font>'
+
+        if len(sh)==1:
+            sz = str(sh[0])
+        else:
+            sz = f"{sh[0]}x{sh[1]}"
+        return f"""<font face="Consolas" color="#444443" point-size="{fontsize}">{text}</font><br/><font face="Consolas" color="#444443" point-size="{dimfontsize}">{sz}</font>"""
 
     root, tokens = tsensor.parsing.parse(statement)
     if frame is not None:
@@ -180,6 +187,8 @@ def astviz_dot(statement:str, frame=None) -> str:
     atoms = tsensor.ast.leaves(root)
     atomsS = set(atoms)
     ops = [nd for nd in nodes if nd not in atomsS] # keep order
+    # map tokens to nodes so we can get variable values
+    tok2node = {nd.token:nd for nd in atoms}
 
     gr = """digraph G {
         margin=0;
@@ -189,15 +198,19 @@ def astviz_dot(statement:str, frame=None) -> str:
         ordering=out; # keep order of leaves
     """
 
+    matrixcolor = "#cfe2d4"
+    vectorcolor = "#fefecd"
     fontname="Consolas"
     fontsize=12
+    dimfontsize = 9
     spread = 0
 
     # Gen leaf nodes
     for i in range(len(tokens)):
         t = tokens[i]
         if t.type!=token.ENDMARKER:
-            label = f'<font face="{fontname}" color="#444443" point-size="{fontsize}">{t}</font>'
+            nodetext = t.value
+            label = f'<font face="{fontname}" color="#444443" point-size="{fontsize}">{nodetext}</font>'
             _spread = spread
             if t.type==token.DOT:
                 _spread=.1
@@ -224,11 +237,19 @@ def astviz_dot(statement:str, frame=None) -> str:
 
     # Draw internal ops nodes
     for nd in ops:
-        for sub in nd.kids:
-            if tsensor.analysis._shape(sub.value) is None:
-                continue
+        # for sub in nd.kids:
+        #     if tsensor.analysis._shape(sub.value) is None:
+        #         continue
         label = internal_label(nd)
-        gr += f'node{id(nd)} [shape=box penwidth=0 margin=0 width=.25 height=.2 label=<{label}>]\n'
+        sh = tsensor.analysis._shape(nd.value)
+        if sh is None:
+            color = ""
+        else:
+            if len(sh)==1:
+                color = f'fillcolor="{vectorcolor}" style=filled'
+            else:
+                color = f'fillcolor="{matrixcolor}" style=filled'
+        gr += f'node{id(nd)} [shape=box {color} penwidth=0 margin=0 width=.25 height=.2 label=<{label}>]\n'
 
     # Link internal nodes to other nodes or leaves
     for nd in nodes:
@@ -241,7 +262,6 @@ def astviz_dot(statement:str, frame=None) -> str:
 
     gr += "}\n"
     return gr
-
 
 
 def matrix_html(nrows, ncols, label, fontsize=12, fontname="Consolas", dimfontsize=9, color="#cfe2d4"):

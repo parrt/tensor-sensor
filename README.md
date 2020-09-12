@@ -115,7 +115,7 @@ Displays this in a notebook:
 pip install tensor-sensor
 ```
 
-which gives you module `tsensor`.
+which gives you module `tsensor`. I developed and tested with the following versions
 
 ```
 $ pip list | grep -i flow
@@ -128,6 +128,21 @@ $ pip list | grep -i torch
 torch                              1.6.0
 ```
 
+
+## Limitations
+
+I rely on parsing lines that are assignments or expressions only so the clarify and explain routines do not handle methods expressed like:
+
+```
+def bar(): b + x * 3
+```
+
+Instead, use
+
+```
+def bar():
+	b + x * 3
+```
 
 ## Deploy (parrt's use)
 
