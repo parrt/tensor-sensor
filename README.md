@@ -144,6 +144,10 @@ def bar():
 	b + x * 3
 ```
 
+Can't handle `\` continuations.
+
+Also note: I've built my own parser to handle just the assignments / expressions tsensor can handle.
+
 ## Deploy (parrt's use)
 
 ```bash

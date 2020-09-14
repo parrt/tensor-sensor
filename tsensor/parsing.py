@@ -158,8 +158,6 @@ class PyExprParser:
             self.t += 1
             rhs = self.expression()
             return tsensor.ast.Assign(eq,lhs,rhs)
-        else:
-            self.error(f"tsensor parser can't handle '{self.code}' at '{self.LT(1)}'")
         return lhs
 
     def expression(self):
