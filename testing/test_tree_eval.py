@@ -33,8 +33,6 @@ def check(s,expected):
     p = PyExprParser(s)
     t = p.parse()
     result = t.eval(caller)
-    tsensor.ast.set_matrix_below(t)
-    print("\n",repr(t))
     assert str(result)==str(expected)
 
 

@@ -8,7 +8,7 @@ import tsensor
 class ParseTreeNode:
     def __init__(self):
         self.value = None # used during evaluation
-        self.matrix_below = False # indicates decendant has non-scalar vaule
+        # self.matrix_below = False # indicates decendant has non-scalar value UNUSED
         self.start = None # start token
         self.stop = None  # end token
     def eval(self, frame):
@@ -35,8 +35,8 @@ class ParseTreeNode:
         pass
     def __repr__(self):
         fields = self.__dict__
-        if not self.matrix_below:
-            del fields['matrix_below']
+        # if not self.matrix_below:
+        #     del fields['matrix_below']
         del fields['start']
         del fields['stop']
         args = [v+'='+fields[v].__repr__() for v in fields if v!='value' or fields['value'] is not None]
@@ -266,6 +266,40 @@ def walk(t, pre=lambda x: None, post=lambda x: None):
     post(t)
 
 
+def smallest_matrix_subexpr(t):
+    """
+    During visualization, we need to find the smallest expression
+    that evaluates to a non-scalar. That corresponds to the deepest subtree
+    that evaluates to a non-scalar. Because we do not have parent pointers,
+    we cannot start at the leaves and walk upwards. Instead, set a Boolean
+    in each node to indicate whether one of the descendents (but not itself)
+    evaluates to a non-scalar.  Nodes in the tree that have matrix values and
+    not matrix_below are the ones to visualize.
+
+    This routine modifies the tree nodes to turn on matrix_below where appropriate.
+    """
+    nodes = []
+    _smallest_matrix_subexpr(t, nodes)
+    return nodes
+
+def _smallest_matrix_subexpr(t, nodes) -> bool:
+    if len(t.kids)==0: # leaf node
+        if _nonscalar(t.value):
+            nodes.append(t)
+        return False
+    n_matrix_below = 0 # once this latches true, it's passed all the way up to the root
+    for sub in t.kids:
+        matrix_below = _smallest_matrix_subexpr(sub, nodes)
+        n_matrix_below += matrix_below # how many descendents evaluated two non-scalar?
+    # If current node is matrix and no descendents are, then this is smallest
+    # sub expression that evaluates to a matrix; keep track
+    if _nonscalar(t.value) and not n_matrix_below>0:
+        nodes.append(t)
+    # Report to caller that this node or some descendent is a matrix
+    return _nonscalar(t.value) or n_matrix_below>0
+
+
+'''
 def set_matrix_below(t):
     """
     During visualization, we need to find the smallest expression
@@ -285,7 +319,7 @@ def set_matrix_below(t):
         set_matrix_below(sub)
         if _nonscalar(sub.value) or sub.matrix_below:
             t.matrix_below = True
-
+'''
 
 def _nonscalar(x):
     return tsensor.analysis._shape(x) is not None
