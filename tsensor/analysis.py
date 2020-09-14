@@ -195,6 +195,43 @@ def eval(statement:str, frame=None) -> (tsensor.ast.ParseTreeNode, object):
     return root, root.value
 
 
+def smallest_matrix_subexpr(t):
+    """
+    During visualization, we need to find the smallest expression
+    that evaluates to a non-scalar. That corresponds to the deepest subtree
+    that evaluates to a non-scalar. Because we do not have parent pointers,
+    we cannot start at the leaves and walk upwards. Instead, set a Boolean
+    in each node to indicate whether one of the descendents (but not itself)
+    evaluates to a non-scalar.  Nodes in the tree that have matrix values and
+    not matrix_below are the ones to visualize.
+
+    This routine modifies the tree nodes to turn on matrix_below where appropriate.
+    """
+    nodes = []
+    _smallest_matrix_subexpr(t, nodes)
+    return nodes
+
+def _smallest_matrix_subexpr(t, nodes) -> bool:
+    if len(t.kids)==0: # leaf node
+        if _nonscalar(t.value):
+            nodes.append(t)
+        return False
+    n_matrix_below = 0 # once this latches true, it's passed all the way up to the root
+    for sub in t.kids:
+        matrix_below = _smallest_matrix_subexpr(sub, nodes)
+        n_matrix_below += matrix_below # how many descendents evaluated two non-scalar?
+    # If current node is matrix and no descendents are, then this is smallest
+    # sub expression that evaluates to a matrix; keep track
+    if _nonscalar(t.value) and not n_matrix_below>0:
+        nodes.append(t)
+    # Report to caller that this node or some descendent is a matrix
+    return _nonscalar(t.value) or n_matrix_below>0
+
+
+def _nonscalar(x):
+    return tsensor.analysis._shape(x) is not None
+
+
 def _shape(v):
     if hasattr(v, "shape"):
         if isinstance(v.shape, torch.Size):
