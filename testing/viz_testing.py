@@ -21,18 +21,19 @@ x = torch.tensor([4, 5]).reshape(2, 1)
 h = torch.tensor([1,2])
 a = 3
 
-# g = tsensor.astviz("b = W@b + (h+3).dot(h) + torch.abs(torch.tensor(34))", sys._getframe())
-# g.view()
+g = GRU()
+g = tsensor.pyviz("b = W@b + (h+3).dot(h) + g.h.dot(g.h) + torch.abs(torch.tensor(34))", sys._getframe())
+g.view()
 
 # with tsensor.explain() as e:
 #     a = torch.relu(x)
 #     b = W @ b + h.dot(h)
 
 
-g = GRU()
-
-g1 = tsensor.astviz("b = g.W@b + torch.eye(3,3)")
-g1.view()
+# g = GRU()
+#
+# g1 = tsensor.astviz("b = g.W@b + torch.eye(3,3)")
+# g1.view()
 # g1 = tsensor.pyviz("b = g.W@b")
 # g1.view()
 # g2 = tsensor.astviz("b = g.W@b + g.h.dot(g.h) + torch.abs(torch.tensor(34))")

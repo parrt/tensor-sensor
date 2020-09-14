@@ -105,13 +105,13 @@ UNARYOP   = {TILDE}
 
 class Token:
     def __init__(self, type, value,
-                 start,
-                 stop, # one past end index so text[start:stop] works
+                 start_idx,
+                 stop_idx,  # one past end index so text[start_idx:stop_idx] works
                  line):
-        self.type, self.value, self.start, self.stop, self.line = \
-            type, value, start, stop, line
+        self.type, self.value, self.start_idx, self.stop_idx, self.line = \
+            type, value, start_idx, stop_idx, line
     def __repr__(self):
-        return f"<{token.tok_name[self.type]}:{self.value},{self.start}:{self.stop}>"
+        return f"<{token.tok_name[self.type]}:{self.value},{self.start_idx}:{self.stop_idx}>"
     def __str__(self):
         return self.value
 

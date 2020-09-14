@@ -215,14 +215,14 @@ def _smallest_matrix_subexpr(t, nodes) -> bool:
     if len(t.kids)==0: # leaf node
         if _nonscalar(t.value):
             nodes.append(t)
-        return False
+        return _nonscalar(t.value)
     n_matrix_below = 0 # once this latches true, it's passed all the way up to the root
     for sub in t.kids:
         matrix_below = _smallest_matrix_subexpr(sub, nodes)
         n_matrix_below += matrix_below # how many descendents evaluated two non-scalar?
     # If current node is matrix and no descendents are, then this is smallest
     # sub expression that evaluates to a matrix; keep track
-    if _nonscalar(t.value) and not n_matrix_below>0:
+    if _nonscalar(t.value) and n_matrix_below==0:
         nodes.append(t)
     # Report to caller that this node or some descendent is a matrix
     return _nonscalar(t.value) or n_matrix_below>0

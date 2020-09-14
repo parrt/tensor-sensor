@@ -59,7 +59,14 @@ def pyviz_dot(statement:str, frame,
     root, tokens = tsensor.parsing.parse(statement)
     root.eval(frame)
     result = root.value
-    subexprs = tsensor.ast.smallest_matrix_subexpr(root)
+    subexprs = tsensor.analysis.smallest_matrix_subexpr(root)
+    print(statement)
+    for i in range(8):
+        for j in range(10):
+            print(j,end='')
+    print()
+    for sub in subexprs:
+        print(sub, sub.start.start_idx, ':', sub.stop.stop_idx)
 
     # p = tsensor.parsing.PyExprParser(statement)
     # root = p.parse()
