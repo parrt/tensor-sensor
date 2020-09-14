@@ -59,6 +59,7 @@ def pyviz_dot(statement:str, frame,
     root, tokens = tsensor.parsing.parse(statement)
     root.eval(frame)
     result = root.value
+    tsensor.ast.set_matrix_below(root)
 
     # p = tsensor.parsing.PyExprParser(statement)
     # root = p.parse()

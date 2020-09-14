@@ -221,8 +221,8 @@ class Atom(ParseTreeNode):
     def opstr(self):
         return self.token.value
     def __repr__(self):
-        v = f"{{{self.value}}}" if hasattr(self,'value') and self.value is not None else ""
-        return self.token.value + v
+        # v = f"{{{self.value}}}" if hasattr(self,'value') and self.value is not None else ""
+        return self.token.value
     def __str__(self):
         return self.token.value
 
@@ -264,6 +264,31 @@ def walk(t, pre=lambda x: None, post=lambda x: None):
     for sub in t.kids:
         walk(sub, pre, post)
     post(t)
+
+
+def set_matrix_below(t):
+    """
+    During visualization, we need to find the smallest expression
+    that evaluates to a non-scalar. That corresponds to the deepest subtree
+    that evaluates to a non-scalar. Because we do not have parent pointers,
+    we cannot start at the leaves and walk upwards. Instead, set a Boolean
+    in each node to indicate whether one of the descendents (but not itself)
+    evaluates to a non-scalar.  Nodes in the tree that have matrix values and
+    not matrix_below are the ones to visualize.
+
+    This routine modifies the tree nodes to turn on matrix_below where appropriate.
+    """
+    if len(t.kids)==0: # leaf node
+        t.matrix_below = False
+        return
+    for sub in t.kids:
+        set_matrix_below(sub)
+        if _nonscalar(sub.value) or sub.matrix_below:
+            t.matrix_below = True
+
+
+def _nonscalar(x):
+    return tsensor.analysis._shape(x) is not None
 
 
 class IncrEvalTrap(BaseException):

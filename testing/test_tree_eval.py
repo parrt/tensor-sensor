@@ -22,6 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 from tsensor.parsing import *
+import tsensor.ast
 import sys
 import numpy as np
 
@@ -32,6 +33,8 @@ def check(s,expected):
     p = PyExprParser(s)
     t = p.parse()
     result = t.eval(caller)
+    tsensor.ast.set_matrix_below(t)
+    print("\n",repr(t))
     assert str(result)==str(expected)
 
 
@@ -81,6 +84,21 @@ def test_parens():
     c = 5
     check("(a+b)*c", 35)
 
-def test_array_literal():
+def test_list_literal():
+    a = [[1,2,3],[4,5,6]]
+    check("a", """[[1, 2, 3], [4, 5, 6]]""")
+
+
+def test_np_literal():
     a = np.array([[1,2,3],[4,5,6]])
     check("a*2", """[[ 2  4  6]\n [ 8 10 12]]""")
+
+
+def test_np_add():
+    a = np.array([[1,2,3],[4,5,6]])
+    check("a+a", """[[ 2  4  6]\n [ 8 10 12]]""")
+
+
+def test_np_add2():
+    a = np.array([[1,2,3],[4,5,6]])
+    check("a+a+a", """[[ 3  6  9]\n [12 15 18]]""")

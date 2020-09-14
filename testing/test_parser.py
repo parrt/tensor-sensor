@@ -42,7 +42,7 @@ def check(s,expected):
 
 
 def test_assign():
-    check("a = 3", "Assign(op=<EQUAL:=>,lhs=a,rhs=3)")
+    check("a = 3", "Assign(op=<EQUAL:=,2:3>,lhs=a,rhs=3)")
 
 
 def test_index():
@@ -57,69 +57,69 @@ def test_literal_list():
 def test_literal_array():
     check("np.array([[1, 2], [3, 4]])",
           """
-          Call(func=Member(op=<DOT:.>,obj=np,member=array),
+          Call(func=Member(op=<DOT:.,2:3>,obj=np,member=array),
                args=[ListLiteral(elems=[ListLiteral(elems=[1,2]),ListLiteral(elems=[3,4])])])
           """)
 
 
 def test_method():
     check("h = torch.tanh(h)",
-          "Assign(op=<EQUAL:=>,lhs=h,rhs=Call(func=Member(op=<DOT:.>,obj=torch,member=tanh),args=[h]))")
+          "Assign(op=<EQUAL:=,2:3>,lhs=h,rhs=Call(func=Member(op=<DOT:.,9:10>,obj=torch,member=tanh),args=[h]))")
 
 
 def test_field():
-    check("a.b", "Member(op=<DOT:.>,obj=a,member=b)")
+    check("a.b", "Member(op=<DOT:.,1:2>,obj=a,member=b)")
 
 
 def test_member_func():
-    check("a.f()", "Call(func=Member(op=<DOT:.>,obj=a,member=f),args=[])")
+    check("a.f()", "Call(func=Member(op=<DOT:.,1:2>,obj=a,member=f),args=[])")
 
 
 def test_field2():
-    check("a.b.c", "Member(op=<DOT:.>,obj=Member(op=<DOT:.>,obj=a,member=b),member=c)")
+    check("a.b.c", "Member(op=<DOT:.,3:4>,obj=Member(op=<DOT:.,1:2>,obj=a,member=b),member=c)")
 
 
 def test_field_and_func():
-    check("a.f().c", "Member(op=<DOT:.>,obj=Call(func=Member(op=<DOT:.>,obj=a,member=f),args=[]),member=c)")
+    check("a.f().c", "Member(op=<DOT:.,5:6>,obj=Call(func=Member(op=<DOT:.,1:2>,obj=a,member=f),args=[]),member=c)")
 
 
 def test_parens():
-    check("(a+b)*c", "BinaryOp(op=<STAR:*>,lhs=SubExpr(e=BinaryOp(op=<PLUS:+>,lhs=a,rhs=b)),rhs=c)")
+    check("(a+b)*c", "BinaryOp(op=<STAR:*,5:6>,lhs=SubExpr(e=BinaryOp(op=<PLUS:+,2:3>,lhs=a,rhs=b)),rhs=c)")
 
 
 def test_field_array():
-    check("a.b[34]", "Index(arr=Member(op=<DOT:.>,obj=a,member=b),index=[34])")
+    check("a.b[34]", "Index(arr=Member(op=<DOT:.,1:2>,obj=a,member=b),index=[34])")
 
 
 def test_field_array_func():
-    check("a.b[34].f()", "Call(func=Member(op=<DOT:.>,obj=Index(arr=Member(op=<DOT:.>,obj=a,member=b),index=[34]),member=f),args=[])")
+    check("a.b[34].f()", "Call(func=Member(op=<DOT:.,7:8>,obj=Index(arr=Member(op=<DOT:.,1:2>,obj=a,member=b),index=[34]),member=f),args=[])")
 
 
 def test_arith():
     check("(1-z)*h + z*h_",
-          """BinaryOp(op=<PLUS:+>,
-                      lhs=BinaryOp(op=<STAR:*>,
-                                 lhs=SubExpr(e=BinaryOp(op=<MINUS:->,
+          """BinaryOp(op=<PLUS:+,8:9>,
+                      lhs=BinaryOp(op=<STAR:*,5:6>,
+                                 lhs=SubExpr(e=BinaryOp(op=<MINUS:-,2:3>,
                                                       lhs=1,
                                                       rhs=z)),
                                  rhs=h),
-                      rhs=BinaryOp(op=<STAR:*>,lhs=z,rhs=h_))""")
+                      rhs=BinaryOp(op=<STAR:*,11:12>,lhs=z,rhs=h_))""")
 
 
 def test_chained_op():
     check("a + b + c",
-          """BinaryOp(op=<PLUS:+>,
-                      lhs=BinaryOp(op=<PLUS:+>, lhs=a, rhs=b),
+          """BinaryOp(op=<PLUS:+,6:7>,
+                      lhs=BinaryOp(op=<PLUS:+,2:3>, lhs=a, rhs=b),
                       rhs=c)""")
 
 
 def test_matrix_arith():
     check("self.Whz@h + Uxz@x + bz",
           """
-          BinaryOp(op=<PLUS:+>,
-                   lhs=BinaryOp(op=<PLUS:+>,
-                                lhs=BinaryOp(op=<AT:@>,lhs=Member(op=<DOT:.>,obj=self,member=Whz),rhs=h),
-                                rhs=BinaryOp(op=<AT:@>,lhs=Uxz,rhs=x)),
+          BinaryOp(op=<PLUS:+,19:20>,
+                   lhs=BinaryOp(op=<PLUS:+,11:12>,
+                                lhs=BinaryOp(op=<AT:@,8:9>,lhs=Member(op=<DOT:.,4:5>,obj=self,member=Whz),rhs=h),
+                                rhs=BinaryOp(op=<AT:@,16:17>,lhs=Uxz,rhs=x)),
                    rhs=bz)
           """)
 
