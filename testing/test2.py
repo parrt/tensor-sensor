@@ -8,4 +8,4 @@ x = np.array([4, 5]).reshape(2, 1)
 h = np.array([1,2])
 
 with tsensor.clarify():
-    W @ np.dot(b, b) + np.eye(2, 2) @ x
+    np.dot(b, b)# + np.eye(2, 2) @ x

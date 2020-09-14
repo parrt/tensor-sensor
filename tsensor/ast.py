@@ -8,8 +8,9 @@ import tsensor
 class ParseTreeNode:
     def __init__(self):
         self.value = None # used during evaluation
-        # self.start = 0 # start token index  UNUSED
-        # self.len = 0   # how many tokens?   UNUSED
+        self.matrix_below = False # indicates decendant has non-scalar vaule
+        self.start = None # start token
+        self.stop = None  # end token
     def eval(self, frame):
         """
         Evaluate the expression represented by this (sub)tree in context of frame.
@@ -28,19 +29,25 @@ class ParseTreeNode:
     @property
     def kids(self):
         return []
-    def explain(self):
+    def clarify(self):
         return None
     def __str__(self):
         pass
     def __repr__(self):
-        args = [v+'='+self.__dict__[v].__repr__() for v in self.__dict__ if v!='value' or self.__dict__['value'] is not None]
+        fields = self.__dict__
+        if not self.matrix_below:
+            del fields['matrix_below']
+        del fields['start']
+        del fields['stop']
+        args = [v+'='+fields[v].__repr__() for v in fields if v!='value' or fields['value'] is not None]
         args = ','.join(args)
         return f"{self.__class__.__name__}({args})"
 
 class Assign(ParseTreeNode):
-    def __init__(self, op, lhs, rhs):
+    def __init__(self, op, lhs, rhs, start, stop):
         super().__init__()
         self.op, self.lhs, self.rhs = op, lhs, rhs
+        self.start, self.stop = start, stop
     def eval(self, frame):
         self.value = self.rhs.eval(frame)
         self.lhs.value = self.value
@@ -55,16 +62,17 @@ class Assign(ParseTreeNode):
         return str(self.lhs)+'='+str(self.rhs)
 
 class Call(ParseTreeNode):
-    def __init__(self, func, args):
+    def __init__(self, func, args, start, stop):
         super().__init__()
         self.func = func
         self.args = args
+        self.start, self.stop = start, stop
     def eval(self, frame):
         self.func.eval(frame)
         for a in self.args:
             a.eval(frame)
         return super().eval(frame)
-    def explain(self):
+    def clarify(self):
         arg_msgs = []
         for a in self.args:
             ashape = tsensor.analysis._shape(a.value)
@@ -87,10 +95,11 @@ class Call(ParseTreeNode):
         return f"{self.func}({args_})"
 
 class Index(ParseTreeNode):
-    def __init__(self, arr, index):
+    def __init__(self, arr, index, start, stop):
         super().__init__()
         self.arr = arr
         self.index = index
+        self.start, self.stop = start, stop
     def eval(self, frame):
         self.arr.eval(frame)
         for i in self.index:
@@ -105,11 +114,12 @@ class Index(ParseTreeNode):
         return f"{self.arr}[{i}]"
 
 class Member(ParseTreeNode):
-    def __init__(self, op, obj, member):
+    def __init__(self, op, obj, member, start, stop):
         super().__init__()
         self.op = op # always DOT
         self.obj = obj
         self.member = member
+        self.start, self.stop = start, stop
     def eval(self, frame):
         self.obj.eval(frame)
         # don't eval member as it's just a name to look up in obj
@@ -124,14 +134,15 @@ class Member(ParseTreeNode):
         return f"{self.obj}.{self.member}"
 
 class BinaryOp(ParseTreeNode):
-    def __init__(self, op, lhs, rhs):
+    def __init__(self, op, lhs, rhs, start, stop):
         super().__init__()
         self.op, self.lhs, self.rhs = op, lhs, rhs
+        self.start, self.stop = start, stop
     def eval(self, frame):
         self.lhs.eval(frame)
         self.rhs.eval(frame)
         return super().eval(frame)
-    def explain(self):
+    def clarify(self):
         opnd_msgs = []
         lshape = tsensor.analysis._shape(self.lhs.value)
         rshape = tsensor.analysis._shape(self.rhs.value)
@@ -150,10 +161,11 @@ class BinaryOp(ParseTreeNode):
         return f"{self.lhs}{self.op}{self.rhs}"
 
 class UnaryOp(ParseTreeNode):
-    def __init__(self, op, opnd):
+    def __init__(self, op, opnd, start, stop):
         super().__init__()
         self.op = op
         self.opnd = opnd
+        self.start, self.stop = start, stop
     def eval(self, frame):
         self.opnd.eval(frame)
         return super().eval(frame)
@@ -167,9 +179,10 @@ class UnaryOp(ParseTreeNode):
         return f"{self.op}{self.opnd}"
 
 class ListLiteral(ParseTreeNode):
-    def __init__(self, elems):
+    def __init__(self, elems, start, stop):
         super().__init__()
         self.elems = elems
+        self.start, self.stop = start, stop
     def eval(self, frame):
         for i in self.elems:
             i.eval(frame)
@@ -186,9 +199,10 @@ class ListLiteral(ParseTreeNode):
 
 class SubExpr(ParseTreeNode):
     # record parens for later display to keep precedence
-    def __init__(self, e):
+    def __init__(self, e, start, stop):
         super().__init__()
         self.e = e
+        self.start, self.stop = start, stop
     def eval(self, frame):
         self.value = self.e.eval(frame)
         return self.value # don't re-evaluate
@@ -202,6 +216,7 @@ class Atom(ParseTreeNode):
     def __init__(self, token):
         super().__init__()
         self.token = token
+        self.start, self.stop = token, token
     @property
     def opstr(self):
         return self.token.value

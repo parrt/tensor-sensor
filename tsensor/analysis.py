@@ -44,7 +44,7 @@ class clarify:
             except tsensor.ast.IncrEvalTrap as exc:
                 subexpr = exc.offending_expr
                 # print("trap evaluating:\n", repr(subexpr), "\nin", repr(t))
-                explanation = subexpr.explain()
+                explanation = subexpr.clarify()
                 if explanation is not None:
                     augment = explanation
         except BaseException as e:

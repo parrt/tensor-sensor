@@ -104,10 +104,14 @@ ASSIGNOP  = {NOTEQUAL,
 UNARYOP   = {TILDE}
 
 class Token:
-    def __init__(self, type, value):
-        self.type, self.value = type, value
+    def __init__(self, type, value,
+                 start,
+                 stop, # one past end index so text[start:stop] works
+                 line):
+        self.type, self.value, self.start, self.stop, self.line = \
+            type, value, start, stop, line
     def __repr__(self):
-        return f"<{token.tok_name[self.type]}:{self.value}>"
+        return f"<{token.tok_name[self.type]}:{self.value},{self.start}:{self.stop}>"
     def __str__(self):
         return self.value
 
@@ -116,14 +120,18 @@ def mytokenize(s):
     tokensO = tokenize(BytesIO(s.encode('utf-8')).readline)
     tokens = []
     for tok in tokensO:
-        type, value, _, _, _ = tok
+        type, value, start, end, _ = tok
+        line = start[0]
+        start = start[1]
+        end = end[1] # one past end index
         if type in {NUMBER, STRING, NAME, OP, ENDMARKER}:
-            tokens.append(Token(tok.exact_type,value))
+            tokens.append(Token(tok.exact_type,value,start,end,line))
         else:
             # print("ignoring", type, value)
             pass
     # It leaves ENDMARKER on end. set text to "<EOF>"
     tokens[-1].value = "<EOF>"
+    # print(tokens)
     return tokens
 
 
@@ -152,55 +160,56 @@ class PyExprParser:
         return root
 
     def assignment_or_expr(self):
+        start = self.LT(1)
         lhs = self.expression()
         if self.LA(1) in ASSIGNOP:
             eq = self.LT(1)
             self.t += 1
             rhs = self.expression()
-            return tsensor.ast.Assign(eq,lhs,rhs)
+            stop = self.LT(-1)
+            return tsensor.ast.Assign(eq,lhs,rhs,start,stop)
         return lhs
 
     def expression(self):
         return self.addexpr()
 
     def addexpr(self):
+        start = self.LT(1)
         root = self.multexpr()
         while self.LA(1) in ADDOP:
             op = self.LT(1)
             self.t += 1
             b = self.multexpr()
-            root = tsensor.ast.BinaryOp(op, root, b)
+            stop = self.LT(-1)
+            root = tsensor.ast.BinaryOp(op, root, b, start, stop)
         return root
 
     def multexpr(self):
+        start = self.LT(1)
         root = self.unaryexpr()
         while self.LA(1) in MULOP:
             op = self.LT(1)
             self.t += 1
             b = self.unaryexpr()
-            root = tsensor.ast.BinaryOp(op, root, b)
+            stop = self.LT(-1)
+            root = tsensor.ast.BinaryOp(op, root, b, start, stop)
         return root
 
     def unaryexpr(self):
+        start = self.LT(1)
         if self.LA(1) in UNARYOP:
             op = self.LT(1)
             self.t += 1
             e = self.unaryexpr()
-            return tsensor.ast.UnaryOp(op, e)
+            stop = self.LT(-1)
+            return tsensor.ast.UnaryOp(op, e, start, stop)
         elif self.isatom() or self.isgroup():
             return self.postexpr()
         else:
             self.error(f"missing unary expr at: {self.LT(1)}")
 
-    # def memberexpr(self):
-    #     root = self.postexpr()
-    #     while self.LA(1)==DOT:
-    #         self.match(DOT)
-    #         m = self.postexpr()
-    #         root = Member(root, m)
-    #     return root
-
     def postexpr(self):
+        start = self.LT(1)
         root = self.atom()
         while self.LA(1) in {LPAR, LSQB, DOT}:
             if self.LA(1)==LPAR:
@@ -209,17 +218,20 @@ class PyExprParser:
                 if self.LA(1) != RPAR:
                     el = self.exprlist()
                 self.match(RPAR)
-                root = tsensor.ast.Call(root, el)
+                stop = self.LT(-1)
+                root = tsensor.ast.Call(root, el, start, stop)
             if self.LA(1)==LSQB:
                 self.match(LSQB)
                 el = self.exprlist()
                 self.match(RSQB)
-                root = tsensor.ast.Index(root, el)
+                stop = self.LT(-1)
+                root = tsensor.ast.Index(root, el, start, stop)
             if self.LA(1)==DOT:
                 op = self.match(DOT)
                 m = self.match(NAME)
                 m = tsensor.ast.Atom(m)
-                root = tsensor.ast.Member(op, root, m)
+                stop = self.LT(-1)
+                root = tsensor.ast.Member(op, root, m, start, stop)
         return root
 
     def atom(self):
@@ -245,16 +257,20 @@ class PyExprParser:
         return elist# if len(elist)>1 else elist[0]
 
     def subexpr(self):
+        start = self.LT(1)
         self.match(LPAR)
         e = self.expression()
         self.match(RPAR)
-        return tsensor.ast.SubExpr(e)
+        stop = self.LT(-1)
+        return tsensor.ast.SubExpr(e, start, stop)
 
     def listatom(self):
+        start = self.LT(1)
         self.match(LSQB)
         e = self.exprlist()
         self.match(RSQB)
-        return tsensor.ast.ListLiteral(e)
+        stop = self.LT(-1)
+        return tsensor.ast.ListLiteral(e, start, stop)
 
     def isatom(self):
         return self.LA(1) in {NUMBER, NAME, STRING, COLON}
@@ -267,6 +283,10 @@ class PyExprParser:
         return self.LT(i).type
 
     def LT(self, i):
+        if i==0:
+            return None
+        if i<0:
+            return self.tokens[self.t + i] # -1 should give prev token
         ahead = self.t + i - 1
         if ahead >= len(self.tokens):
             return self.tokens[-1] # return last (end marker)
