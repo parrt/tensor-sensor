@@ -8,6 +8,7 @@ import tempfile
 
 from IPython.display import display, SVG
 from IPython import get_ipython
+import matplotlib.pyplot as plt
 
 import tsensor
 
@@ -109,6 +110,7 @@ class TensorTracer:
         self.filenames = filenames
         self.exceptions = set()
         self.linecount = 0
+        self.views = []
 
     def listener(self, frame, event, arg):
         module = frame.f_globals['__name__']
@@ -148,19 +150,21 @@ class TensorTracer:
             # print("\t", code)
             # print("\t", repr(t))
             g = tsensor.viz.pyviz(code, frame)
-            dotfilename = f"{self.savefig}-{self.linecount}.dot"
-            svgfilename = f"{self.savefig}-{self.linecount}.svg"
+            self.views.append(g)
             if self.savefig is not None:
-                g.save(dotfilename)
-                # g.render(format="svg", quiet=True, view=False)
-                cmd = ["dot", f"-Tsvg", "-o", svgfilename, dotfilename]
-                # print(' '.join(cmd))
-                graphviz.backend.run(cmd, capture_output=True, check=True, quiet=True)
+                svgfilename = f"{self.savefig}-{self.linecount}.svg"
+                g.savefig(svgfilename)
+                g.filename = svgfilename
             else:
                 if get_ipython() is None:
-                    g.view(filename=tempfile.mktemp('.dot'), quiet=True)
+                    svgfilename = f"tsensor-{self.linecount}.svg"
+                    g.savefig(svgfilename)
+                    g.filename = svgfilename
+                    plt.show()
                 else:
-                    display(SVG(g.pipe(format="svg", quiet=True)))
+                    g.filename, svg = g.svg()
+                    display(SVG(svg))
+            plt.close()
 
 
 class explain:
@@ -174,7 +178,7 @@ class explain:
         frame = sys._getframe()
         prev = frame.f_back # get block wrapped in "with"
         prev.f_trace = self.tracer.listener
-        return self
+        return self.tracer
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         sys.settrace(None)

@@ -2,7 +2,6 @@ import sys
 import tempfile
 import graphviz
 import token
-from IPython.display import SVG
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 
@@ -30,17 +29,37 @@ class PyVizView:
         self.vectorcolor = vectorcolor
         self.char_sep_scale = char_sep_scale
         self.dpi = dpi
-
-        self.leftedge = 25
-        self.texty = 350
-        self.liney = self.texty - 40
-        self.box_topy  = self.liney - 50
-        self.maxy = self.texty + 1.4 * fontsize
-        self.wchar = char_sep_scale * fontsize
-        self.hchar = char_sep_scale * fontsize
+        self.wchar = self.char_sep_scale * self.fontsize
+        self.hchar = self.char_sep_scale * self.fontsize
         self.dim_ypadding = 5
         self.dim_xpadding = 0
         self.linewidth = .7
+        self.leftedge = 25
+        self.bottomedge = 3
+        self.svgfilename = None
+
+    def set_vars(self, maxh):
+        line2text = self.hchar / 1.7
+        box2line  = line2text*2.6
+        self.texty = self.bottomedge + maxh + box2line + line2text
+        self.liney = self.bottomedge + maxh + box2line
+        self.box_topy  = self.bottomedge + maxh
+        self.maxy = self.texty + 1.4 * self.fontsize
+
+    def _repr_svg_(self):
+        return self.svg()
+
+    def svg(self):
+        """Render as svg and return svg text."""
+        if self.svgfilename is None: # cached?
+            self.svgfilename = tempfile.mktemp(suffix='.svg')
+            self.savefig(self.svgfilename)
+        with open(self.svgfilename, encoding='UTF-8') as f:
+            svg = f.read()
+        return svg
+
+    def savefig(self, filename):
+        plt.savefig(filename, dpi = self.dpi, bbox_inches = 'tight', pad_inches = 0)
 
     def matrix_size(self, sh):
         if sh[0]==1:
@@ -113,7 +132,7 @@ class PyVizView:
 
 
 def pyviz(statement:str, frame=None,
-          fontsize=16,
+          fontsize=13,
           fontname='Consolas',
           dimfontsize=9,
           dimfontname='Arial',
@@ -129,11 +148,11 @@ def pyviz(statement:str, frame=None,
     root.eval(frame)
     subexprs = tsensor.analysis.smallest_matrix_subexpr(root)
 
-    print(statement)
-    for i in range(8):
-        for j in range(10):
-            print(j,end='')
-    print()
+    # print(statement)
+    # for i in range(8):
+    #     for j in range(10):
+    #         print(j,end='')
+    # print()
 
     view = PyVizView(statement, fontsize, fontname, dimfontsize, dimfontname,
                      matrixcolor, vectorcolor, char_sep_scale, dpi)
@@ -150,18 +169,20 @@ def pyviz(statement:str, frame=None,
     # than we need to leave space around the sub expression text
     lpad = np.zeros((len(statement),)) # pad for characters
     rpad = np.zeros((len(statement),))
+    maxh = 0
     for sub in subexprs:
         w, h = view.boxsize(sub.value)
+        maxh = max(h, maxh)
         nexpr = sub.stop.stop_idx - sub.start.start_idx
         if statement[sub.start.start_idx - 1]==' ':
             nexpr += 1
-        if statement[sub.stop.stop_idx]==' ':
+        if statement[sub.stop.stop_idx-1]==' ':
             nexpr += 1
         if w>view.wchar * nexpr:
             lpad[sub.start.start_idx] += (w - view.wchar) / 2
             rpad[sub.stop.stop_idx-1] += (w - view.wchar) / 2
-    # print(lpad)
-    # print(rpad)
+
+    view.set_vars(maxh)
 
     # Find each character's position based upon width of a character and any padding
     charx = np.empty((len(statement),))
@@ -177,29 +198,28 @@ def pyviz(statement:str, frame=None,
     for i, c in enumerate(statement):
         ax.text(charx[i], view.texty, c, fontname=fontname, fontsize=fontsize)
 
-    # anyvalue = 1 # why does any value work for y?
+    # Compute the left and right edges of subexpressions (alter nodes with info)
+    for i,sub in enumerate(subexprs):
+        a = charx[sub.start.start_idx]
+        b = charx[sub.stop.stop_idx-1] + view.wchar
+        sub.leftx = a
+        sub.rightx = b
+
+    # Draw grey underlines and draw matrices
+    for i,sub in enumerate(subexprs):
+        a,b = sub.leftx, sub.rightx
+        ax.plot([a, b], [view.liney,view.liney], '-', linewidth=1, c='#DBDBDB')
+        view.draw(ax, sub)
+
     fig_width = charx[-1] + view.wchar + rpad[-1]
     fig_width_inches = (fig_width) / dpi
     fig_height_inches = view.maxy / dpi
     fig.set_size_inches(fig_width_inches, fig_height_inches)
 
     ax.set_xlim(0, (fig_width))
-    # ax.spines['left'].set_bounds(0, 1)
     ax.set_ylim(0, view.maxy)
 
-    # Compute the left and right edges of subexpressions (alter nodes with info)
-    for i,sub in enumerate(subexprs):
-        a = charx[sub.start.start_idx]# - lpad[sub.start.start_idx]
-        b = charx[sub.stop.stop_idx-1] + view.wchar# + rpad[sub.stop.stop_idx-1]
-        sub.leftx = a
-        sub.rightx = b
-
-    # Draw grey underlines
-    for i,sub in enumerate(subexprs):
-        a,b = sub.leftx, sub.rightx
-        ax.plot([a, b], [view.liney,view.liney], '-', linewidth=1, c='#DBDBDB')
-        # print(sub, sub.start.start_idx, ':', sub.stop.stop_idx, "plot at", a, b, "mid", mid)
-        view.draw(ax, sub)
+    return view
 
 
 

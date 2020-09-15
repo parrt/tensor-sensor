@@ -22,7 +22,6 @@ class GRU:
 
 # W = torch.tensor([[1, 2], [3, 4]])
 b = torch.rand(size=(2000,1))
-# x = torch.tensor([4, 5]).reshape(2, 1)
 h = torch.rand(size=(1_000_000,))
 a = 3
 
@@ -30,15 +29,18 @@ code = "b = g.W@b+torch.zeros(2000,1)+( h +3).dot(h)"
 # code = "(h+3).dot(h)"
 g = GRU()
 g = tsensor.pyviz(code,
-                  fontsize=24,
+                  fontsize=16,
+                  dimfontsize=9,
                   fontname='Consolas')
 # g.view()
 # plt.tight_layout()
-plt.savefig("/tmp/t.pdf", dpi=200, bbox_inches='tight', pad_inches=0)
+plt.savefig("/tmp/t.svg", dpi=200, bbox_inches='tight', pad_inches=0)
 
-# with tsensor.explain() as e:
+# W = torch.tensor([[1, 2], [3, 4]])
+# x = torch.tensor([4, 5]).reshape(2, 1)
+# with tsensor.explain():
 #     a = torch.relu(x)
-#     b = W @ b + h.dot(h)
+#     b = W @ x
 
 
 # g = GRU()

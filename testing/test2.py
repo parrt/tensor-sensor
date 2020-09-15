@@ -1,11 +1,18 @@
 import tsensor
 import numpy as np
-import sys
+import torch
+import matplotlib.pyplot as plt
 
-W = np.array([[1, 2], [3, 4]])
-b = np.array([9, 10]).reshape(2, 1)
-x = np.array([4, 5]).reshape(2, 1)
-h = np.array([1,2])
+W = torch.tensor([[1, 2], [3, 4]])
+b = torch.tensor([9, 10]).reshape(2, 1)
+x = torch.tensor([4, 5]).reshape(2, 1)
+h = torch.tensor([1,2])
 
-with tsensor.clarify():
-    np.dot(b, b)# + np.eye(2, 2) @ x
+
+# tsensor.pyviz("a = torch.relu(x)")
+# plt.show()
+# #
+
+with tsensor.explain():
+    a = torch.relu(x)
+#    b = W @ b + x * 3 + h.dot(h)
