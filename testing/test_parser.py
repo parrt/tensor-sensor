@@ -49,6 +49,10 @@ def test_index():
     check("a[:,i,j]", "Index(arr=a, index=[:, i, j])")
 
 
+def test_index2():
+    check("z = a[:]", "Assign(op=<EQUAL:=,2:3>,lhs=z,rhs=Index(arr=a,index=[:]))")
+
+
 def test_literal_list():
     check("[[1, 2], [3, 4]]",
           "ListLiteral(elems=[ListLiteral(elems=[1, 2]), ListLiteral(elems=[3, 4])])")

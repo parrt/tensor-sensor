@@ -239,7 +239,7 @@ class PyExprParser:
             return self.subexpr()
         elif self.LA(1) == LSQB:
             return self.listatom()
-        elif self.LA(1) in {NUMBER, NAME, STRING, COLON, COLON}:
+        elif self.LA(1) in {NUMBER, NAME, STRING, COLON}:
             atom = self.LT(1)
             self.t += 1
             return tsensor.ast.Atom(atom)

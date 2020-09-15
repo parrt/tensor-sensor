@@ -217,6 +217,10 @@ class Atom(ParseTreeNode):
         super().__init__()
         self.token = token
         self.start, self.stop = token, token
+    def eval(self, frame):
+        if self.token.type == tsensor.parsing.COLON:
+            return ':' # fake a value here
+        return super().eval(frame)
     @property
     def opstr(self):
         return self.token.value

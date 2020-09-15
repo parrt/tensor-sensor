@@ -2,6 +2,8 @@ import sys
 import torch
 import graphviz
 import tempfile
+import matplotlib.patches as patches
+import matplotlib.pyplot as plt
 
 import tsensor
 # from tsensor.viz import pyviz, astviz
@@ -14,6 +16,8 @@ class GRU:
         self.h = torch.tensor([1, 2])
         self.a = 3
 
+    def get(self):
+        return torch.tensor([[1, 2], [3, 4]])
 
 W = torch.tensor([[1, 2], [3, 4]])
 b = torch.tensor([9, 10]).reshape(2, 1)
@@ -22,8 +26,12 @@ h = torch.tensor([1,2])
 a = 3
 
 g = GRU()
-g = tsensor.pyviz("b = W@b + (h+3).dot(h) + g.h.dot(g.h) + torch.abs(torch.tensor(34))", sys._getframe())
-g.view()
+g = tsensor.pyviz("b = W@b + h[:] + (h+3).dot(h) + g.h.dot(g.h) + torch.abs(torch.tensor(34))",
+                  fontsize=16,
+                  fontname='Consolas')
+# g.view()
+plt.tight_layout()
+plt.savefig("/tmp/t.pdf", dpi=200, bbox_inches='tight', pad_inches=0)
 
 # with tsensor.explain() as e:
 #     a = torch.relu(x)

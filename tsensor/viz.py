@@ -1,7 +1,10 @@
 import sys
+import tempfile
 import graphviz
 import token
 from IPython.display import SVG
+import matplotlib.patches as patches
+import matplotlib.pyplot as plt
 
 import tsensor
 import tsensor.ast
@@ -9,15 +12,96 @@ import tsensor.analysis
 import tsensor.parsing
 
 
+def pyviz(statement:str, frame=None,
+          fontsize=16,
+          fontname='Consolas',
+          matrixcolor="#cfe2d4", vectorcolor="#fefecd",
+          char_sep_scale=2.5,
+          ax=None,
+          figsize=None):
+    if frame is None: # use frame of caller if not passed in
+        frame = sys._getframe().f_back
+    root, tokens = tsensor.parsing.parse(statement)
+    root.eval(frame)
+    subexprs = tsensor.analysis.smallest_matrix_subexpr(root)
+
+    print(statement)
+    for i in range(8):
+        for j in range(10):
+            print(j,end='')
+    print()
+    for sub in subexprs:
+        print(sub, sub.start.start_idx, ':', sub.stop.stop_idx)
+
+    if ax is None:
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
+
+    # space_w, _ = textdim(' ', fontname=fontname, fontsize=fontsize)
+
+    # width of any char for fixed-width font
+    w, _ = textdim(' ', fontname=fontname, fontsize=fontsize)
+    print("wid",w)
+
+    w *= char_sep_scale
+    # w = 2*fontsize
+    x = 0
+    # for tok in tokens:
+    #     ax.text(x, 0, tok.value, fontname=fontname, fontsize=fontsize)
+    #     w, h = textdim(tok.value, fontname=fontname, fontsize=fontsize)
+    #     print(tok.value, w, h)
+    #     x = x + w + space_w
+    #     print(x)
+    for c in statement:
+        ax.text(x, 0, c, fontname=fontname, fontsize=fontsize)
+        # w, h = textdim(c, fontname=fontname, fontsize=fontsize)
+        x = x + w
+
+    ax.set_xlim(0, len(statement)*w)
+    # ax.set_ylim(30)
+    fig.set_size_inches(x/200,70/200)
+
+    ax.axis("off")
+
+
+def textdim(s, fontname='Consolas', fontsize=11):
+    fig, ax = plt.subplots(1, 1)
+    t = ax.text(0, 0, s, fontname=fontname, fontsize=fontsize)
+    bb = t.get_window_extent(find_renderer(fig))
+    print(s, bb.width, bb.height)
+
+    # t = mpl.textpath.TextPath(xy=(0, 0), s=s, size=fontsize, prop=fontname)
+    # bb = t.get_extents()
+    # print(s, "new", bb)
+    plt.close()
+    return bb.width, bb.height
+
+# From: https://stackoverflow.com/questions/22667224/matplotlib-get-text-bounding-box-independent-of-backend
+def find_renderer(fig):
+    if hasattr(fig.canvas, "get_renderer"):
+        #Some backends, such as TkAgg, have the get_renderer method, which
+        #makes this easy.
+        renderer = fig.canvas.get_renderer()
+    else:
+        #Other backends do not have the get_renderer method, so we have a work
+        #around to find the renderer.  Print the figure to a temporary file
+        #object, and then grab the renderer that was used.
+        #(I stole this trick from the matplotlib backend_bases.py
+        #print_figure() method.)
+        import io
+        fig.canvas.print_pdf(io.BytesIO())
+        renderer = fig._cachedRenderer
+    return(renderer)
+
+
+# ----------------
+
 class QuietGraphvizWrapper(graphviz.Source):
     def __init__(self, dotsrc):
         super().__init__(source=dotsrc)
 
     def _repr_svg_(self):
         return self.pipe(format='svg', quiet=True).decode(self._encoding)
-
-
-def pyviz(statement:str, frame=None) -> graphviz.Source:
+def pyviz_old(statement:str, frame=None) -> graphviz.Source:
     if frame is None: # use frame of caller
         frame = sys._getframe().f_back
     return QuietGraphvizWrapper(pyviz_dot(statement, frame))
@@ -59,14 +143,6 @@ def pyviz_dot(statement:str, frame,
     root, tokens = tsensor.parsing.parse(statement)
     root.eval(frame)
     result = root.value
-    subexprs = tsensor.analysis.smallest_matrix_subexpr(root)
-    print(statement)
-    for i in range(8):
-        for j in range(10):
-            print(j,end='')
-    print()
-    for sub in subexprs:
-        print(sub, sub.start.start_idx, ':', sub.stop.stop_idx)
 
     # p = tsensor.parsing.PyExprParser(statement)
     # root = p.parse()
@@ -300,3 +376,5 @@ def matrix_html(nrows, ncols, label, fontsize=12, fontname="Consolas", dimfontsi
     </tr>
     </table>"""
     return html
+
+
