@@ -19,31 +19,44 @@ class PyVizView:
     with visual annotations
     """
     def __init__(self,
-                 statement, fontsize, fontname, dimfontsize,
+                 statement, fontsize, fontname, dimfontsize, dimfontname,
                  matrixcolor, vectorcolor, char_sep_scale, dpi):
         self.statement = statement
         self.fontsize = fontsize
         self.fontname = fontname
         self.dimfontsize = dimfontsize
+        self.dimfontname = dimfontname
         self.matrixcolor = matrixcolor
         self.vectorcolor = vectorcolor
         self.char_sep_scale = char_sep_scale
         self.dpi = dpi
 
         self.leftedge = 25
-        self.texty = 300
-        self.liney = self.texty - 50
+        self.texty = 350
+        self.liney = self.texty - 40
+        self.box_topy  = self.liney - 50
         self.maxy = self.texty + 1.4 * fontsize
         self.wchar = char_sep_scale * fontsize
+        self.hchar = char_sep_scale * fontsize
+        self.dim_ypadding = 5
+        self.dim_xpadding = 0
+        self.linewidth = .7
 
-    def wmatrix(self, sh): return 150 # width of matrix
-    def wvector(self, sh): return 400 # flat vector width
-    def wshape(self, v):
+    def matrix_size(self, sh):
+        if sh[0]==1:
+            return self.vector_size(sh)
+        elif sh[1]==1:
+            return (3/4 * self.wchar, 3 * self.wchar)
+        return (3 * self.wchar, 3 * self.wchar)
+
+    def vector_size(self, sh):
+        return (3 * self.wchar, 3/4 * self.wchar)
+
+    def boxsize(self, v):
         sh = tsensor.analysis._shape(v)
-        if sh is None: return 0
-        if len(sh)==1: return self.wvector(sh)
-        return self.wmatrix(sh)
-
+        if sh is None: return None
+        if len(sh)==1: return self.vector_size(sh)
+        return self.matrix_size(sh)
 
     def draw(self, ax, sub):
         sh = tsensor.analysis._shape(sub.value)
@@ -51,42 +64,59 @@ class PyVizView:
         elif len(sh)==2: self.draw_matrix2D(ax, sub)
         elif len(sh)>2: self.draw_matrix(ax, sub)
 
-
     def draw_vector(self,ax,sub):
         a, b = sub.leftx, sub.rightx
         mid = (a + b) / 2
-        width = self.wshape(sub.value)
-        rect1 = patches.Rectangle(xy=(mid - width / 2, 75),
-                                  width=width,
-                                  height=100,
+        sh = tsensor.analysis._shape(sub.value)
+        w,h = self.vector_size(sh)
+        rect1 = patches.Rectangle(xy=(mid - w/2, self.box_topy-h),
+                                  width=w,
+                                  height=h,
+                                  linewidth=self.linewidth,
                                   facecolor=self.vectorcolor,
                                   edgecolor='grey',
                                   fill=True)
         ax.add_patch(rect1)
-        sh = tsensor.analysis._shape(sub.value)
-        ax.text(mid, 75 + 100, sh[0], horizontalalignment='center', fontsize=self.dimfontsize)
-
+        ax.text(mid, self.box_topy + self.dim_ypadding, self.nabbrev(sh[0]),
+                horizontalalignment='center',
+                fontname=self.dimfontname, fontsize=self.dimfontsize)
 
     def draw_matrix2D(self,ax,sub):
         a, b = sub.leftx, sub.rightx
         mid = (a + b) / 2
-        width = self.wshape(sub.value)
-        rect1 = patches.Rectangle(xy=(mid - width / 2, 75),
-                                  width=width,
-                                  height=100,
+        sh = tsensor.analysis._shape(sub.value)
+        w,h = self.matrix_size(sh)
+        box_left = mid - w / 2
+        rect1 = patches.Rectangle(xy=(box_left, self.box_topy - h),
+                                  width=w,
+                                  height=h,
+                                  linewidth=self.linewidth,
                                   facecolor=self.matrixcolor,
                                   edgecolor='grey',
                                   fill=True)
         ax.add_patch(rect1)
-
+        ax.text(box_left, self.box_topy - h/2, self.nabbrev(sh[0]),
+                verticalalignment='center', horizontalalignment='right',
+                fontname=self.dimfontname, fontsize=self.dimfontsize, rotation=90)
+        ax.text(mid, self.box_topy + self.dim_ypadding, self.nabbrev(sh[1]), horizontalalignment='center',
+                fontname=self.dimfontname, fontsize=self.dimfontsize)
 
     def draw_matrix(self,ax,sub):
         pass
+
+    def nabbrev(self, n) -> str:
+        if n % 1_000_000 == 0:
+            return str(n // 1_000_000)+'m'
+        if n % 1_000 == 0:
+            return str(n // 1000)+'k'
+        return str(n)
+
 
 def pyviz(statement:str, frame=None,
           fontsize=16,
           fontname='Consolas',
           dimfontsize=9,
+          dimfontname='Arial',
           matrixcolor="#cfe2d4", vectorcolor="#fefecd",
           char_sep_scale=1.8,
           ax=None,
@@ -105,7 +135,7 @@ def pyviz(statement:str, frame=None,
             print(j,end='')
     print()
 
-    view = PyVizView(statement, fontsize, fontname, dimfontsize,
+    view = PyVizView(statement, fontsize, fontname, dimfontsize, dimfontname,
                      matrixcolor, vectorcolor, char_sep_scale, dpi)
 
     if ax is None:
@@ -115,18 +145,19 @@ def pyviz(statement:str, frame=None,
 
     ax.axis("off")
 
-
-    # def charx(i): return leftedge + i * wchar
-
-
     # First, we need to figure out how wide the visualization components are
     # for each sub expression. If these are wider than the sub expression text,
     # than we need to leave space around the sub expression text
     lpad = np.zeros((len(statement),)) # pad for characters
     rpad = np.zeros((len(statement),))
     for sub in subexprs:
-        w = view.wshape(sub.value)
-        if w>view.wchar:
+        w, h = view.boxsize(sub.value)
+        nexpr = sub.stop.stop_idx - sub.start.start_idx
+        if statement[sub.start.start_idx - 1]==' ':
+            nexpr += 1
+        if statement[sub.stop.stop_idx]==' ':
+            nexpr += 1
+        if w>view.wchar * nexpr:
             lpad[sub.start.start_idx] += (w - view.wchar) / 2
             rpad[sub.stop.stop_idx-1] += (w - view.wchar) / 2
     # print(lpad)
@@ -146,7 +177,7 @@ def pyviz(statement:str, frame=None,
     for i, c in enumerate(statement):
         ax.text(charx[i], view.texty, c, fontname=fontname, fontsize=fontsize)
 
-    anyvalue = 1 # why does any value work for y?
+    # anyvalue = 1 # why does any value work for y?
     fig_width = charx[-1] + view.wchar + rpad[-1]
     fig_width_inches = (fig_width) / dpi
     fig_height_inches = view.maxy / dpi
@@ -158,17 +189,16 @@ def pyviz(statement:str, frame=None,
 
     # Compute the left and right edges of subexpressions (alter nodes with info)
     for i,sub in enumerate(subexprs):
-        a = charx[sub.start.start_idx] - lpad[sub.start.start_idx]
-        b = charx[sub.stop.stop_idx-1] + view.wchar + rpad[sub.stop.stop_idx-1]
+        a = charx[sub.start.start_idx]# - lpad[sub.start.start_idx]
+        b = charx[sub.stop.stop_idx-1] + view.wchar# + rpad[sub.stop.stop_idx-1]
         sub.leftx = a
         sub.rightx = b
 
     # Draw grey underlines
     for i,sub in enumerate(subexprs):
         a,b = sub.leftx, sub.rightx
-        mid = (a + b) / 2
-        ax.plot([a, b], [view.liney,view.liney], '-', linewidth=1, c='grey')
-        print(sub, sub.start.start_idx, ':', sub.stop.stop_idx, "plot at", a, b, "mid", mid)
+        ax.plot([a, b], [view.liney,view.liney], '-', linewidth=1, c='#DBDBDB')
+        # print(sub, sub.start.start_idx, ':', sub.stop.stop_idx, "plot at", a, b, "mid", mid)
         view.draw(ax, sub)
 
 

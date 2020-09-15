@@ -10,26 +10,27 @@ import tsensor
 
 class GRU:
     def __init__(self):
-        self.W = torch.tensor([[1, 2], [3, 4], [5, 6]])
-        self.b = torch.tensor([9, 10]).reshape(2, 1)
-        self.x = torch.tensor([4, 5]).reshape(2, 1)
-        self.h = torch.tensor([1, 2])
+        self.W = torch.rand(size=(2000,2000))
+        self.b = torch.rand(size=(20,1))
+        # self.x = torch.tensor([4, 5]).reshape(2, 1)
+        self.h = torch.rand(size=(1_000_000,))
         self.a = 3
+        print(self.W.shape)
 
     def get(self):
         return torch.tensor([[1, 2], [3, 4]])
 
-W = torch.tensor([[1, 2], [3, 4]])
-b = torch.tensor([9, 10]).reshape(2, 1)
-x = torch.tensor([4, 5]).reshape(2, 1)
-h = torch.tensor([1,2])
+# W = torch.tensor([[1, 2], [3, 4]])
+b = torch.rand(size=(2000,1))
+# x = torch.tensor([4, 5]).reshape(2, 1)
+h = torch.rand(size=(1_000_000,))
 a = 3
 
-code = "b = g.W @ b + torch.eye(3,3) + (h+3).dot(h)"
+code = "b = g.W@b+torch.zeros(2000,1)+( h +3).dot(h)"
 # code = "(h+3).dot(h)"
 g = GRU()
 g = tsensor.pyviz(code,
-                  fontsize=16,
+                  fontsize=24,
                   fontname='Consolas')
 # g.view()
 # plt.tight_layout()
