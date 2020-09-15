@@ -39,15 +39,17 @@ def pyviz(statement:str, frame=None,
 
     ax.axis("off")
 
-    y = 40
-    maxy = y + 1.4 * fontsize
+    textx = 25
+    texty = 300
+    liney = texty - 50
+    maxy = texty + 1.4 * fontsize
 
     charx = []
     w = char_sep_scale*fontsize
     for i,c in enumerate(statement):
-        x = i * w
+        x = textx + i * w
         charx.append(x)
-        ax.text(x, y, c, fontname=fontname, fontsize=fontsize)
+        ax.text(x, texty, c, fontname=fontname, fontsize=fontsize)
     print()
     print("charx", charx)
 
@@ -58,11 +60,26 @@ def pyviz(statement:str, frame=None,
     # ax.spines['left'].set_bounds(0, 1)
     ax.set_ylim(0, maxy)
 
+    # Draw grey underlines
     for sub in subexprs:
         a, b = charx[sub.start.start_idx], charx[sub.stop.stop_idx]
-        print(sub, sub.start.start_idx, ':', sub.stop.stop_idx, a, b)
-        ax.plot([a, b], [0,0], '-', linewidth=2, c='grey')
+        mid = (a + b) / 2
+        width = b-a
+        ax.plot([a, b], [liney,liney], '-', linewidth=2, c='grey')
+        print(sub, sub.start.start_idx, ':', sub.stop.stop_idx, "plot at", a, b, "mid", mid, "wid", int(width))
+        # ax.plot([a, a, b, b, a], [liney,liney+16,liney+16,liney,liney], '-', linewidth=2, c='grey')
+        rect1 = patches.Rectangle(xy=(mid-100/2,100), width=100, height=100, color=[0,0,0], fill=False)
+        ax.add_patch(rect1)
 
+    # print()
+    # # Draw shapes for each vec/matrix
+    # for sub in subexprs:
+    #     a, b = charx[sub.start.start_idx], charx[sub.stop.stop_idx]
+    #     mid = (b - a) / 2
+    #     print(sub, "plot at", a, 5)
+    #     rect1 = patches.Rectangle((a,5), 64, 64,\
+    #                               color = [0,0,0], fill = False)
+    #     ax.patches.append(rect1)
 
 # ----------------
 

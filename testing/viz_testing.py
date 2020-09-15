@@ -26,7 +26,7 @@ h = torch.tensor([1,2])
 a = 3
 
 g = GRU()
-g = tsensor.pyviz("b = W@b + h[:] + (h+3).dot(h) + g.h.dot(g.h) + torch.abs(torch.tensor(34))",
+g = tsensor.pyviz("b = g.W @ b + torch.eye(3,3) + (h+3).dot(h)",# + g.h.dot(g.h) + torch.abs(torch.tensor(34))",
                   fontsize=36,
                   fontname='Consolas')
 # g.view()
