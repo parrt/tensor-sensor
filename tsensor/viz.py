@@ -30,6 +30,58 @@ class PyVizView:
         self.char_sep_scale = char_sep_scale
         self.dpi = dpi
 
+        self.leftedge = 25
+        self.texty = 300
+        self.liney = self.texty - 50
+        self.maxy = self.texty + 1.4 * fontsize
+        self.wchar = char_sep_scale * fontsize
+
+    def wmatrix(self, sh): return 150 # width of matrix
+    def wvector(self, sh): return 400 # flat vector width
+    def wshape(self, v):
+        sh = tsensor.analysis._shape(v)
+        if sh is None: return 0
+        if len(sh)==1: return self.wvector(sh)
+        return self.wmatrix(sh)
+
+
+    def draw(self, ax, sub):
+        sh = tsensor.analysis._shape(sub.value)
+        if len(sh)==1: self.draw_vector(ax, sub)
+        elif len(sh)==2: self.draw_matrix2D(ax, sub)
+        elif len(sh)>2: self.draw_matrix(ax, sub)
+
+
+    def draw_vector(self,ax,sub):
+        a, b = sub.leftx, sub.rightx
+        mid = (a + b) / 2
+        width = self.wshape(sub.value)
+        rect1 = patches.Rectangle(xy=(mid - width / 2, 75),
+                                  width=width,
+                                  height=100,
+                                  facecolor=self.vectorcolor,
+                                  edgecolor='grey',
+                                  fill=True)
+        ax.add_patch(rect1)
+        sh = tsensor.analysis._shape(sub.value)
+        ax.text(mid, 75 + 100, sh[0], horizontalalignment='center', fontsize=self.dimfontsize)
+
+
+    def draw_matrix2D(self,ax,sub):
+        a, b = sub.leftx, sub.rightx
+        mid = (a + b) / 2
+        width = self.wshape(sub.value)
+        rect1 = patches.Rectangle(xy=(mid - width / 2, 75),
+                                  width=width,
+                                  height=100,
+                                  facecolor=self.matrixcolor,
+                                  edgecolor='grey',
+                                  fill=True)
+        ax.add_patch(rect1)
+
+
+    def draw_matrix(self,ax,sub):
+        pass
 
 def pyviz(statement:str, frame=None,
           fontsize=16,
@@ -63,11 +115,6 @@ def pyviz(statement:str, frame=None,
 
     ax.axis("off")
 
-    leftedge = 25
-    texty = 300
-    liney = texty - 50
-    maxy = texty + 1.4 * fontsize
-    wchar = char_sep_scale*fontsize
 
     # def charx(i): return leftedge + i * wchar
 
@@ -78,41 +125,41 @@ def pyviz(statement:str, frame=None,
     lpad = np.zeros((len(statement),)) # pad for characters
     rpad = np.zeros((len(statement),))
     for sub in subexprs:
-        w = wshape(sub.value, view)
-        if w>wchar:
-            lpad[sub.start.start_idx] += (w - wchar) / 2
-            rpad[sub.stop.stop_idx-1] += (w - wchar) / 2
+        w = view.wshape(sub.value)
+        if w>view.wchar:
+            lpad[sub.start.start_idx] += (w - view.wchar) / 2
+            rpad[sub.stop.stop_idx-1] += (w - view.wchar) / 2
     # print(lpad)
     # print(rpad)
 
     # Find each character's position based upon width of a character and any padding
     charx = np.empty((len(statement),))
-    x = leftedge
+    x = view.leftedge
     for i,c in enumerate(statement):
         x += lpad[i]
         charx[i] = x
-        x += wchar
+        x += view.wchar
         x += rpad[i]
     # print("charx",charx)
 
     # Draw text for statement or expression
     for i, c in enumerate(statement):
-        ax.text(charx[i], texty, c, fontname=fontname, fontsize=fontsize)
+        ax.text(charx[i], view.texty, c, fontname=fontname, fontsize=fontsize)
 
     anyvalue = 1 # why does any value work for y?
-    fig_width = charx[-1] + wchar + rpad[-1]
+    fig_width = charx[-1] + view.wchar + rpad[-1]
     fig_width_inches = (fig_width) / dpi
-    fig_height_inches = maxy / dpi
+    fig_height_inches = view.maxy / dpi
     fig.set_size_inches(fig_width_inches, fig_height_inches)
 
     ax.set_xlim(0, (fig_width))
     # ax.spines['left'].set_bounds(0, 1)
-    ax.set_ylim(0, maxy)
+    ax.set_ylim(0, view.maxy)
 
     # Compute the left and right edges of subexpressions (alter nodes with info)
     for i,sub in enumerate(subexprs):
         a = charx[sub.start.start_idx] - lpad[sub.start.start_idx]
-        b = charx[sub.stop.stop_idx-1] + wchar + rpad[sub.stop.stop_idx-1]
+        b = charx[sub.stop.stop_idx-1] + view.wchar + rpad[sub.stop.stop_idx-1]
         sub.leftx = a
         sub.rightx = b
 
@@ -120,57 +167,11 @@ def pyviz(statement:str, frame=None,
     for i,sub in enumerate(subexprs):
         a,b = sub.leftx, sub.rightx
         mid = (a + b) / 2
-        ax.plot([a, b], [liney,liney], '-', linewidth=1, c='grey')
+        ax.plot([a, b], [view.liney,view.liney], '-', linewidth=1, c='grey')
         print(sub, sub.start.start_idx, ':', sub.stop.stop_idx, "plot at", a, b, "mid", mid)
-        draw(ax, sub, view)
+        view.draw(ax, sub)
 
 
-def wmatrix(sh, view): return 150 # width of matrix
-def wvector(sh, view): return 400 # flat vector width
-def wshape(v, view):
-    sh = tsensor.analysis._shape(v)
-    if sh is None: return 0
-    if len(sh)==1: return wvector(sh, view)
-    return wmatrix(sh, view)
-
-
-def draw(ax, sub, view):
-    sh = tsensor.analysis._shape(sub.value)
-    if len(sh)==1: draw_vector(ax, sub, view)
-    elif len(sh)==2: draw_matrix2D(ax, sub, view)
-    elif len(sh)>2: draw_matrix(ax, sub, view)
-
-
-def draw_vector(ax,sub,view):
-    a, b = sub.leftx, sub.rightx
-    mid = (a + b) / 2
-    width = wshape(sub.value, view)
-    rect1 = patches.Rectangle(xy=(mid - width / 2, 75),
-                              width=width,
-                              height=100,
-                              facecolor=view.vectorcolor,
-                              edgecolor='grey',
-                              fill=True)
-    ax.add_patch(rect1)
-    sh = tsensor.analysis._shape(sub.value)
-    ax.text(mid, 75 + 100, sh[0], horizontalalignment='center', fontsize=view.dimfontsize)
-
-
-def draw_matrix2D(ax,sub,view):
-    a, b = sub.leftx, sub.rightx
-    mid = (a + b) / 2
-    width = wshape(sub.value, view)
-    rect1 = patches.Rectangle(xy=(mid - width / 2, 75),
-                              width=width,
-                              height=100,
-                              facecolor=view.matrixcolor,
-                              edgecolor='grey',
-                              fill=True)
-    ax.add_patch(rect1)
-
-
-def draw_matrix(ax,sub,view):
-    pass
 
 
 # ----------------
