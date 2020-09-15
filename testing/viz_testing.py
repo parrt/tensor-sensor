@@ -27,10 +27,10 @@ a = 3
 
 g = GRU()
 g = tsensor.pyviz("b = W@b + h[:] + (h+3).dot(h) + g.h.dot(g.h) + torch.abs(torch.tensor(34))",
-                  fontsize=16,
+                  fontsize=36,
                   fontname='Consolas')
 # g.view()
-plt.tight_layout()
+# plt.tight_layout()
 plt.savefig("/tmp/t.pdf", dpi=200, bbox_inches='tight', pad_inches=0)
 
 # with tsensor.explain() as e:

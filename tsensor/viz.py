@@ -18,7 +18,9 @@ def pyviz(statement:str, frame=None,
           matrixcolor="#cfe2d4", vectorcolor="#fefecd",
           char_sep_scale=1.8,
           ax=None,
-          figsize=None):
+          figsize=None,
+          dpi=200 # must match fig of ax passed in and/or savefig
+          ):
     if frame is None: # use frame of caller if not passed in
         frame = sys._getframe().f_back
     root, tokens = tsensor.parsing.parse(statement)
@@ -29,36 +31,37 @@ def pyviz(statement:str, frame=None,
     for i in range(8):
         for j in range(10):
             print(j,end='')
-    print()
-    for sub in subexprs:
-        print(sub, sub.start.start_idx, ':', sub.stop.stop_idx)
 
     if ax is None:
-        fig, ax = plt.subplots(1, 1, figsize=figsize)
-
-    # space_w, _ = textdim(' ', fontname=fontname, fontsize=fontsize)
-
-    # width of any char for fixed-width font
-    # w, _ = textdim(' ', fontname=fontname, fontsize=fontsize)
-    # print("wid",w)
-
-    w = char_sep_scale*fontsize
-    x = 0
-    # for tok in tokens:
-    #     ax.text(x, 0, tok.value, fontname=fontname, fontsize=fontsize)
-    #     w, h = textdim(tok.value, fontname=fontname, fontsize=fontsize)
-    #     print(tok.value, w, h)
-    #     x = x + w + space_w
-    #     print(x)
-    for c in statement:
-        ax.text(x, 0, c, fontname=fontname, fontsize=fontsize)
-        x = x + w
-
-    ax.set_xlim(0, len(statement)*w)
-    # ax.set_ylim(30)
-    fig.set_size_inches(x/200,70/200)
+        fig, ax = plt.subplots(1, 1, figsize=figsize, dpi=dpi)
+    else:
+        fig = ax.gca()
 
     ax.axis("off")
+
+    y = 40
+    maxy = y + 1.4 * fontsize
+
+    charx = []
+    w = char_sep_scale*fontsize
+    for i,c in enumerate(statement):
+        x = i * w
+        charx.append(x)
+        ax.text(x, y, c, fontname=fontname, fontsize=fontsize)
+    print()
+    print("charx", charx)
+
+    anyvalue = 1 # why does any value work for y?
+    fig.set_size_inches(len(statement)*w/dpi, maxy/dpi)
+
+    ax.set_xlim(0, len(statement)*w)
+    # ax.spines['left'].set_bounds(0, 1)
+    ax.set_ylim(0, maxy)
+
+    for sub in subexprs:
+        a, b = charx[sub.start.start_idx], charx[sub.stop.stop_idx]
+        print(sub, sub.start.start_idx, ':', sub.stop.stop_idx, a, b)
+        ax.plot([a, b], [0,0], '-', linewidth=2, c='grey')
 
 
 # ----------------
