@@ -37,6 +37,9 @@ class PyVizView:
         self.leftedge = 25
         self.bottomedge = 3
         self.svgfilename = None
+        self.matrix_size_scaler = 3.5      # How wide or tall as scaled fontsize is matrix?
+        self.vector_size_scaler = 3.2 / 4  # How wide or tall as scaled fontsize is vector for skinny part?
+        self.shift3D = 6
 
     def set_vars(self, maxh):
         line2text = self.hchar / 1.7
@@ -64,12 +67,12 @@ class PyVizView:
     def matrix_size(self, sh):
         if sh[0]==1:
             return self.vector_size(sh)
-        elif sh[1]==1:
-            return (3/4 * self.wchar, 3 * self.wchar)
-        return (3 * self.wchar, 3 * self.wchar)
+        elif len(sh)>1 and sh[1]==1:
+            return (self.vector_size_scaler * self.wchar, self.matrix_size_scaler * self.wchar)
+        return (self.matrix_size_scaler * self.wchar, self.matrix_size_scaler * self.wchar)
 
     def vector_size(self, sh):
-        return (3 * self.wchar, 3/4 * self.wchar)
+        return (self.matrix_size_scaler * self.wchar, self.vector_size_scaler * self.wchar)
 
     def boxsize(self, v):
         sh = tsensor.analysis._shape(v)
@@ -80,8 +83,7 @@ class PyVizView:
     def draw(self, ax, sub):
         sh = tsensor.analysis._shape(sub.value)
         if len(sh)==1: self.draw_vector(ax, sub)
-        elif len(sh)==2: self.draw_matrix2D(ax, sub)
-        elif len(sh)>2: self.draw_matrix(ax, sub)
+        self.draw_matrix(ax, sub)
 
     def draw_vector(self,ax,sub):
         a, b = sub.leftx, sub.rightx
@@ -100,28 +102,53 @@ class PyVizView:
                 horizontalalignment='center',
                 fontname=self.dimfontname, fontsize=self.dimfontsize)
 
-    def draw_matrix2D(self,ax,sub):
+    def draw_matrix(self,ax,sub):
         a, b = sub.leftx, sub.rightx
         mid = (a + b) / 2
         sh = tsensor.analysis._shape(sub.value)
         w,h = self.matrix_size(sh)
         box_left = mid - w / 2
-        rect1 = patches.Rectangle(xy=(box_left, self.box_topy - h),
+        if len(sh)>2:
+            back_rect = patches.Rectangle(xy=(box_left + self.shift3D, self.box_topy - h + self.shift3D),
+                                          width=w,
+                                          height=h,
+                                          linewidth=self.linewidth,
+                                          facecolor=self.matrixcolor,
+                                          edgecolor='grey',
+                                          fill=True)
+            ax.add_patch(back_rect)
+        rect = patches.Rectangle(xy=(box_left, self.box_topy - h),
                                   width=w,
                                   height=h,
                                   linewidth=self.linewidth,
                                   facecolor=self.matrixcolor,
                                   edgecolor='grey',
                                   fill=True)
-        ax.add_patch(rect1)
+        ax.add_patch(rect)
         ax.text(box_left, self.box_topy - h/2, self.nabbrev(sh[0]),
                 verticalalignment='center', horizontalalignment='right',
                 fontname=self.dimfontname, fontsize=self.dimfontsize, rotation=90)
-        ax.text(mid, self.box_topy + self.dim_ypadding, self.nabbrev(sh[1]), horizontalalignment='center',
-                fontname=self.dimfontname, fontsize=self.dimfontsize)
+        if len(sh)>1:
+            textx = mid
+            texty = self.box_topy + self.dim_ypadding
+            if len(sh) > 2:
+                texty += self.dim_ypadding
+                textx += self.shift3D
+            ax.text(textx, texty, self.nabbrev(sh[1]), horizontalalignment='center',
+                    fontname=self.dimfontname, fontsize=self.dimfontsize)
+        if len(sh)>2:
+            ax.text(box_left+w, self.box_topy - h/2, self.nabbrev(sh[2]),
+                    verticalalignment='center', horizontalalignment='center',
+                    fontname=self.dimfontname, fontsize=self.dimfontsize,
+                    rotation=45)
+        if len(sh)>3:
+            remaining = "$\cdots$x"+'x'.join([self.nabbrev(sh[i]) for i in range(3,len(sh))])
+            ax.text(mid, self.box_topy - h - self.dim_ypadding, remaining,
+                    verticalalignment='top', horizontalalignment='center',
+                    fontname=self.dimfontname, fontsize=self.dimfontsize)
 
-    def draw_matrix(self,ax,sub):
-        pass
+    # def draw_matrix(self,ax,sub):
+    #     pass
 
     def nabbrev(self, n) -> str:
         if n % 1_000_000 == 0:

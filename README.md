@@ -160,3 +160,10 @@ Or download and install locally
 $ cd ~/github/tensor-sensor
 $ pip install .
 ```
+
+## TODO
+
+* 3D+ viz. 
+* 3D+: when first or 2nd dim == 1 show short
+* viz exception if happens in explain not clarify
+* try on real examples

@@ -98,7 +98,7 @@ class Index(ParseTreeNode):
     def __init__(self, arr, index, start, stop):
         super().__init__()
         self.arr = arr
-        self.index = index
+        self.index =          index
         self.start, self.stop = start, stop
     def eval(self, frame):
         self.arr.eval(frame)

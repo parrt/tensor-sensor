@@ -52,6 +52,8 @@ def test_index():
 def test_index2():
     check("z = a[:]", "Assign(op=<EQUAL:=,2:3>,lhs=z,rhs=Index(arr=a,index=[:]))")
 
+def test_index3():
+    check("g.W[:,:,1]", "Index(arr=Member(op=<DOT:.,1:2>,obj=g,member=W),index=[:,:,1])")
 
 def test_literal_list():
     check("[[1, 2], [3, 4]]",
