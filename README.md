@@ -144,6 +144,8 @@ def bar():
 	b + x * 3
 ```
 
+watch out for side effects!  I don't do assignments, but any functions you call with side effects will be done while I reevaluate statements.
+
 Can't handle `\` continuations.
 
 Also note: I've built my own parser to handle just the assignments / expressions tsensor can handle.
@@ -163,7 +165,10 @@ $ pip install .
 
 ## TODO
 
-* 3D+ viz. 
-* 3D+: when first or 2nd dim == 1 show short
-* viz exception if happens in explain not clarify
+* 3D+: when first **and** 2nd dim == 1 show short
+* tsensor.pyviz shows two copies of the image in a notebook
+* copy color and other keyword arguments to clarify and explain
+* add show='none'/ast/code etc... to clarify
+* viz exception if happens in explain: highlighted in red just the operator tokens
+* can i call pyviz in debugger?
 * try on real examples

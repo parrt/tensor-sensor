@@ -105,14 +105,14 @@ UNARYOP   = {TILDE}
 
 class Token:
     def __init__(self, type, value,
-                 index,     # token index
-                 start_idx, # char start
-                 stop_idx,  # one past char end index so text[start_idx:stop_idx] works
+                 index,  # token index
+                 cstart_idx,  # char start
+                 cstop_idx,  # one past char end index so text[start_idx:stop_idx] works
                  line):
-        self.type, self.value, self.index, self.start_idx, self.stop_idx, self.line = \
-            type, value, index, start_idx, stop_idx, line
+        self.type, self.value, self.index, self.cstart_idx, self.cstop_idx, self.line = \
+            type, value, index, cstart_idx, cstop_idx, line
     def __repr__(self):
-        return f"<{token.tok_name[self.type]}:{self.value},{self.start_idx}:{self.stop_idx}>"
+        return f"<{token.tok_name[self.type]}:{self.value},{self.cstart_idx}:{self.cstop_idx}>"
     def __str__(self):
         return self.value
 
@@ -225,11 +225,12 @@ class PyExprParser:
                 stop = self.LT(-1)
                 root = tsensor.ast.Call(root, lp, el, start, stop)
             if self.LA(1)==LSQB:
+                lb = self.LT(1)
                 self.match(LSQB)
                 el = self.exprlist()
                 self.match(RSQB)
                 stop = self.LT(-1)
-                root = tsensor.ast.Index(root, el, start, stop)
+                root = tsensor.ast.Index(root, lb, el, start, stop)
             if self.LA(1)==DOT:
                 op = self.match(DOT)
                 m = self.match(NAME)

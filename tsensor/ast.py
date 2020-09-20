@@ -24,7 +24,7 @@ class ParseTreeNode:
         # print(self, "=>", self.value)
         return self.value
     @property
-    def operator(self): # the associated token if atom or representative token if operation
+    def optokens(self): # the associated token if atom or representative token if operation
         return None
     @property
     def kids(self):
@@ -50,11 +50,12 @@ class Assign(ParseTreeNode):
         self.start, self.stop = start, stop
     def eval(self, frame):
         self.value = self.rhs.eval(frame)
+        # Don't eval this node as it causes side effect of making actual assignment to lhs
         self.lhs.value = self.value
         return self.value
     @property
-    def operator(self):
-        return self.op
+    def optokens(self):
+        return [self.op]
     @property
     def kids(self):
         return [self.lhs, self.rhs]
@@ -83,12 +84,15 @@ class Call(ParseTreeNode):
             return f"Cause: {self}"
         return f"Cause: {self} tensor " + ', '.join(arg_msgs)
     @property
-    def operator(self):
-        return self.lparen
-        # fname = str(self.func)
-        # if isinstance(self.func, Member):
-        #     fname = str(self.func.member)
-        # return fname+"()"
+    def optokens(self):
+        f = None # assume complicated like a[i](args) with weird func expr
+        if isinstance(self.func, Member):
+            f = self.func.member
+        elif isinstance(self.func, Atom):
+            f = self.func
+        if f:
+            return [f,self.lparen,self.stop]
+        return [self.lparen,self.stop]
     @property
     def kids(self):
         return [self.func]+self.args
@@ -97,16 +101,27 @@ class Call(ParseTreeNode):
         return f"{self.func}({args_})"
 
 class Index(ParseTreeNode):
-    def __init__(self, arr, index, start, stop):
+    def __init__(self, arr, lbrack, index, start, stop):
         super().__init__()
         self.arr = arr
-        self.index =          index
+        self.lbrack = lbrack
+        self.index = index
         self.start, self.stop = start, stop
     def eval(self, frame):
         self.arr.eval(frame)
         for i in self.index:
             i.eval(frame)
         return super().eval(frame)
+    @property
+    def optokens(self):
+        arr = None # assume complicated like f()[i] with no clear array var
+        if isinstance(self.arr, Member):
+            arr = self.arr.member
+        elif isinstance(self.arr, Atom):
+            arr = self.arr
+        if arr:
+            return [arr,self.lbrack,self.stop]
+        return [self.lbrack,self.stop]
     @property
     def kids(self):
         return [self.arr] + self.index
@@ -127,8 +142,8 @@ class Member(ParseTreeNode):
         # don't eval member as it's just a name to look up in obj
         return super().eval(frame)
     @property
-    def operator(self): # the associated token if atom or representative token if operation
-        return self.op
+    def optokens(self): # the associated token if atom or representative token if operation
+        return [self.op]
     @property
     def kids(self):
         return [self.obj, self.member]
@@ -154,8 +169,8 @@ class BinaryOp(ParseTreeNode):
             opnd_msgs.append(f"operand {self.rhs} w/shape {rshape}")
         return f"Cause: {self.op} on tensor " + ' and '.join(opnd_msgs)
     @property
-    def operator(self): # the associated token if atom or representative token if operation
-        return self.op
+    def optokens(self): # the associated token if atom or representative token if operation
+        return [self.op]
     @property
     def kids(self):
         return [self.lhs, self.rhs]
@@ -172,8 +187,8 @@ class UnaryOp(ParseTreeNode):
         self.opnd.eval(frame)
         return super().eval(frame)
     @property
-    def operator(self):
-        return self.op
+    def optokens(self):
+        return [self.op]
     @property
     def kids(self):
         return [self.opnd]
@@ -223,9 +238,6 @@ class Atom(ParseTreeNode):
         if self.token.type == tsensor.parsing.COLON:
             return ':' # fake a value here
         return super().eval(frame)
-    @property
-    def operator(self):
-        return self.token
     def __repr__(self):
         # v = f"{{{self.value}}}" if hasattr(self,'value') and self.value is not None else ""
         return self.token.value

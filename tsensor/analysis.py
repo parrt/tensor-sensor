@@ -22,85 +22,16 @@ class clarify:
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
         if exc_type is not None:
-            if not self.is_interesting_exception(exc_value):
+            if not is_interesting_exception(exc_value):
                 return
             # print("exception:", exc_value, exc_traceback)
             # traceback.print_tb(exc_traceback, limit=5, file=sys.stdout)
-            exc_frame = self.deepest_frame(exc_traceback)
-            module, name, filename, line, code = self.info(exc_frame)
+            exc_frame = deepest_frame(exc_traceback)
+            module, name, filename, line, code = info(exc_frame)
             # print('info', module, name, filename, line, code)
             if code is not None:
                 # could be internal like "__array_function__ internals" in numpy
-                self.process_exception(code, exc_frame, exc_value)
-
-    def process_exception(self, code, exc_frame, exc_value):
-        augment = ""
-        try:
-            p = tsensor.parsing.PyExprParser(code)
-            t = p.parse()
-            if t is None: # Couldn't parse the code; must ignore
-                return
-            try:
-                t.eval(exc_frame)
-            except tsensor.ast.IncrEvalTrap as exc:
-                subexpr = exc.offending_expr
-                # print("trap evaluating:\n", repr(subexpr), "\nin", repr(t))
-                explanation = subexpr.clarify()
-                if explanation is not None:
-                    augment = explanation
-        except BaseException as e:
-            print(f"exception while eval({code})", e)
-            traceback.print_tb(e.__traceback__, limit=5, file=sys.stdout)
-        # Reuse exception but overwrite the message
-        if len(exc_value.args)==0:
-            exc_value._message = exc_value.message + "\n" + augment
-        else:
-            exc_value.args = [exc_value.args[0] + "\n" + augment]
-
-    def is_interesting_exception(self, e):
-        sentinels = {'matmul', 'THTensorMath', 'tensor', 'tensors', 'dimension',
-                     'not aligned', 'size mismatch', 'shape', 'shapes'}
-        if len(e.args)==0:
-            msg = e.message
-        else:
-            msg = e.args[0]
-        return sum([s in msg for s in sentinels])>0
-
-    def deepest_frame(self, exc_traceback):
-        """
-        Don't trace into internals of numpy/torch/tensorflow; we want to reset frame
-        to where in the user's python code it asked the tensor lib to perform an
-        invalid operation.
-
-        To detect libraries, look for code whose filename has "site-packages/{package}"
-        """
-        tb = exc_traceback
-        packages = ['numpy','torch','tensorflow']
-        packages = [os.path.join('site-packages',p) for p in packages]
-        packages += ['<__array_function__'] # numpy seems to not have real filename
-        prev = tb
-        while tb != None:
-            filename = tb.tb_frame.f_code.co_filename
-            reached_lib = [p in filename for p in packages]
-            if sum(reached_lib)>0:
-                break
-            prev = tb
-            tb = tb.tb_next
-        return prev.tb_frame
-
-    def info(self, frame):
-        if hasattr(frame, '__name__'):
-            module = frame.f_globals['__name__']
-        else:
-            module = None
-        info = inspect.getframeinfo(frame)
-        if info.code_context is not None:
-            code = info.code_context[0].strip()
-        else:
-            code = None
-        filename, line = info.filename, info.lineno
-        name = info.function
-        return module, name, filename, line, code
+                process_exception(code, exc_frame, exc_value)
 
 class TensorTracer:
     def __init__(self, savefig:str=None, format="svg", modules=['__main__'], filenames=[]):
@@ -180,9 +111,25 @@ class explain:
         prev.f_trace = self.tracer.listener
         return self.tracer
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, exc_value, exc_traceback):
         sys.settrace(None)
-        # print("OFF trace")
+        # At this point we have already tried to visualize the statement
+        # If there was no error, the visualization will look normal
+        # but a matrix operation error will show the erroneous operator highlighted.
+        # That was artificial execution of the code. Now the VM has executed
+        # the statement for real and has found the same exception. Make sure to
+        # augment the message with causal information.
+        if exc_type is not None:
+            if not is_interesting_exception(exc_value):
+                return
+            # print("exception:", exc_value, exc_traceback)
+            # traceback.print_tb(exc_traceback, limit=5, file=sys.stdout)
+            exc_frame = deepest_frame(exc_traceback)
+            module, name, filename, line, code = info(exc_frame)
+            # print('info', module, name, filename, line, code)
+            if code is not None:
+                # could be internal like "__array_function__ internals" in numpy
+                process_exception(code, exc_frame, exc_value)
 
 
 def eval(statement:str, frame=None) -> (tsensor.ast.ParseTreeNode, object):
@@ -245,3 +192,77 @@ def _shape(v):
             return list(v.shape)
         return v.shape
     return None
+
+
+def process_exception(code, exc_frame, exc_value):
+    augment = ""
+    try:
+        p = tsensor.parsing.PyExprParser(code)
+        t = p.parse()
+        if t is None: # Couldn't parse the code; must ignore
+            return
+        try:
+            t.eval(exc_frame)
+        except tsensor.ast.IncrEvalTrap as exc:
+            subexpr = exc.offending_expr
+            # print("trap evaluating:\n", repr(subexpr), "\nin", repr(t))
+            explanation = subexpr.clarify()
+            if explanation is not None:
+                augment = explanation
+    except BaseException as e:
+        print(f"exception while eval({code})", e)
+        traceback.print_tb(e.__traceback__, limit=5, file=sys.stdout)
+    # Reuse exception but overwrite the message
+    if len(exc_value.args)==0:
+        exc_value._message = exc_value.message + "\n" + augment
+    else:
+        exc_value.args = [exc_value.args[0] + "\n" + augment]
+
+
+def is_interesting_exception(e):
+    sentinels = {'matmul', 'THTensorMath', 'tensor', 'tensors', 'dimension',
+                 'not aligned', 'size mismatch', 'shape', 'shapes'}
+    if len(e.args)==0:
+        msg = e.message
+    else:
+        msg = e.args[0]
+    return sum([s in msg for s in sentinels])>0
+
+
+def deepest_frame(exc_traceback):
+    """
+    Don't trace into internals of numpy/torch/tensorflow; we want to reset frame
+    to where in the user's python code it asked the tensor lib to perform an
+    invalid operation.
+
+    To detect libraries, look for code whose filename has "site-packages/{package}"
+    """
+    tb = exc_traceback
+    packages = ['numpy','torch','tensorflow']
+    packages = [os.path.join('site-packages',p) for p in packages]
+    packages += ['<__array_function__'] # numpy seems to not have real filename
+    prev = tb
+    while tb != None:
+        filename = tb.tb_frame.f_code.co_filename
+        reached_lib = [p in filename for p in packages]
+        if sum(reached_lib)>0:
+            break
+        prev = tb
+        tb = tb.tb_next
+    return prev.tb_frame
+
+
+def info(frame):
+    if hasattr(frame, '__name__'):
+        module = frame.f_globals['__name__']
+    else:
+        module = None
+    info = inspect.getframeinfo(frame)
+    if info.code_context is not None:
+        code = info.code_context[0].strip()
+    else:
+        code = None
+    filename, line = info.filename, info.lineno
+    name = info.function
+    return module, name, filename, line, code
+

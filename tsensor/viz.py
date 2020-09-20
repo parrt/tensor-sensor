@@ -181,8 +181,23 @@ def pyviz(statement:str, frame=None,
         root.eval(frame)
     except tsensor.ast.IncrEvalTrap as e:
         root_to_viz = e.offending_expr
-        print("cause:",e.__cause__)
-        print('error at', root_to_viz, root_to_viz.start.index, ':', root_to_viz.stop.index)
+        # print("cause:",e.__cause__)
+        # print('error at', root_to_viz, root_to_viz.start.index, ':', root_to_viz.stop.index)
+        # print("trap evaluating:\n", repr(subexpr), "\nin", repr(t))
+        if False:
+            explanation = root_to_viz.clarify()
+            if explanation is not None:
+                augment = explanation
+            # Reuse exception but overwrite the message
+            cause = e.__cause__
+            if len(cause.args)==0:
+                cause._message = cause.message + "\n" + augment
+            else:
+                cause.args = [cause.args[0] + "\n" + augment]
+        # Don't raise the exception; keep going to display code
+        # After visualization via settrace() the code executed here
+        # will fail again during normal execution and an exception will be thrown.
+        # Then, the tracer for explain/clarify will update the error message
     subexprs = tsensor.analysis.smallest_matrix_subexpr(root_to_viz)
 
     # print(statement)
@@ -210,14 +225,14 @@ def pyviz(statement:str, frame=None,
     for sub in subexprs:
         w, h = view.boxsize(sub.value)
         maxh = max(h, maxh)
-        nexpr = sub.stop.stop_idx - sub.start.start_idx
-        if statement[sub.start.start_idx - 1]==' ': # if char to left is space
+        nexpr = sub.stop.cstop_idx - sub.start.cstart_idx
+        if statement[sub.start.cstart_idx - 1]== ' ': # if char to left is space
             nexpr += 1
-        if statement[sub.stop.stop_idx]==' ':     # if char to right is space
+        if statement[sub.stop.cstop_idx]== ' ':     # if char to right is space
             nexpr += 1
         if w>view.wchar * nexpr:
-            lpad[sub.start.start_idx] += (w - view.wchar) / 2
-            rpad[sub.stop.stop_idx-1] += (w - view.wchar) / 2
+            lpad[sub.start.cstart_idx] += (w - view.wchar) / 2
+            rpad[sub.stop.cstop_idx - 1] += (w - view.wchar) / 2
 
     view.set_vars(maxh)
 
@@ -233,32 +248,37 @@ def pyviz(statement:str, frame=None,
 
     # Draw text for statement or expression
     if root_to_viz != root: # highlight erroneous subset
-        highlight = (tokens[root_to_viz.start.index].start_idx,
-                     tokens[root_to_viz.stop.index].stop_idx) # inclusive
+        highlight = np.full(shape=(len(statement),), fill_value=False, dtype=bool)
+        for tok in tokens[root_to_viz.start.index:root_to_viz.stop.index+1]:
+            highlight[tok.cstart_idx:tok.cstop_idx] = True
+        errors = np.full(shape=(len(statement),), fill_value=False, dtype=bool)
+        for tok in root_to_viz.optokens:
+            errors[tok.cstart_idx:tok.cstop_idx] = True
         for i, c in enumerate(statement):
-            color = error_color
-            # if outside range of char to highlight
-            if i<highlight[0] or i>highlight[1]:
-                color = ignored_color
+            color = ignored_color
+            if highlight[i]:
+                color = fontcolor
+            if errors[i]: # override color if operator token
+                color = error_color
             ax.text(charx[i], view.texty, c, color=color, fontname=fontname, fontsize=fontsize)
-        if root_to_viz.operator: # can we highlight an operator token?
-            op = root_to_viz.operator
-            a = charx[tokens[op.index].start_idx]
-            b = charx[tokens[op.index].stop_idx]
-            mid = (a + b) / 2
-            shift = 8
-            ax.plot([mid, mid],
-                    [view.liney-shift, view.liney-shift],
-                    '^', markersize=6,# markerfacecolor='none',
-                    c=error_color)
+        # if root_to_viz.optokens: # can we highlight an operator token?
+        #     op = root_to_viz.optokens
+        #     a = charx[tokens[op.index].cstart_idx]
+        #     b = charx[tokens[op.index].cstop_idx]
+        #     mid = (a + b) / 2
+        #     shift = 8
+        #     ax.plot([mid, mid],
+        #             [view.liney-shift, view.liney-shift],
+        #             '^', markersize=6,# markerfacecolor='none',
+        #             c=error_color)
     else:
         for i, c in enumerate(statement):
             ax.text(charx[i], view.texty, c, color=fontcolor, fontname=fontname, fontsize=fontsize)
 
     # Compute the left and right edges of subexpressions (alter nodes with info)
     for i,sub in enumerate(subexprs):
-        a = charx[sub.start.start_idx]
-        b = charx[sub.stop.stop_idx-1] + view.wchar
+        a = charx[sub.start.cstart_idx]
+        b = charx[sub.stop.cstop_idx - 1] + view.wchar
         sub.leftx = a
         sub.rightx = b
 
@@ -315,8 +335,8 @@ def pyviz_dot(statement:str, frame,
 
     def internal_label(node):
         text = str(node)
-        if node.operator:
-            text = node.operator.value
+        if node.optokens:
+            text = node.optokens.value
         sh = tsensor.ast._shape(node.value) # get value for this node in tree
         label = f'<font face="{fontname}" color="#444443" point-size="{fontsize}">{text}</font>'
         if sh is not None:
@@ -440,8 +460,8 @@ def astviz(statement:str, frame=None) -> graphviz.Source:
 def astviz_dot(statement:str, frame=None) -> str:
     def internal_label(node):
         text = str(node)
-        if node.operator:
-            text = node.operator.value
+        if node.optokens:
+            text = node.optokens.value
         sh = tsensor.analysis._shape(node.value)
         if sh is None:
             return f'<font face="{fontname}" color="#444443" point-size="{fontsize}">{text}</font>'
