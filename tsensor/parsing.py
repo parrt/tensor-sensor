@@ -105,11 +105,12 @@ UNARYOP   = {TILDE}
 
 class Token:
     def __init__(self, type, value,
-                 start_idx,
-                 stop_idx,  # one past end index so text[start_idx:stop_idx] works
+                 index,     # token index
+                 start_idx, # char start
+                 stop_idx,  # one past char end index so text[start_idx:stop_idx] works
                  line):
-        self.type, self.value, self.start_idx, self.stop_idx, self.line = \
-            type, value, start_idx, stop_idx, line
+        self.type, self.value, self.index, self.start_idx, self.stop_idx, self.line = \
+            type, value, index, start_idx, stop_idx, line
     def __repr__(self):
         return f"<{token.tok_name[self.type]}:{self.value},{self.start_idx}:{self.stop_idx}>"
     def __str__(self):
@@ -119,13 +120,15 @@ class Token:
 def mytokenize(s):
     tokensO = tokenize(BytesIO(s.encode('utf-8')).readline)
     tokens = []
+    i = 0
     for tok in tokensO:
         type, value, start, end, _ = tok
         line = start[0]
-        start = start[1]
-        end = end[1] # one past end index
+        start_idx = start[1]
+        stop_idx = end[1] # one past end index
         if type in {NUMBER, STRING, NAME, OP, ENDMARKER}:
-            tokens.append(Token(tok.exact_type,value,start,end,line))
+            tokens.append(Token(tok.exact_type,value,i,start_idx,stop_idx,line))
+            i += 1
         else:
             # print("ignoring", type, value)
             pass
@@ -213,13 +216,14 @@ class PyExprParser:
         root = self.atom()
         while self.LA(1) in {LPAR, LSQB, DOT}:
             if self.LA(1)==LPAR:
+                lp = self.LT(1)
                 self.match(LPAR)
                 el = []
                 if self.LA(1) != RPAR:
                     el = self.exprlist()
                 self.match(RPAR)
                 stop = self.LT(-1)
-                root = tsensor.ast.Call(root, el, start, stop)
+                root = tsensor.ast.Call(root, lp, el, start, stop)
             if self.LA(1)==LSQB:
                 self.match(LSQB)
                 el = self.exprlist()

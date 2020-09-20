@@ -10,7 +10,7 @@ import tsensor
 
 class GRU:
     def __init__(self):
-        self.W = torch.rand(size=(2,200,2000,10))
+        self.W = torch.rand(size=(2,20,2000,10))
         self.b = torch.rand(size=(20,1))
         # self.x = torch.tensor([4, 5]).reshape(2, 1)
         self.h = torch.rand(size=(1_000_000,))
@@ -23,13 +23,13 @@ class GRU:
 
 # W = torch.tensor([[1, 2], [3, 4]])
 b = torch.rand(size=(2000,1))
-h = torch.rand(size=(1_000_000,))
+h = torch.rand(size=(1_000_000,2))
 a = 3
 
 g = GRU()
 
-code = "b = g.W[0,:,:,1]@b+torch.zeros(200,1)+( h +3).dot(h)"
-# code = "(h+3).dot(h)"
+code = "b = g.W[0,:,:,1]@b+torch.zeros(200,1)+(h+3).dot(h)"
+# code = "h + (h+3).dot(h)"
 g = tsensor.pyviz(code,
                   fontsize=16,
                   dimfontsize=9,

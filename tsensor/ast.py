@@ -24,7 +24,7 @@ class ParseTreeNode:
         # print(self, "=>", self.value)
         return self.value
     @property
-    def opstr(self): # the associated token if atom or representative token if operation
+    def operator(self): # the associated token if atom or representative token if operation
         return None
     @property
     def kids(self):
@@ -53,8 +53,8 @@ class Assign(ParseTreeNode):
         self.lhs.value = self.value
         return self.value
     @property
-    def opstr(self):
-        return self.op.value
+    def operator(self):
+        return self.op
     @property
     def kids(self):
         return [self.lhs, self.rhs]
@@ -62,9 +62,10 @@ class Assign(ParseTreeNode):
         return str(self.lhs)+'='+str(self.rhs)
 
 class Call(ParseTreeNode):
-    def __init__(self, func, args, start, stop):
+    def __init__(self, func, lparen, args, start, stop):
         super().__init__()
         self.func = func
+        self.lparen = lparen
         self.args = args
         self.start, self.stop = start, stop
     def eval(self, frame):
@@ -82,11 +83,12 @@ class Call(ParseTreeNode):
             return f"Cause: {self}"
         return f"Cause: {self} tensor " + ', '.join(arg_msgs)
     @property
-    def opstr(self):
-        fname = str(self.func)
-        if isinstance(self.func, Member):
-            fname = str(self.func.member)
-        return fname+"()"
+    def operator(self):
+        return self.lparen
+        # fname = str(self.func)
+        # if isinstance(self.func, Member):
+        #     fname = str(self.func.member)
+        # return fname+"()"
     @property
     def kids(self):
         return [self.func]+self.args
@@ -125,8 +127,8 @@ class Member(ParseTreeNode):
         # don't eval member as it's just a name to look up in obj
         return super().eval(frame)
     @property
-    def opstr(self): # the associated token if atom or representative token if operation
-        return self.op.value
+    def operator(self): # the associated token if atom or representative token if operation
+        return self.op
     @property
     def kids(self):
         return [self.obj, self.member]
@@ -152,8 +154,8 @@ class BinaryOp(ParseTreeNode):
             opnd_msgs.append(f"operand {self.rhs} w/shape {rshape}")
         return f"Cause: {self.op} on tensor " + ' and '.join(opnd_msgs)
     @property
-    def opstr(self): # the associated token if atom or representative token if operation
-        return self.op.value
+    def operator(self): # the associated token if atom or representative token if operation
+        return self.op
     @property
     def kids(self):
         return [self.lhs, self.rhs]
@@ -170,8 +172,8 @@ class UnaryOp(ParseTreeNode):
         self.opnd.eval(frame)
         return super().eval(frame)
     @property
-    def opstr(self):
-        return self.op.value
+    def operator(self):
+        return self.op
     @property
     def kids(self):
         return [self.opnd]
@@ -222,8 +224,8 @@ class Atom(ParseTreeNode):
             return ':' # fake a value here
         return super().eval(frame)
     @property
-    def opstr(self):
-        return self.token.value
+    def operator(self):
+        return self.token
     def __repr__(self):
         # v = f"{{{self.value}}}" if hasattr(self,'value') and self.value is not None else ""
         return self.token.value

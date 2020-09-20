@@ -164,6 +164,10 @@ def pyviz(statement:str, frame=None,
           dimfontsize=9,
           dimfontname='Arial',
           matrixcolor="#cfe2d4", vectorcolor="#fefecd",
+          fontcolor='#444443',       # a dark grey
+          underline_color='#C2C2C2', # a light grey
+          ignored_color='#C2C2C2',
+          error_color='#AF4545',
           char_sep_scale=1.8,
           ax=None,
           figsize=None,
@@ -172,8 +176,13 @@ def pyviz(statement:str, frame=None,
     if frame is None: # use frame of caller if not passed in
         frame = sys._getframe().f_back
     root, tokens = tsensor.parsing.parse(statement)
-    root.eval(frame)
-    subexprs = tsensor.analysis.smallest_matrix_subexpr(root)
+    root_to_viz = None
+    try:
+        root.eval(frame)
+    except tsensor.ast.IncrEvalTrap as e:
+        root_to_viz = e.offending_expr
+        print('error at', root_to_viz, root_to_viz.start.index, ':', root_to_viz.stop.index)
+    subexprs = tsensor.analysis.smallest_matrix_subexpr(root_to_viz)
 
     # print(statement)
     # for i in range(8):
@@ -201,9 +210,9 @@ def pyviz(statement:str, frame=None,
         w, h = view.boxsize(sub.value)
         maxh = max(h, maxh)
         nexpr = sub.stop.stop_idx - sub.start.start_idx
-        if statement[sub.start.start_idx - 1]==' ':
+        if statement[sub.start.start_idx - 1]==' ': # if char to left is space
             nexpr += 1
-        if statement[sub.stop.stop_idx-1]==' ':
+        if statement[sub.stop.stop_idx]==' ':     # if char to right is space
             nexpr += 1
         if w>view.wchar * nexpr:
             lpad[sub.start.start_idx] += (w - view.wchar) / 2
@@ -222,8 +231,28 @@ def pyviz(statement:str, frame=None,
     # print("charx",charx)
 
     # Draw text for statement or expression
-    for i, c in enumerate(statement):
-        ax.text(charx[i], view.texty, c, fontname=fontname, fontsize=fontsize)
+    if root_to_viz != root: # highlight erroneous subset
+        highlight = (tokens[root_to_viz.start.index].start_idx,
+                     tokens[root_to_viz.stop.index].stop_idx) # inclusive
+        for i, c in enumerate(statement):
+            color = error_color
+            # if outside range of char to highlight
+            if i<highlight[0] or i>highlight[1]:
+                color = ignored_color
+            ax.text(charx[i], view.texty, c, color=color, fontname=fontname, fontsize=fontsize)
+        if root_to_viz.operator: # can we highlight an operator token?
+            op = root_to_viz.operator
+            a = charx[tokens[op.index].start_idx]
+            b = charx[tokens[op.index].stop_idx]
+            mid = (a + b) / 2
+            shift = 8
+            ax.plot([mid, mid],
+                    [view.liney-shift, view.liney-shift],
+                    '^', markersize=6,# markerfacecolor='none',
+                    c=error_color)
+    else:
+        for i, c in enumerate(statement):
+            ax.text(charx[i], view.texty, c, color=fontcolor, fontname=fontname, fontsize=fontsize)
 
     # Compute the left and right edges of subexpressions (alter nodes with info)
     for i,sub in enumerate(subexprs):
@@ -235,7 +264,8 @@ def pyviz(statement:str, frame=None,
     # Draw grey underlines and draw matrices
     for i,sub in enumerate(subexprs):
         a,b = sub.leftx, sub.rightx
-        ax.plot([a, b], [view.liney,view.liney], '-', linewidth=1, c='#DBDBDB')
+        pad = view.wchar*0.1
+        ax.plot([a-pad, b+pad], [view.liney,view.liney], '-', linewidth=.5, c=underline_color)
         view.draw(ax, sub)
 
     fig_width = charx[-1] + view.wchar + rpad[-1]
@@ -284,8 +314,8 @@ def pyviz_dot(statement:str, frame,
 
     def internal_label(node):
         text = str(node)
-        if node.opstr:
-            text = node.opstr
+        if node.operator:
+            text = node.operator.value
         sh = tsensor.ast._shape(node.value) # get value for this node in tree
         label = f'<font face="{fontname}" color="#444443" point-size="{fontsize}">{text}</font>'
         if sh is not None:
@@ -409,8 +439,8 @@ def astviz(statement:str, frame=None) -> graphviz.Source:
 def astviz_dot(statement:str, frame=None) -> str:
     def internal_label(node):
         text = str(node)
-        if node.opstr:
-            text = node.opstr
+        if node.operator:
+            text = node.operator.value
         sh = tsensor.analysis._shape(node.value)
         if sh is None:
             return f'<font face="{fontname}" color="#444443" point-size="{fontsize}">{text}</font>'
