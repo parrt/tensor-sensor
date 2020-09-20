@@ -162,7 +162,7 @@ class TensorTracer:
                     g.filename = svgfilename
                     plt.show()
                 else:
-                    g.filename, svg = g.svg()
+                    svg = g.svg()
                     display(SVG(svg))
             plt.close()
 
@@ -216,6 +216,7 @@ def smallest_matrix_subexpr(t):
     return nodes
 
 def _smallest_matrix_subexpr(t, nodes) -> bool:
+    if t is None: return False  # prevent buggy code from causing us to fail
     if len(t.kids)==0: # leaf node
         if _nonscalar(t.value):
             nodes.append(t)

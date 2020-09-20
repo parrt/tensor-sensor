@@ -19,8 +19,8 @@ class ParseTreeNode:
         """
         try:
             self.value = eval(str(self), frame.f_locals, frame.f_globals)
-        except:
-            raise IncrEvalTrap(self)
+        except BaseException as e:
+            raise IncrEvalTrap(self) from e
         # print(self, "=>", self.value)
         return self.value
     @property

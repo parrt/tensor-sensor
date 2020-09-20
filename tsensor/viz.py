@@ -176,11 +176,12 @@ def pyviz(statement:str, frame=None,
     if frame is None: # use frame of caller if not passed in
         frame = sys._getframe().f_back
     root, tokens = tsensor.parsing.parse(statement)
-    root_to_viz = None
+    root_to_viz = root
     try:
         root.eval(frame)
     except tsensor.ast.IncrEvalTrap as e:
         root_to_viz = e.offending_expr
+        print("cause:",e.__cause__)
         print('error at', root_to_viz, root_to_viz.start.index, ':', root_to_viz.stop.index)
     subexprs = tsensor.analysis.smallest_matrix_subexpr(root_to_viz)
 

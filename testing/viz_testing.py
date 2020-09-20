@@ -24,12 +24,14 @@ class GRU:
 # W = torch.tensor([[1, 2], [3, 4]])
 b = torch.rand(size=(2000,1))
 h = torch.rand(size=(1_000_000,2))
+x = torch.rand(size=(1_000_000,2))
 a = 3
 
 g = GRU()
 
 code = "b = g.W[0,:,:,1]@b+torch.zeros(200,1)+(h+3).dot(h)"
 # code = "h + (h+3).dot(h)"
+code = "a = torch.relu(x)"
 g = tsensor.pyviz(code,
                   fontsize=16,
                   dimfontsize=9,
