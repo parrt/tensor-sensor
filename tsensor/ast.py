@@ -91,7 +91,7 @@ class Call(ParseTreeNode):
         elif isinstance(self.func, Atom):
             f = self.func
         if f:
-            return [f,self.lparen,self.stop]
+            return [f.token,self.lparen,self.stop]
         return [self.lparen,self.stop]
     @property
     def kids(self):

@@ -13,6 +13,6 @@ h = torch.tensor([1,2])
 # plt.show()
 # #
 
-with tsensor.explain():
-    a = torch.relu(x)
+with tsensor.clarify():
+    W @ np.dot(b, b) + np.eye(2, 2) @ x
 #    b = W @ b + x * 3 + h.dot(h)

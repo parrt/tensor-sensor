@@ -80,22 +80,7 @@ class TensorTracer:
             # print(f"A line encountered in {module}.{name}() at {filename}:{line}")
             # print("\t", code)
             # print("\t", repr(t))
-            g = tsensor.viz.pyviz(code, frame)
-            self.views.append(g)
-            if self.savefig is not None:
-                svgfilename = f"{self.savefig}-{self.linecount}.svg"
-                g.savefig(svgfilename)
-                g.filename = svgfilename
-            else:
-                if get_ipython() is None:
-                    svgfilename = f"tsensor-{self.linecount}.svg"
-                    g.savefig(svgfilename)
-                    g.filename = svgfilename
-                    plt.show()
-                else:
-                    svg = g.svg()
-                    display(SVG(svg))
-            plt.close()
+            view = viz_statement(self, code, frame)
 
 
 class explain:
@@ -146,77 +131,79 @@ def eval(statement:str, frame=None) -> (tsensor.ast.ParseTreeNode, object):
     return root, root.value
 
 
-def smallest_matrix_subexpr(t):
+def viz_statement(tracer, code, frame):
+    view = tsensor.viz.pyviz(code, frame)
+    tracer.views.append(view)
+    if tracer.savefig is not None:
+        svgfilename = f"{tracer.savefig}-{tracer.linecount}.svg"
+        view.savefig(svgfilename)
+        view.filename = svgfilename
+    else:
+        if get_ipython() is None:
+            svgfilename = f"tsensor-{tracer.linecount}.svg"
+            view.savefig(svgfilename)
+            view.filename = svgfilename
+            plt.show()
+        else:
+            svg = view.svg()
+            display(SVG(svg))
+    plt.close()
+    return view
+
+
+def process_exception(code, frame, exc_value):
     """
-    During visualization, we need to find the smallest expression
-    that evaluates to a non-scalar. That corresponds to the deepest subtree
-    that evaluates to a non-scalar. Because we do not have parent pointers,
-    we cannot start at the leaves and walk upwards. Instead, set a Boolean
-    in each node to indicate whether one of the descendents (but not itself)
-    evaluates to a non-scalar.  Nodes in the tree that have matrix values and
-    not matrix_below are the ones to visualize.
-
-    This routine modifies the tree nodes to turn on matrix_below where appropriate.
+    An error was found during execution, reevaluate sub expressions incrementally
+    to find the error.
     """
-    nodes = []
-    _smallest_matrix_subexpr(t, nodes)
-    return nodes
-
-def _smallest_matrix_subexpr(t, nodes) -> bool:
-    if t is None: return False  # prevent buggy code from causing us to fail
-    if len(t.kids)==0: # leaf node
-        if _nonscalar(t.value):
-            nodes.append(t)
-        return _nonscalar(t.value)
-    n_matrix_below = 0 # once this latches true, it's passed all the way up to the root
-    for sub in t.kids:
-        matrix_below = _smallest_matrix_subexpr(sub, nodes)
-        n_matrix_below += matrix_below # how many descendents evaluated two non-scalar?
-    # If current node is matrix and no descendents are, then this is smallest
-    # sub expression that evaluates to a matrix; keep track
-    if _nonscalar(t.value) and n_matrix_below==0:
-        nodes.append(t)
-    # Report to caller that this node or some descendent is a matrix
-    return _nonscalar(t.value) or n_matrix_below>0
-
-
-def _nonscalar(x):
-    return tsensor.analysis._shape(x) is not None
-
-
-def _shape(v):
-    if hasattr(v, "shape"):
-        if isinstance(v.shape, torch.Size):
-            if len(v.shape)==0:
-                return None
-            return list(v.shape)
-        return v.shape
-    return None
-
-
-def process_exception(code, exc_frame, exc_value):
     augment = ""
-    try:
-        p = tsensor.parsing.PyExprParser(code)
-        t = p.parse()
-        if t is None: # Couldn't parse the code; must ignore
-            return
-        try:
-            t.eval(exc_frame)
-        except tsensor.ast.IncrEvalTrap as exc:
-            subexpr = exc.offending_expr
-            # print("trap evaluating:\n", repr(subexpr), "\nin", repr(t))
-            explanation = subexpr.clarify()
-            if explanation is not None:
-                augment = explanation
-    except BaseException as e:
-        print(f"exception while eval({code})", e)
-        traceback.print_tb(e.__traceback__, limit=5, file=sys.stdout)
+    view = tsensor.viz.pyviz(code, frame)
+
+    if get_ipython() is None:
+        svgfilename = tempfile.mktemp(suffix='.svg')
+        view.savefig(svgfilename)
+        view.filename = svgfilename
+        plt.show()
+    else:
+        svg = view.svg()
+        display(SVG(svg))
+    plt.close()
+
+    if view.cause:
+        subexpr = view.offending_expr
+        # print("trap evaluating:\n", repr(subexpr), "\nin", repr(t))
+        explanation = subexpr.clarify()
+        if explanation is not None:
+            augment = explanation
+
+    # try:
+    #     p = tsensor.parsing.PyExprParser(code)
+    #     t = p.parse()
+    #     if t is None: # Couldn't parse the code; must ignore
+    #         return
+    #     try:
+    #         t.eval(frame)
+    #     except tsensor.ast.IncrEvalTrap as exc:
+    #         subexpr = exc.offending_expr
+    #         # print("trap evaluating:\n", repr(subexpr), "\nin", repr(t))
+    #         explanation = subexpr.clarify()
+    #         if explanation is not None:
+    #             augment = explanation
+    # except BaseException as e:
+    #     print(f"exception while eval({code})", e)
+    #     traceback.print_tb(e.__traceback__, limit=5, file=sys.stdout)
     # Reuse exception but overwrite the message
     if len(exc_value.args)==0:
         exc_value._message = exc_value.message + "\n" + augment
     else:
         exc_value.args = [exc_value.args[0] + "\n" + augment]
+        # p = tsensor.parsing.PyExprParser(code)
+        # t = p.parse()
+        # if t is not None:
+        #     # print(f"A line encountered in {module}.{name}() at {filename}:{line}")
+        #     # print("\t", code)
+        #     # print("\t", repr(t))
+        #     viz_statement(self, code, frame)
 
 
 def is_interesting_exception(e):
@@ -266,3 +253,51 @@ def info(frame):
     name = info.function
     return module, name, filename, line, code
 
+
+def smallest_matrix_subexpr(t):
+    """
+    During visualization, we need to find the smallest expression
+    that evaluates to a non-scalar. That corresponds to the deepest subtree
+    that evaluates to a non-scalar. Because we do not have parent pointers,
+    we cannot start at the leaves and walk upwards. Instead, set a Boolean
+    in each node to indicate whether one of the descendents (but not itself)
+    evaluates to a non-scalar.  Nodes in the tree that have matrix values and
+    not matrix_below are the ones to visualize.
+
+    This routine modifies the tree nodes to turn on matrix_below where appropriate.
+    """
+    nodes = []
+    _smallest_matrix_subexpr(t, nodes)
+    return nodes
+
+def _smallest_matrix_subexpr(t, nodes) -> bool:
+    if t is None: return False  # prevent buggy code from causing us to fail
+    if len(t.kids)==0: # leaf node
+        if _nonscalar(t.value):
+            nodes.append(t)
+        return _nonscalar(t.value)
+    n_matrix_below = 0 # once this latches true, it's passed all the way up to the root
+    for sub in t.kids:
+        matrix_below = _smallest_matrix_subexpr(sub, nodes)
+        n_matrix_below += matrix_below # how many descendents evaluated two non-scalar?
+    # If current node is matrix and no descendents are, then this is smallest
+    # sub expression that evaluates to a matrix; keep track
+    if _nonscalar(t.value) and n_matrix_below==0:
+        nodes.append(t)
+    # Report to caller that this node or some descendent is a matrix
+    return _nonscalar(t.value) or n_matrix_below>0
+
+
+def _nonscalar(x):
+    return _shape(x) is not None
+
+
+def _shape(v):
+    # do we have a shape and it answer len(); should get stuff right.
+    if hasattr(v, "shape") and hasattr(v.shape,"__len__"):
+        if isinstance(v.shape, torch.Size):
+            if len(v.shape)==0:
+                return None
+            return list(v.shape)
+        return v.shape
+    return None

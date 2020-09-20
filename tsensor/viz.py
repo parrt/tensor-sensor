@@ -40,6 +40,8 @@ class PyVizView:
         self.matrix_size_scaler = 3.5      # How wide or tall as scaled fontsize is matrix?
         self.vector_size_scaler = 3.2 / 4  # How wide or tall as scaled fontsize is vector for skinny part?
         self.shift3D = 6
+        self.cause = None # Did an exception occurred during evaluation?
+        self.offending_expr = None
 
     def set_vars(self, maxh):
         line2text = self.hchar / 1.7
@@ -166,13 +168,16 @@ def pyviz(statement:str, frame=None,
           matrixcolor="#cfe2d4", vectorcolor="#fefecd",
           fontcolor='#444443',       # a dark grey
           underline_color='#C2C2C2', # a light grey
-          ignored_color='#C2C2C2',
-          error_color='#AF4545',
+          ignored_color='#B4B4B4',
+          error_color='#A40227',
           char_sep_scale=1.8,
           ax=None,
           figsize=None,
           dpi=200 # must match fig of ax passed in and/or savefig
           ):
+    view = PyVizView(statement, fontsize, fontname, dimfontsize, dimfontname,
+                     matrixcolor, vectorcolor, char_sep_scale, dpi)
+
     if frame is None: # use frame of caller if not passed in
         frame = sys._getframe().f_back
     root, tokens = tsensor.parsing.parse(statement)
@@ -184,16 +189,12 @@ def pyviz(statement:str, frame=None,
         # print("cause:",e.__cause__)
         # print('error at', root_to_viz, root_to_viz.start.index, ':', root_to_viz.stop.index)
         # print("trap evaluating:\n", repr(subexpr), "\nin", repr(t))
-        if False:
-            explanation = root_to_viz.clarify()
-            if explanation is not None:
-                augment = explanation
-            # Reuse exception but overwrite the message
-            cause = e.__cause__
-            if len(cause.args)==0:
-                cause._message = cause.message + "\n" + augment
-            else:
-                cause.args = [cause.args[0] + "\n" + augment]
+        view.offending_expr = e.offending_expr
+        view.cause = e.__cause__
+        # if len(cause.args)==0:
+        #     view.cause._message = cause.message + "\n" + augment
+        # else:
+        #     view.cause.args = [cause.args[0] + "\n" + augment]
         # Don't raise the exception; keep going to display code
         # After visualization via settrace() the code executed here
         # will fail again during normal execution and an exception will be thrown.
@@ -205,9 +206,6 @@ def pyviz(statement:str, frame=None,
     #     for j in range(10):
     #         print(j,end='')
     # print()
-
-    view = PyVizView(statement, fontsize, fontname, dimfontsize, dimfontname,
-                     matrixcolor, vectorcolor, char_sep_scale, dpi)
 
     if ax is None:
         fig, ax = plt.subplots(1, 1, figsize=figsize, dpi=dpi)
@@ -336,7 +334,7 @@ def pyviz_dot(statement:str, frame,
     def internal_label(node):
         text = str(node)
         if node.optokens:
-            text = node.optokens.value
+            text = node.optokens[0].value
         sh = tsensor.ast._shape(node.value) # get value for this node in tree
         label = f'<font face="{fontname}" color="#444443" point-size="{fontsize}">{text}</font>'
         if sh is not None:
@@ -461,7 +459,7 @@ def astviz_dot(statement:str, frame=None) -> str:
     def internal_label(node):
         text = str(node)
         if node.optokens:
-            text = node.optokens.value
+            text = node.optokens[0].value
         sh = tsensor.analysis._shape(node.value)
         if sh is None:
             return f'<font face="{fontname}" color="#444443" point-size="{fontsize}">{text}</font>'
