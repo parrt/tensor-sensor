@@ -225,9 +225,9 @@ def pyviz(statement:str, frame=None,
         w, h = view.boxsize(sub.value)
         maxh = max(h, maxh)
         nexpr = sub.stop.cstop_idx - sub.start.cstart_idx
-        if statement[sub.start.cstart_idx - 1]== ' ': # if char to left is space
+        if (sub.start.cstart_idx-1)>0 and statement[sub.start.cstart_idx - 1]== ' ': # if char to left is space
             nexpr += 1
-        if statement[sub.stop.cstop_idx]== ' ':     # if char to right is space
+        if sub.stop.cstop_idx<len(statement) and statement[sub.stop.cstop_idx]== ' ':     # if char to right is space
             nexpr += 1
         if w>view.wchar * nexpr:
             lpad[sub.start.cstart_idx] += (w - view.wchar) / 2
