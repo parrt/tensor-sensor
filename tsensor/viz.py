@@ -224,7 +224,7 @@ def pyviz(statement:str, frame=None,
     if ax is None:
         fig, ax = plt.subplots(1, 1, figsize=figsize, dpi=dpi)
     else:
-        fig = ax.gca()
+        fig = ax.figure
 
     ax.axis("off")
 
@@ -259,7 +259,7 @@ def pyviz(statement:str, frame=None,
     # print("charx",charx)
 
     # Draw text for statement or expression
-    if root_to_viz != root: # highlight erroneous subset
+    if view.offending_expr is not None: # highlight erroneous subexpr
         highlight = np.full(shape=(len(statement),), fill_value=False, dtype=bool)
         for tok in tokens[root_to_viz.start.index:root_to_viz.stop.index+1]:
             highlight[tok.cstart_idx:tok.cstop_idx] = True
