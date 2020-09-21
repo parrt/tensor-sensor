@@ -229,7 +229,7 @@ def deepest_frame(exc_traceback):
     packages = [os.path.join('site-packages',p) for p in packages]
     packages += ['<__array_function__'] # numpy seems to not have real filename
     prev = tb
-    while tb != None:
+    while tb is not None:
         filename = tb.tb_frame.f_code.co_filename
         reached_lib = [p in filename for p in packages]
         if sum(reached_lib)>0:

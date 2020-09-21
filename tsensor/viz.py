@@ -152,7 +152,8 @@ class PyVizView:
     # def draw_matrix(self,ax,sub):
     #     pass
 
-    def nabbrev(self, n) -> str:
+    @staticmethod
+    def nabbrev(n) -> str:
         if n % 1_000_000 == 0:
             return str(n // 1_000_000)+'m'
         if n % 1_000 == 0:
@@ -556,7 +557,7 @@ def astviz_dot(statement:str, frame=None) -> str:
 
 
 def matrix_html(nrows, ncols, label, fontsize=12, fontname="Consolas", dimfontsize=9, color="#cfe2d4"):
-    isvec = ncols==None
+    isvec = ncols is None
     if isvec:
         sz = str(nrows)
         ncols=nrows
