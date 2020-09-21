@@ -30,7 +30,7 @@ a = 3
 g = GRU()
 
 code = "b = g.W[0,:,:,1]@b+torch.zeros(200,1)+(h+3).dot(h)"
-# code = "h + (h+3).dot(h)"
+code = "torch.zeros(1,1,200)"
 g = tsensor.pyviz(code,
                   fontsize=16,
                   dimfontsize=9,

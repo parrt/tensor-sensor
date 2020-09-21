@@ -80,8 +80,12 @@ class PyVizView:
         plt.close()
 
     def matrix_size(self, sh):
-        if sh[0]==1:
+        if len(sh)==1 and sh[0]==1:
             return self.vector_size(sh)
+        elif len(sh) > 1 and sh[0] == 1 and sh[1] == 1:
+            # A special case where we have a 1x1 matrix extending into the screen.
+            # Make the 1x1 part a little bit wider than a vector so it's more readable
+            return (2*self.vector_size_scaler * self.wchar, 2*self.vector_size_scaler * self.wchar)
         elif len(sh)>1 and sh[1]==1:
             return (self.vector_size_scaler * self.wchar, self.matrix_size_scaler * self.wchar)
         return (self.matrix_size_scaler * self.wchar, self.matrix_size_scaler * self.wchar)
