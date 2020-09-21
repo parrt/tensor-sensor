@@ -172,3 +172,4 @@ $ pip install .
 * viz exception if happens in explain: highlighted in red just the operator tokens
 * can i call pyviz in debugger?
 * try on real examples
+* colab: can't find ['Consolas'], ['Arial'] not found. Uses DejaVu Sans.
