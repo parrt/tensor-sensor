@@ -3,8 +3,6 @@ import sys
 import traceback
 import torch
 import inspect
-import graphviz
-import tempfile
 
 from IPython.display import display, SVG
 from IPython import get_ipython
@@ -13,27 +11,60 @@ import matplotlib.pyplot as plt
 import tsensor
 
 class clarify:
-    def __init__(self):
-        pass
+    def __init__(self, show:(None,'viz')='viz'):
+        self.show = show
 
     def __enter__(self):
         self.frame = sys._getframe().f_back # where do we start tracking
         return self
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
-        if exc_type is not None:
-            if not is_interesting_exception(exc_value):
-                return
+        if exc_type is not None and is_interesting_exception(exc_value):
             # print("exception:", exc_value, exc_traceback)
             # traceback.print_tb(exc_traceback, limit=5, file=sys.stdout)
             exc_frame = deepest_frame(exc_traceback)
-            module, name, filename, line, code = info(exc_frame)
+            module, name, filename, line, code = _info(exc_frame)
             # print('info', module, name, filename, line, code)
             if code is not None:
-                # could be internal like "__array_function__ internals" in numpy
-                process_exception(code, exc_frame, exc_value)
+                view = tsensor.viz.pyviz(code, exc_frame)
+                if self.show=='viz':
+                    view.show()
+                augment_exception(exc_value, view.offending_expr)
 
-class TensorTracer:
+
+class explain:
+    def __init__(self, savefig=None):
+        self.savefig = savefig
+
+    def __enter__(self, format="svg"):
+        # print("ON trace")
+        self.tracer = ExplainTensorTracer(self.savefig, format=format)
+        sys.settrace(self.tracer.listener)
+        frame = sys._getframe()
+        prev = frame.f_back # get block wrapped in "with"
+        prev.f_trace = self.tracer.listener
+        return self.tracer
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        sys.settrace(None)
+        # At this point we have already tried to visualize the statement
+        # If there was no error, the visualization will look normal
+        # but a matrix operation error will show the erroneous operator highlighted.
+        # That was artificial execution of the code. Now the VM has executed
+        # the statement for real and has found the same exception. Make sure to
+        # augment the message with causal information.
+        if exc_type is not None and is_interesting_exception(exc_value):
+            # print("exception:", exc_value, exc_traceback)
+            # traceback.print_tb(exc_traceback, limit=5, file=sys.stdout)
+            exc_frame = deepest_frame(exc_traceback)
+            module, name, filename, line, code = _info(exc_frame)
+            # print('info', module, name, filename, line, code)
+            if code is not None:
+                view = tsensor.viz.pyviz(code, exc_frame)
+                augment_exception(exc_value, view.offending_expr)
+
+
+class ExplainTensorTracer:
     def __init__(self, savefig:str=None, format="svg", modules=['__main__'], filenames=[]):
         self.savefig = savefig
         self.format = format
@@ -83,40 +114,6 @@ class TensorTracer:
             view = viz_statement(self, code, frame)
 
 
-class explain:
-    def __init__(self, savefig=None):
-        self.savefig = savefig
-
-    def __enter__(self, format="svg"):
-        # print("ON trace")
-        self.tracer = TensorTracer(self.savefig,format=format)
-        sys.settrace(self.tracer.listener)
-        frame = sys._getframe()
-        prev = frame.f_back # get block wrapped in "with"
-        prev.f_trace = self.tracer.listener
-        return self.tracer
-
-    def __exit__(self, exc_type, exc_value, exc_traceback):
-        sys.settrace(None)
-        # At this point we have already tried to visualize the statement
-        # If there was no error, the visualization will look normal
-        # but a matrix operation error will show the erroneous operator highlighted.
-        # That was artificial execution of the code. Now the VM has executed
-        # the statement for real and has found the same exception. Make sure to
-        # augment the message with causal information.
-        if exc_type is not None:
-            if not is_interesting_exception(exc_value):
-                return
-            # print("exception:", exc_value, exc_traceback)
-            # traceback.print_tb(exc_traceback, limit=5, file=sys.stdout)
-            exc_frame = deepest_frame(exc_traceback)
-            module, name, filename, line, code = info(exc_frame)
-            # print('info', module, name, filename, line, code)
-            if code is not None:
-                # could be internal like "__array_function__ internals" in numpy
-                process_exception(code, exc_frame, exc_value)
-
-
 def eval(statement:str, frame=None) -> (tsensor.ast.ParseTreeNode, object):
     """
     Parse statement and return ast. Evaluate ast in context of
@@ -138,72 +135,22 @@ def viz_statement(tracer, code, frame):
         svgfilename = f"{tracer.savefig}-{tracer.linecount}.svg"
         view.savefig(svgfilename)
         view.filename = svgfilename
+        plt.close()
     else:
-        if get_ipython() is None:
-            svgfilename = f"tsensor-{tracer.linecount}.svg"
-            view.savefig(svgfilename)
-            view.filename = svgfilename
-            plt.show()
-        else:
-            svg = view.svg()
-            display(SVG(svg))
-    plt.close()
+        view.show()
     return view
 
 
-def process_exception(code, frame, exc_value):
-    """
-    An error was found during execution, reevaluate sub expressions incrementally
-    to find the error.
-    """
+def augment_exception(exc_value, subexpr):
+    explanation = subexpr.clarify()
     augment = ""
-    view = tsensor.viz.pyviz(code, frame)
-
-    if get_ipython() is None:
-        svgfilename = tempfile.mktemp(suffix='.svg')
-        view.savefig(svgfilename)
-        view.filename = svgfilename
-        plt.show()
-    else:
-        svg = view.svg()
-        display(SVG(svg))
-    plt.close()
-
-    if view.cause:
-        subexpr = view.offending_expr
-        # print("trap evaluating:\n", repr(subexpr), "\nin", repr(t))
-        explanation = subexpr.clarify()
-        if explanation is not None:
-            augment = explanation
-
-    # try:
-    #     p = tsensor.parsing.PyExprParser(code)
-    #     t = p.parse()
-    #     if t is None: # Couldn't parse the code; must ignore
-    #         return
-    #     try:
-    #         t.eval(frame)
-    #     except tsensor.ast.IncrEvalTrap as exc:
-    #         subexpr = exc.offending_expr
-    #         # print("trap evaluating:\n", repr(subexpr), "\nin", repr(t))
-    #         explanation = subexpr.clarify()
-    #         if explanation is not None:
-    #             augment = explanation
-    # except BaseException as e:
-    #     print(f"exception while eval({code})", e)
-    #     traceback.print_tb(e.__traceback__, limit=5, file=sys.stdout)
+    if explanation is not None:
+        augment = explanation
     # Reuse exception but overwrite the message
-    if len(exc_value.args)==0:
+    if len(exc_value.args) == 0:
         exc_value._message = exc_value.message + "\n" + augment
     else:
         exc_value.args = [exc_value.args[0] + "\n" + augment]
-        # p = tsensor.parsing.PyExprParser(code)
-        # t = p.parse()
-        # if t is not None:
-        #     # print(f"A line encountered in {module}.{name}() at {filename}:{line}")
-        #     # print("\t", code)
-        #     # print("\t", repr(t))
-        #     viz_statement(self, code, frame)
 
 
 def is_interesting_exception(e):
@@ -239,7 +186,7 @@ def deepest_frame(exc_traceback):
     return prev.tb_frame
 
 
-def info(frame):
+def _info(frame):
     if hasattr(frame, '__name__'):
         module = frame.f_globals['__name__']
     else:

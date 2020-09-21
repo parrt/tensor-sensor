@@ -163,13 +163,19 @@ $ cd ~/github/tensor-sensor
 $ pip install .
 ```
 
-## TODO
+## Notes
+
+The behavior of clarify. Clarify has no burden on the run time unless an exception occurs. At this time, it reevaluates the offending line looking for the self-expression that caused the problem. It not only updates the error message in the exception object, but it visualizes the error.
+
+The behavior of explain.  Explain is a big burden on runtime execution. Before every line is executed, explain will evaluate all sub expressions and produce a visualization. Then, the line executes normally. If there is an exception in that line, we detected during visualization and display an altered view of that statement that highlights the offending sub expression.  We also need to behave like clarify for the error message in the exception triggered when the Python VM executes that statement normally (after are visualization).
+
+So, in both cases, we trap exceptions using the `with` construct and augment exception messages. Explain differs from clarify in that we use `settrace()` to process each line of code before the VM executes it normally.  Clarify never needs to deal with tracing.
+
+### TODO
 
 * 3D+: when first **and** 2nd dim == 1 show short
-* tsensor.pyviz shows two copies of the image in a notebook
 * copy color and other keyword arguments to clarify and explain
-* add show='none'/ast/code etc... to clarify
-* viz exception if happens in explain: highlighted in red just the operator tokens
 * can i call pyviz in debugger?
-* try on real examples
 * colab: can't find ['Consolas'], ['Arial'] not found. Uses DejaVu Sans.
+* tsensor.pyviz("W @ b + x * 3 + h.dot(h)") shows twice in notebook
+* try on real examples

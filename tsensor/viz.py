@@ -4,6 +4,8 @@ import graphviz
 import token
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
+from IPython.display import display, SVG
+from IPython import get_ipython
 
 import numpy as np
 import tsensor
@@ -65,6 +67,17 @@ class PyVizView:
 
     def savefig(self, filename):
         plt.savefig(filename, dpi = self.dpi, bbox_inches = 'tight', pad_inches = 0)
+
+    def show(self):
+        if get_ipython() is None:
+            svgfilename = tempfile.mktemp(suffix='.svg')
+            self.savefig(svgfilename)
+            self.filename = svgfilename
+            plt.show()
+        else:
+            svg = self.svg()
+            display(SVG(svg))
+        plt.close()
 
     def matrix_size(self, sh):
         if sh[0]==1:
