@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 
 
-print('\n'.join(str(f) for f in fm.fontManager.ttflist))
+# print('\n'.join(str(f) for f in fm.fontManager.ttflist))
 import tsensor
 # from tsensor.viz import pyviz, astviz
 
@@ -30,21 +30,24 @@ h = torch.rand(size=(1_000_000,2))
 x = torch.rand(size=(1_000_000,2))
 a = 3
 
+foo = torch.rand(size=(2000,))
+torch.relu(foo)
+
 g = GRU()
 
 code = "b = g.W[0,:,:,1]@b+torch.zeros(200,1)+(h+3).dot(h)"
-# code = "torch.zeros(1,1,200)"
-# g = tsensor.pyviz(code, fontname='Courier New', fontsize=16, dimfontsize=9,
-#                   char_sep_scale=1.8)
-# # g.view()
-# # plt.tight_layout()
-# plt.savefig("/tmp/t.svg", dpi=200, bbox_inches='tight', pad_inches=0)
+code = "torch.relu(foo)"
+g = tsensor.pyviz(code, fontname='Courier New', fontsize=16, dimfontsize=9,
+                  char_sep_scale=1.8)
+# g.view()
+# plt.tight_layout()
+plt.savefig("/tmp/t.svg", dpi=200, bbox_inches='tight', pad_inches=0)
 
 # W = torch.tensor([[1, 2], [3, 4]])
 # x = torch.tensor([4, 5]).reshape(2, 1)
-with tsensor.explain(fontname='Courier New'):
-    a = torch.relu(x)
-    b = g.W @ x
+# with tsensor.explain():
+#     b = torch.rand(size=(2000,))
+#     torch.relu(b)
 
 
 # g = GRU()

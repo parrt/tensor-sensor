@@ -173,8 +173,10 @@ So, in both cases, we trap exceptions using the `with` construct and augment exc
 
 ### TODO
 
+* it should be horizontal and yellow and just show the 100 once. for (100,)
 * double image for explain with error on GRU under "Explaining matrix algebra statements visually"
 * copy color and other keyword arguments to clarify and explain
 * can i call pyviz in debugger?
 * colab: can't find ['Consolas'], ['Arial'] not found. Uses DejaVu Sans.
 * try on real examples
+* torch.relu(torch.rand(size=(2000,))) didn't show anything

@@ -101,7 +101,7 @@ class PyVizView:
     def draw(self, ax, sub):
         sh = tsensor.analysis._shape(sub.value)
         if len(sh)==1: self.draw_vector(ax, sub)
-        self.draw_matrix(ax, sub)
+        else: self.draw_matrix(ax, sub)
 
     def draw_vector(self,ax,sub):
         a, b = sub.leftx, sub.rightx
