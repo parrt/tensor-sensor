@@ -11,8 +11,15 @@ import matplotlib.pyplot as plt
 import tsensor
 
 class clarify:
-    def __init__(self, show:(None,'viz')='viz'):
+    def __init__(self,
+                 fontname, fontsize, dimfontname, dimfontsize,
+                 matrixcolor, vectorcolor, char_sep_scale,
+                 show:(None,'viz')='viz'):
         self.show = show
+        self.fontname, self.fontsize, self.dimfontname, self.dimfontsize, \
+        self.matrixcolor, self.vectorcolor, self.char_sep_scale = \
+            fontname, fontsize, dimfontname, dimfontsize, \
+            matrixcolor, vectorcolor, char_sep_scale
 
     def __enter__(self):
         self.frame = sys._getframe().f_back # where do we start tracking
@@ -26,15 +33,26 @@ class clarify:
             module, name, filename, line, code = _info(exc_frame)
             # print('info', module, name, filename, line, code)
             if code is not None:
-                view = tsensor.viz.pyviz(code, exc_frame)
+                view = tsensor.viz.pyviz(code, exc_frame,
+                                         self.fontname, self.fontsize, self.dimfontname,
+                                         self.dimfontsize,
+                                         self.matrixcolor, self.vectorcolor,
+                                         self.char_sep_scale)
                 if self.show=='viz':
                     view.show()
                 augment_exception(exc_value, view.offending_expr)
 
 
 class explain:
-    def __init__(self, savefig=None):
+    def __init__(self,
+                 fontname, fontsize, dimfontname, dimfontsize,
+                 matrixcolor, vectorcolor, char_sep_scale,
+                 savefig=None):
         self.savefig = savefig
+        self.fontname, self.fontsize, self.dimfontname, self.dimfontsize, \
+        self.matrixcolor, self.vectorcolor, self.char_sep_scale = \
+            fontname, fontsize, dimfontname, dimfontsize, \
+            matrixcolor, vectorcolor, char_sep_scale
 
     def __enter__(self, format="svg"):
         # print("ON trace")
@@ -60,7 +78,11 @@ class explain:
             module, name, filename, line, code = _info(exc_frame)
             # print('info', module, name, filename, line, code)
             if code is not None:
-                view = tsensor.viz.pyviz(code, exc_frame)
+                view = tsensor.viz.pyviz(code, exc_frame,
+                                         self.fontname, self.fontsize, self.dimfontname,
+                                         self.dimfontsize,
+                                         self.matrixcolor, self.vectorcolor,
+                                         self.char_sep_scale)
                 augment_exception(exc_value, view.offending_expr)
 
 

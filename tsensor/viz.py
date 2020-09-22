@@ -19,8 +19,7 @@ class PyVizView:
     An object that collects relevant information about viewing Python code
     with visual annotations
     """
-    def __init__(self,
-                 statement, fontsize, fontname, dimfontsize, dimfontname,
+    def __init__(self, statement, fontname, fontsize, dimfontname, dimfontsize,
                  matrixcolor, vectorcolor, char_sep_scale, dpi):
         self.statement = statement
         self.fontsize = fontsize
@@ -193,8 +192,8 @@ def pyviz(statement:str, frame=None,
           figsize=None,
           dpi=200 # must match fig of ax passed in and/or savefig
           ):
-    view = PyVizView(statement, fontsize, fontname, dimfontsize, dimfontname,
-                     matrixcolor, vectorcolor, char_sep_scale, dpi)
+    view = PyVizView(statement, fontname, fontsize, dimfontname, dimfontsize, matrixcolor,
+                     vectorcolor, char_sep_scale, dpi)
 
     if frame is None: # use frame of caller if not passed in
         frame = sys._getframe().f_back
@@ -332,6 +331,8 @@ def pyviz_old(statement:str, frame=None) -> graphviz.Source:
     return QuietGraphvizWrapper(pyviz_dot(statement, frame))
 
 def pyviz_dot(statement:str, frame,
+              fontname="Consolas",
+              fontsize=12,
               matrixcolor="#cfe2d4", vectorcolor="#fefecd",
               gtype="digraph", gname="G") -> str:
 
@@ -406,11 +407,8 @@ def pyviz_dot(statement:str, frame,
         ordering=out; # keep order of leaves
     """
 
-    fontname="Consolas"
-    fontsize=12
-    spread = 0
-
     # Gen leaf nodes
+    spread = 0,
     for i in range(len(tokens)):
         t = tokens[i]
         if t.type!=token.ENDMARKER:
