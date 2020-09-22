@@ -177,21 +177,12 @@ class PyVizView:
         return str(n)
 
 
-def pyviz(statement:str, frame=None,
-          fontsize=13,
-          fontname='Consolas',
-          dimfontsize=9,
-          dimfontname='Arial',
-          matrixcolor="#cfe2d4", vectorcolor="#fefecd",
-          fontcolor='#444443',       # a dark grey
-          underline_color='#C2C2C2', # a light grey
-          ignored_color='#B4B4B4',
-          error_color='#A40227',
-          char_sep_scale=1.8,
-          ax=None,
-          figsize=None,
-          dpi=200 # must match fig of ax passed in and/or savefig
-          ):
+def pyviz(statement: str, frame=None,
+          fontname='Consolas', fontsize=13,
+          dimfontname='Arial', dimfontsize=9, matrixcolor="#cfe2d4",
+          vectorcolor="#fefecd", char_sep_scale=1.8, fontcolor='#444443',
+          underline_color='#C2C2C2', ignored_color='#B4B4B4', error_color='#A40227',
+          ax=None, figsize=None, dpi=200):
     view = PyVizView(statement, fontname, fontsize, dimfontname, dimfontsize, matrixcolor,
                      vectorcolor, char_sep_scale, dpi)
 

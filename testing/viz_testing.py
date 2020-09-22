@@ -34,10 +34,7 @@ g = GRU()
 
 code = "b = g.W[0,:,:,1]@b+torch.zeros(200,1)+(h+3).dot(h)"
 # code = "torch.zeros(1,1,200)"
-g = tsensor.pyviz(code,
-                  fontsize=16,
-                  dimfontsize=9,
-                  fontname='Courier New',
+g = tsensor.pyviz(code, fontname='Courier New', fontsize=16, dimfontsize=9,
                   char_sep_scale=1.8)
 # g.view()
 # plt.tight_layout()

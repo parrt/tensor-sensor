@@ -12,14 +12,18 @@ import tsensor
 
 class clarify:
     def __init__(self,
-                 fontname, fontsize, dimfontname, dimfontsize,
-                 matrixcolor, vectorcolor, char_sep_scale,
+                 fontname='Consolas', fontsize=13,
+                 dimfontname='Arial', dimfontsize=9, matrixcolor="#cfe2d4",
+                 vectorcolor="#fefecd", char_sep_scale=1.8, fontcolor='#444443',
+                 underline_color='#C2C2C2', ignored_color='#B4B4B4', error_color='#A40227',
                  show:(None,'viz')='viz'):
         self.show = show
         self.fontname, self.fontsize, self.dimfontname, self.dimfontsize, \
-        self.matrixcolor, self.vectorcolor, self.char_sep_scale = \
+        self.matrixcolor, self.vectorcolor, self.char_sep_scale,\
+        self.fontcolor, self.underline_color, self.ignored_color, self.error_color = \
             fontname, fontsize, dimfontname, dimfontsize, \
-            matrixcolor, vectorcolor, char_sep_scale
+            matrixcolor, vectorcolor, char_sep_scale, \
+            fontcolor, underline_color, ignored_color, error_color
 
     def __enter__(self):
         self.frame = sys._getframe().f_back # where do we start tracking
@@ -33,11 +37,12 @@ class clarify:
             module, name, filename, line, code = _info(exc_frame)
             # print('info', module, name, filename, line, code)
             if code is not None:
-                view = tsensor.viz.pyviz(code, exc_frame,
-                                         self.fontname, self.fontsize, self.dimfontname,
-                                         self.dimfontsize,
+                view = tsensor.viz.pyviz(code, exc_frame, self.fontsize, self.fontname,
+                                         self.dimfontsize, self.dimfontname,
                                          self.matrixcolor, self.vectorcolor,
-                                         self.char_sep_scale)
+                                         self.char_sep_scale,
+                                         self.fontcolor, self.underline_color,
+                                         self.ignored_color, self.error_color)
                 if self.show=='viz':
                     view.show()
                 augment_exception(exc_value, view.offending_expr)
@@ -45,14 +50,18 @@ class clarify:
 
 class explain:
     def __init__(self,
-                 fontname, fontsize, dimfontname, dimfontsize,
-                 matrixcolor, vectorcolor, char_sep_scale,
+                 fontname='Consolas', fontsize=13,
+                 dimfontname='Arial', dimfontsize=9, matrixcolor="#cfe2d4",
+                 vectorcolor="#fefecd", char_sep_scale=1.8, fontcolor='#444443',
+                 underline_color='#C2C2C2', ignored_color='#B4B4B4', error_color='#A40227',
                  savefig=None):
         self.savefig = savefig
         self.fontname, self.fontsize, self.dimfontname, self.dimfontsize, \
-        self.matrixcolor, self.vectorcolor, self.char_sep_scale = \
+        self.matrixcolor, self.vectorcolor, self.char_sep_scale,\
+        self.fontcolor, self.underline_color, self.ignored_color, self.error_color = \
             fontname, fontsize, dimfontname, dimfontsize, \
-            matrixcolor, vectorcolor, char_sep_scale
+            matrixcolor, vectorcolor, char_sep_scale, \
+            fontcolor, underline_color, ignored_color, error_color
 
     def __enter__(self, format="svg"):
         # print("ON trace")
@@ -78,11 +87,12 @@ class explain:
             module, name, filename, line, code = _info(exc_frame)
             # print('info', module, name, filename, line, code)
             if code is not None:
-                view = tsensor.viz.pyviz(code, exc_frame,
-                                         self.fontname, self.fontsize, self.dimfontname,
-                                         self.dimfontsize,
+                view = tsensor.viz.pyviz(code, exc_frame, self.fontsize, self.fontname,
+                                         self.dimfontsize, self.dimfontname,
                                          self.matrixcolor, self.vectorcolor,
-                                         self.char_sep_scale)
+                                         self.char_sep_scale,
+                                         self.fontcolor, self.underline_color,
+                                         self.ignored_color, self.error_color)
                 augment_exception(exc_value, view.offending_expr)
 
 
