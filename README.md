@@ -173,6 +173,7 @@ So, in both cases, we trap exceptions using the `with` construct and augment exc
 
 ### TODO
 
+* double image for explain with error on GRU under "Explaining matrix algebra statements visually"
 * copy color and other keyword arguments to clarify and explain
 * can i call pyviz in debugger?
 * colab: can't find ['Consolas'], ['Arial'] not found. Uses DejaVu Sans.

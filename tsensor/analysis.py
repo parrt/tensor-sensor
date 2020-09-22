@@ -37,12 +37,12 @@ class clarify:
             module, name, filename, line, code = _info(exc_frame)
             # print('info', module, name, filename, line, code)
             if code is not None:
-                view = tsensor.viz.pyviz(code, exc_frame, self.fontsize, self.fontname,
-                                         self.dimfontsize, self.dimfontname,
-                                         self.matrixcolor, self.vectorcolor,
-                                         self.char_sep_scale,
-                                         self.fontcolor, self.underline_color,
-                                         self.ignored_color, self.error_color)
+                view = tsensor.viz.pyviz(code, exc_frame,
+                                         self.fontname, self.fontsize, self.dimfontname,
+                                         self.dimfontsize, self.matrixcolor, self.vectorcolor,
+                                         self.char_sep_scale, self.fontcolor,
+                                         self.underline_color, self.ignored_color,
+                                         self.error_color)
                 if self.show=='viz':
                     view.show()
                 augment_exception(exc_value, view.offending_expr)
@@ -87,12 +87,12 @@ class explain:
             module, name, filename, line, code = _info(exc_frame)
             # print('info', module, name, filename, line, code)
             if code is not None:
-                view = tsensor.viz.pyviz(code, exc_frame, self.fontsize, self.fontname,
-                                         self.dimfontsize, self.dimfontname,
-                                         self.matrixcolor, self.vectorcolor,
-                                         self.char_sep_scale,
-                                         self.fontcolor, self.underline_color,
-                                         self.ignored_color, self.error_color)
+                view = tsensor.viz.pyviz(code, exc_frame,
+                                         self.fontname, self.fontsize, self.dimfontname,
+                                         self.dimfontsize, self.matrixcolor, self.vectorcolor,
+                                         self.char_sep_scale, self.fontcolor,
+                                         self.underline_color, self.ignored_color,
+                                         self.error_color)
                 augment_exception(exc_value, view.offending_expr)
 
 
