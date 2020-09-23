@@ -31,8 +31,8 @@ class clarify:
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
         if exc_type is not None and is_interesting_exception(exc_value):
-            # print("exception:", exc_value, exc_traceback)
-            # traceback.print_tb(exc_traceback, limit=5, file=sys.stdout)
+            print("exception:", exc_value, exc_traceback)
+            traceback.print_tb(exc_traceback, limit=5, file=sys.stdout)
             exc_frame = deepest_frame(exc_traceback)
             module, name, filename, line, code = _info(exc_frame)
             # print('info', module, name, filename, line, code)
@@ -213,12 +213,13 @@ def deepest_frame(exc_traceback):
     """
     tb = exc_traceback
     packages = ['numpy','torch','tensorflow']
-    packages = [os.path.join('site-packages',p) for p in packages]
-    packages += ['<__array_function__'] # numpy seems to not have real filename
+    dirs = [os.path.join('site-packages',p) for p in packages]
+    dirs += [os.path.join('dist-packages',p) for p in packages]
+    dirs += ['<__array_function__'] # numpy seems to not have real filename
     prev = tb
     while tb is not None:
         filename = tb.tb_frame.f_code.co_filename
-        reached_lib = [p in filename for p in packages]
+        reached_lib = [p in filename for p in dirs]
         if sum(reached_lib)>0:
             break
         prev = tb
