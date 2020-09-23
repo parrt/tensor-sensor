@@ -6,7 +6,7 @@ setup(
     version=__version__,
     url='https://github.com/parrt/tensor-sensor',
     license='MIT',
-    py_modules=['tsensor.parsing', 'tsensor.ast', 'tsensor.analysis', 'tsensor.viz'],
+    py_modules=['tsensor.parsing', 'tsensor.ast', 'tsensor.analysis', 'tsensor.viz', 'tsensor.version'],
     author='Terence Parr',
     author_email='parrt@cs.usfca.edu',
     python_requires='>=3.6',
