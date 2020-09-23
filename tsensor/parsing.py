@@ -269,7 +269,7 @@ class PyExprParser:
         elist.append(e)
         while self.LA(1)==COMMA:
             self.match(COMMA)
-            if self.LA(1) == NAME:
+            if self.LA(1) == NAME and self.LA(2)==EQUAL:
                 e = self.arg()
             else:
                 e = self.expression()

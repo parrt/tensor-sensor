@@ -1,5 +1,6 @@
 import sys
 import torch
+import numpy as np
 import graphviz
 import tempfile
 import matplotlib.patches as patches
@@ -40,9 +41,9 @@ g = GRU()
 
 code = "b = g.W[0,:,:,1]@b+torch.zeros(200,1)+(h+3).dot(h)"
 code = "torch.relu(foo)"
-code = "torch.relu(torch.rand(size=(2000,)))"
+code = "np.dot(b,b)"
 g = tsensor.pyviz(code, fontname='Courier New', fontsize=16, dimfontsize=9,
-                  char_sep_scale=1.8)
+                  char_sep_scale=1.8, hush_errors=False)
 # g.view()
 # plt.tight_layout()
 plt.savefig("/tmp/t.svg", dpi=200, bbox_inches='tight', pad_inches=0)

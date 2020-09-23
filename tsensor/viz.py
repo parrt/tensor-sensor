@@ -182,13 +182,16 @@ def pyviz(statement: str, frame=None,
           dimfontname='Arial', dimfontsize=9, matrixcolor="#cfe2d4",
           vectorcolor="#fefecd", char_sep_scale=1.8, fontcolor='#444443',
           underline_color='#C2C2C2', ignored_color='#B4B4B4', error_color='#A40227',
-          ax=None, figsize=None, dpi=200):
+          ax=None, figsize=None, dpi=200, hush_errors=True):
     view = PyVizView(statement, fontname, fontsize, dimfontname, dimfontsize, matrixcolor,
                      vectorcolor, char_sep_scale, dpi)
 
     if frame is None: # use frame of caller if not passed in
         frame = sys._getframe().f_back
-    root, tokens = tsensor.parsing.parse(statement)
+    root, tokens = tsensor.parsing.parse(statement, hush_errors=hush_errors)
+    if root is None:
+        # likely syntax error in statement or code I can't handle
+        return None
     root_to_viz = root
     try:
         root.eval(frame)

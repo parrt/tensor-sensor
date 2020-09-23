@@ -75,6 +75,11 @@ def test_method():
           "Assign(op=<EQUAL:=,2:3>,lhs=h,rhs=Call(func=Member(op=<DOT:.,9:10>,obj=torch,member=tanh),args=[h]))")
 
 
+def test_method2():
+    check("np.dot(b,b)",
+          "Call(func=Member(op=<DOT:.,2:3>,obj=np,member=dot),args=[b,b])")
+
+
 def test_field():
     check("a.b", "Member(op=<DOT:.,1:2>,obj=a,member=b)")
 
