@@ -36,14 +36,14 @@ torch.relu(foo)
 
 g = GRU()
 
-# with tsensor.clarify():
-#     b = g.W[0, :, :, 1] @ b + torch.zeros(200, 1) + (h + 3).dot(h)
+with tsensor.explain():
+    b = g.W[0, :, :, 1] @ b + torch.zeros(200, 1) + (h + 3).dot(h)
 
-code = "b = g.W[0,:,:,1]@b+torch.zeros(200,1)+(h+3).dot(h)"
-code = "torch.relu(foo)"
-code = "np.dot(b,b)"
-g = tsensor.pyviz(code, fontname='Courier New', fontsize=16, dimfontsize=9,
-                  char_sep_scale=1.8, hush_errors=False)
+# code = "b = g.W[0,:,:,1]@b+torch.zeros(200,1)+(h+3).dot(h)"
+# code = "torch.relu(foo)"
+# code = "np.dot(b,b)"
+# g = tsensor.pyviz(code, fontname='Courier New', fontsize=16, dimfontsize=9,
+#                   char_sep_scale=1.8, hush_errors=False)
 # g.view()
 # plt.tight_layout()
 plt.savefig("/tmp/t.svg", dpi=200, bbox_inches='tight', pad_inches=0)

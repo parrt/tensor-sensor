@@ -87,13 +87,15 @@ class explain:
             module, name, filename, line, code = _info(exc_frame)
             # print('info', module, name, filename, line, code)
             if code is not None:
-                view = tsensor.viz.pyviz(code, exc_frame,
-                                         self.fontname, self.fontsize, self.dimfontname,
-                                         self.dimfontsize, self.matrixcolor, self.vectorcolor,
-                                         self.char_sep_scale, self.fontcolor,
-                                         self.underline_color, self.ignored_color,
-                                         self.error_color)
-                augment_exception(exc_value, view.offending_expr)
+                # We've already displayed picture so just augment message
+                root, tokens = tsensor.parsing.parse(code)
+                if root is not None: # Could be syntax error in statement or code I can't handle
+                    offending_expr = None
+                    try:
+                        root.eval(exc_frame)
+                    except tsensor.ast.IncrEvalTrap as e:
+                        offending_expr = e.offending_expr
+                    augment_exception(exc_value, offending_expr)
 
 
 class ExplainTensorTracer:
