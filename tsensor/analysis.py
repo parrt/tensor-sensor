@@ -181,9 +181,12 @@ def augment_exception(exc_value, subexpr):
     if explanation is not None:
         augment = explanation
     # Reuse exception but overwrite the message
-    if len(exc_value.args) == 0:
+    print(f"Exc type is {type(exc_value)}, len(args)={len(exc_value.args)}, has '_message'=={hasattr(exc_value, '_message')}")
+    print(f"Msg {str(exc_value)}")
+    if hasattr(exc_value, "_message"):
         exc_value._message = exc_value.message + "\n" + augment
     else:
+        print("Exc args:", exc_value.args)
         exc_value.args = [exc_value.args[0] + "\n" + augment]
 
 

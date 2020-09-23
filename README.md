@@ -112,6 +112,7 @@ Displays this in a notebook:
 ## Install
 
 ```
+pip install -U graphviz # make sure you have latest
 pip install tensor-sensor
 ```
 

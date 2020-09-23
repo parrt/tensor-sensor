@@ -1,6 +1,7 @@
 import sys
 import torch
 import numpy as np
+import tensorflow as tf
 import graphviz
 import tempfile
 import matplotlib.patches as patches
@@ -36,16 +37,15 @@ torch.relu(foo)
 
 g = GRU()
 
-with tsensor.explain():
-    b = g.W[0, :, :, 1] @ b + torch.zeros(200, 1) + (h + 3).dot(h)
+with tsensor.clarify():
+    tf.constant([1,2]) @ tf.constant([1,3])
 
-# code = "b = g.W[0,:,:,1]@b+torch.zeros(200,1)+(h+3).dot(h)"
-# code = "torch.relu(foo)"
-# code = "np.dot(b,b)"
-# g = tsensor.pyviz(code, fontname='Courier New', fontsize=16, dimfontsize=9,
-#                   char_sep_scale=1.8, hush_errors=False)
-# g.view()
-# plt.tight_layout()
+code = "b = g.W[0,:,:,1]@b+torch.zeros(200,1)+(h+3).dot(h)"
+code = "torch.relu(foo)"
+code = "np.dot(b,b)"
+g = tsensor.pyviz(code, fontname='Courier New', fontsize=16, dimfontsize=9,
+                  char_sep_scale=1.8, hush_errors=False)
+plt.tight_layout()
 plt.savefig("/tmp/t.svg", dpi=200, bbox_inches='tight', pad_inches=0)
 
 # W = torch.tensor([[1, 2], [3, 4]])
