@@ -191,6 +191,7 @@ def augment_exception(exc_value, subexpr):
 
 
 def is_interesting_exception(e):
+    print(f"is_interesting_exception: type is {type(e)}")
     if e.__class__.__module__.startswith("tensorflow"):
         return True
     sentinels = {'matmul', 'THTensorMath', 'tensor', 'tensors', 'dimension',
