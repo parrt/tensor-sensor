@@ -191,8 +191,10 @@ def augment_exception(exc_value, subexpr):
 
 
 def is_interesting_exception(e):
+    if e.__class__.__module__.startswith("tensorflow"):
+        return True
     sentinels = {'matmul', 'THTensorMath', 'tensor', 'tensors', 'dimension',
-                 'not aligned', 'size mismatch', 'shape', 'shapes'}
+                 'not aligned', 'size mismatch', 'shape', 'shapes', 'matrix'}
     if len(e.args)==0:
         msg = e.message
     else:

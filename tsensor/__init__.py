@@ -8,3 +8,5 @@ import tsensor.analysis
 from tsensor.analysis import explain, clarify, eval
 from tsensor.parsing import parse
 from tsensor.viz import pyviz, astviz
+
+from .version import __version__

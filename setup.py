@@ -1,8 +1,9 @@
 from setuptools import setup
 
+exec(open('tsensor/version.py').read())
 setup(
     name='tensor-sensor',
-    version='0.1a19',
+    version=__version__,
     url='https://github.com/parrt/tensor-sensor',
     license='MIT',
     py_modules=['tsensor.parsing', 'tsensor.ast', 'tsensor.analysis', 'tsensor.viz'],
