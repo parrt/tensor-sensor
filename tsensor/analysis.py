@@ -31,8 +31,8 @@ class clarify:
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
         if exc_type is not None and is_interesting_exception(exc_value):
-            print("exception:", exc_value, exc_traceback)
-            traceback.print_tb(exc_traceback, limit=5, file=sys.stdout)
+            # print("exception:", exc_value, exc_traceback)
+            # traceback.print_tb(exc_traceback, limit=5, file=sys.stdout)
             exc_frame = deepest_frame(exc_traceback)
             module, name, filename, line, code = _info(exc_frame)
             # print('info', module, name, filename, line, code)
@@ -181,17 +181,17 @@ def augment_exception(exc_value, subexpr):
     if explanation is not None:
         augment = explanation
     # Reuse exception but overwrite the message
-    print(f"Exc type is {type(exc_value)}, len(args)={len(exc_value.args)}, has '_message'=={hasattr(exc_value, '_message')}")
-    print(f"Msg {str(exc_value)}")
+    # print(f"Exc type is {type(exc_value)}, len(args)={len(exc_value.args)}, has '_message'=={hasattr(exc_value, '_message')}")
+    # print(f"Msg {str(exc_value)}")
     if hasattr(exc_value, "_message"):
         exc_value._message = exc_value.message + "\n" + augment
     else:
-        print("Exc args:", exc_value.args)
+        # print("Exc args:", exc_value.args)
         exc_value.args = [exc_value.args[0] + "\n" + augment]
 
 
 def is_interesting_exception(e):
-    print(f"is_interesting_exception: type is {type(e)}")
+    # print(f"is_interesting_exception: type is {type(e)}")
     if e.__class__.__module__.startswith("tensorflow"):
         return True
     sentinels = {'matmul', 'THTensorMath', 'tensor', 'tensors', 'dimension',
