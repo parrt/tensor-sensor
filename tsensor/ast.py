@@ -34,11 +34,10 @@ class ParseTreeNode:
     def __str__(self):
         pass
     def __repr__(self):
-        fields = self.__dict__
-        # if not self.matrix_below:
-        #     del fields['matrix_below']
-        del fields['start']
-        del fields['stop']
+        fields = self.__dict__.copy()
+        kill = ['start', 'stop', 'lbrack', 'lparen']
+        for name in kill:
+            if name in fields: del fields[name]
         args = [v+'='+fields[v].__repr__() for v in fields if v!='value' or fields['value'] is not None]
         args = ','.join(args)
         return f"{self.__class__.__name__}({args})"
@@ -213,6 +212,24 @@ class ListLiteral(ParseTreeNode):
         else:
             elems_ = self.elems
         return f"[{elems_}]"
+
+class TupleLiteral(ParseTreeNode):
+    def __init__(self, elems, start, stop):
+        super().__init__()
+        self.elems = elems
+        self.start, self.stop = start, stop
+    def eval(self, frame):
+        for i in self.elems:
+            i.eval(frame)
+        return super().eval(frame)
+    @property
+    def kids(self):
+        return self.elems
+    def __str__(self):
+        if len(self.elems)==1:
+            return f"({self.elems[0]},)"
+        else:
+            return f"({','.join(str(e) for e in self.elems)})"
 
 class SubExpr(ParseTreeNode):
     # record parens for later display to keep precedence

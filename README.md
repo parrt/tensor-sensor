@@ -175,8 +175,7 @@ So, in both cases, we trap exceptions using the `with` construct and augment exc
 
 * it should be horizontal and yellow and just show the 100 once. for (100,)
 * double image for explain with error on GRU under "Explaining matrix algebra statements visually"
-* copy color and other keyword arguments to clarify and explain
 * can i call pyviz in debugger?
-* colab: can't find ['Consolas'], ['Arial'] not found. Uses DejaVu Sans.
+* colab: doesn't show augmented msgs with cause
 * try on real examples
-* torch.relu(torch.rand(size=(2000,))) didn't show anything
+* `dict(W=[3,0,1,2], b=[1,0])` that would indicate (300, 30, 60, 3) would best be displayed as (30,60,3, 300) and b would be  first dimension last and last dimension first

@@ -219,7 +219,7 @@ class PyExprParser:
                 self.match(LPAR)
                 el = []
                 if self.LA(1) != RPAR:
-                    el = self.exprlist()
+                    el = self.arglist()
                 self.match(RPAR)
                 stop = self.LT(-1)
                 root = tsensor.ast.Call(root, lp, el, start, stop)
@@ -254,19 +254,51 @@ class PyExprParser:
         elist = []
         e = self.expression()
         elist.append(e)
-        while self.LA(1)==COMMA:
+        while self.LA(1)==COMMA and self.LA(2)!=RPAR: # could be trailing comma in a tuple like (3,4,)
             self.match(COMMA)
             e = self.expression()
             elist.append(e)
-        return elist# if len(elist)>1 else elist[0]
+        return elist
+
+    def arglist(self):
+        elist = []
+        if self.LA(1)==NAME and self.LA(2)==EQUAL:
+            e = self.arg()
+        else:
+            e = self.expression()
+        elist.append(e)
+        while self.LA(1)==COMMA:
+            self.match(COMMA)
+            if self.LA(1) == NAME:
+                e = self.arg()
+            else:
+                e = self.expression()
+            elist.append(e)
+        return elist
+
+    def arg(self):
+        start = self.LT(1)
+        kwarg = self.match(NAME)
+        eq = self.match(EQUAL)
+        e = self.expression()
+        kwarg = tsensor.ast.Atom(kwarg)
+        stop = self.LT(-1)
+        return tsensor.ast.Assign(eq, kwarg, e, start, stop)
 
     def subexpr(self):
         start = self.LT(1)
         self.match(LPAR)
-        e = self.expression()
+        e = self.exprlist()  # could be a tuple like (3,4) or even (3,4,)
+        istuple = len(e)>1
+        if self.LA(1)==COMMA:
+            self.match(COMMA)
+            istuple = True
         self.match(RPAR)
         stop = self.LT(-1)
-        return tsensor.ast.SubExpr(e, start, stop)
+        if istuple:
+            return tsensor.ast.TupleLiteral(e, start, stop)
+        subexpr = e[0]
+        return tsensor.ast.SubExpr(subexpr, start, stop)
 
     def listatom(self):
         start = self.LT(1)

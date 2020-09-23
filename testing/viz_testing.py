@@ -35,8 +35,12 @@ torch.relu(foo)
 
 g = GRU()
 
+# with tsensor.clarify():
+#     b = g.W[0, :, :, 1] @ b + torch.zeros(200, 1) + (h + 3).dot(h)
+
 code = "b = g.W[0,:,:,1]@b+torch.zeros(200,1)+(h+3).dot(h)"
 code = "torch.relu(foo)"
+code = "torch.relu(torch.rand(size=(2000,)))"
 g = tsensor.pyviz(code, fontname='Courier New', fontsize=16, dimfontsize=9,
                   char_sep_scale=1.8)
 # g.view()

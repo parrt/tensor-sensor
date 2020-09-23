@@ -24,21 +24,23 @@ SOFTWARE.
 from tsensor.parsing import *
 import re
 
-def check(s,expected):
-    p = PyExprParser(s)
+def check(s, expected_repr, expect_str=None):
+    p = PyExprParser(s, hush_errors=False)
     t = p.parse()
 
     s = re.sub(r"\s+", "", s)
     result_str = str(t)
     result_str = re.sub(r"\s+", "", result_str)
+    if expect_str:
+        s = expect_str
     assert result_str==s
 
     result_repr = repr(t)
     result_repr = re.sub(r"\s+", "", result_repr)
-    expected = re.sub(r"\s+", "", expected)
+    expected_repr = re.sub(r"\s+", "", expected_repr)
     # print("result", result_repr)
     # print("expected", expected)
-    assert result_repr==expected
+    assert result_repr == expected_repr
 
 
 def test_assign():
@@ -93,6 +95,18 @@ def test_parens():
     check("(a+b)*c", "BinaryOp(op=<STAR:*,5:6>,lhs=SubExpr(e=BinaryOp(op=<PLUS:+,2:3>,lhs=a,rhs=b)),rhs=c)")
 
 
+def test_1tuple():
+    check("(3,)", "TupleLiteral(elems=[3])")
+
+
+def test_2tuple():
+    check("(3,4)", "TupleLiteral(elems=[3,4])")
+
+
+def test_2tuple_with_trailing_comma():
+    check("(3,4,)", "TupleLiteral(elems=[3,4])", expect_str="(3,4)")
+
+
 def test_field_array():
     check("a.b[34]", "Index(arr=Member(op=<DOT:.,1:2>,obj=a,member=b),index=[34])")
 
@@ -129,3 +143,9 @@ def test_matrix_arith():
                    rhs=bz)
           """)
 
+def test_kwarg():
+    check("torch.relu(torch.rand(size=(2000,)))",
+          """
+          Call(func=Member(op=<DOT:.,5:6>,obj=torch,member=relu),
+               args=[Call(func=Member(op=<DOT:.,16:17>,obj=torch,member=rand),
+                          args=[Assign(op=<EQUAL:=,26:27>,lhs=size,rhs=TupleLiteral(elems=[2000]))])])""")
