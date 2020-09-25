@@ -103,6 +103,7 @@ class PyVizView:
         plt.savefig(filename, dpi = self.dpi, bbox_inches = 'tight', pad_inches = 0)
 
     def show(self):
+        "Display an SVG in a notebook or pop up a window if not in notebook"
         if get_ipython() is None:
             svgfilename = tempfile.mktemp(suffix='.svg')
             self.savefig(svgfilename)
@@ -273,7 +274,8 @@ def pyviz(statement: str, frame=None,
     :param hush_errors: Normally, error messages from true syntax errors but also
                         unhandled code caught by my parser are ignored. Turn this off
                         to see what the error messages are coming from my parser.
-    :return:
+    :return: Returns a PyVizView holding info about the visualization; from a notebook
+             an SVG image will appear. Return none upon parsing error in statement.
     """
     view = PyVizView(statement, fontname, fontsize, dimfontname, dimfontsize, matrixcolor,
                      vectorcolor, char_sep_scale, dpi)

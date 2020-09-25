@@ -40,6 +40,41 @@ class clarify:
                  vectorcolor="#fefecd", char_sep_scale=1.8, fontcolor='#444443',
                  underline_color='#C2C2C2', ignored_color='#B4B4B4', error_op_color='#A40227',
                  show:(None,'viz')='viz'):
+        """
+        :param fontname: The name of the font used to display Python code
+        :param fontsize: The font size used to display Python code; default is 13.
+                         Also use this to increase the size of the generated figure;
+                         larger font size means larger image.
+        :param dimfontname:  The name of the font used to display the dimensions on the matrix and vector boxes
+        :param dimfontsize: The  size of the font used to display the dimensions on the matrix and vector boxes
+        :param matrixcolor:  The  color of matrix boxes
+        :param vectorcolor: The color of vector boxes; only for tensors whose shape is (n,).
+        :param char_sep_scale: It is notoriously difficult to discover how wide and tall
+                               text is when plotted in matplotlib. In fact there's probably,
+                               no hope to discover this information accurately in all cases.
+                               Certainly, I gave up after spending huge effort. We have a
+                               situation here where the font should be constant width, so
+                               we can just use a simple scaler times the font size  to get
+                               a reasonable approximation to the width and height of a
+                               character box; the default of 1.8 seems to work reasonably
+                               well for a wide range of fonts, but you might have to tweak it
+                               when you change the font size.
+        :param fontcolor:  The color of the Python code.
+        :param underline_color:  The color of the lines that underscore tensor subexpressions; default is grey
+        :param ignored_color: The de-highlighted color for deemphasizing code not involved in an erroneous sub expression
+        :param error_op_color: The color to use for characters associated with the erroneous operator
+        :param ax: If not none, this is the matplotlib drawing region in which to draw the visualization
+        :param dpi: This library tries to generate SVG files, which are vector graphics not
+                    2D arrays of pixels like PNG files. However, it needs to know how to
+                    compute the exact figure size to remove padding around the visualization.
+                    Matplotlib uses inches for its figure size and so we must convert
+                    from pixels or data units to inches, which means we have to know what the
+                    dots per inch, dpi, is for the image.
+        :param hush_errors: Normally, error messages from true syntax errors but also
+                            unhandled code caught by my parser are ignored. Turn this off
+                            to see what the error messages are coming from my parser.
+        :param show: Show visualization upon tensor error if show='viz'.
+        """
         self.show = show
         self.fontname, self.fontsize, self.dimfontname, self.dimfontsize, \
         self.matrixcolor, self.vectorcolor, self.char_sep_scale,\
@@ -57,7 +92,7 @@ class clarify:
             # print("exception:", exc_value, exc_traceback)
             # traceback.print_tb(exc_traceback, limit=5, file=sys.stdout)
             exc_frame = deepest_frame(exc_traceback)
-            module, name, filename, line, code = _info(exc_frame)
+            module, name, filename, line, code = info(exc_frame)
             # print('info', module, name, filename, line, code)
             if code is not None:
                 view = tsensor.viz.pyviz(code, exc_frame,
@@ -78,6 +113,42 @@ class explain:
                  vectorcolor="#fefecd", char_sep_scale=1.8, fontcolor='#444443',
                  underline_color='#C2C2C2', ignored_color='#B4B4B4', error_op_color='#A40227',
                  savefig=None):
+        """
+        :param fontname: The name of the font used to display Python code
+        :param fontsize: The font size used to display Python code; default is 13.
+                         Also use this to increase the size of the generated figure;
+                         larger font size means larger image.
+        :param dimfontname:  The name of the font used to display the dimensions on the matrix and vector boxes
+        :param dimfontsize: The  size of the font used to display the dimensions on the matrix and vector boxes
+        :param matrixcolor:  The  color of matrix boxes
+        :param vectorcolor: The color of vector boxes; only for tensors whose shape is (n,).
+        :param char_sep_scale: It is notoriously difficult to discover how wide and tall
+                               text is when plotted in matplotlib. In fact there's probably,
+                               no hope to discover this information accurately in all cases.
+                               Certainly, I gave up after spending huge effort. We have a
+                               situation here where the font should be constant width, so
+                               we can just use a simple scaler times the font size  to get
+                               a reasonable approximation to the width and height of a
+                               character box; the default of 1.8 seems to work reasonably
+                               well for a wide range of fonts, but you might have to tweak it
+                               when you change the font size.
+        :param fontcolor:  The color of the Python code.
+        :param underline_color:  The color of the lines that underscore tensor subexpressions; default is grey
+        :param ignored_color: The de-highlighted color for deemphasizing code not involved in an erroneous sub expression
+        :param error_op_color: The color to use for characters associated with the erroneous operator
+        :param ax: If not none, this is the matplotlib drawing region in which to draw the visualization
+        :param dpi: This library tries to generate SVG files, which are vector graphics not
+                    2D arrays of pixels like PNG files. However, it needs to know how to
+                    compute the exact figure size to remove padding around the visualization.
+                    Matplotlib uses inches for its figure size and so we must convert
+                    from pixels or data units to inches, which means we have to know what the
+                    dots per inch, dpi, is for the image.
+        :param hush_errors: Normally, error messages from true syntax errors but also
+                            unhandled code caught by my parser are ignored. Turn this off
+                            to see what the error messages are coming from my parser.
+        :param savefig: A string indicating where to save the visualization; don't save
+                        a file if None.
+        """
         self.savefig = savefig
         self.fontname, self.fontsize, self.dimfontname, self.dimfontsize, \
         self.matrixcolor, self.vectorcolor, self.char_sep_scale,\
@@ -107,7 +178,7 @@ class explain:
             # print("exception:", exc_value, exc_traceback)
             # traceback.print_tb(exc_traceback, limit=5, file=sys.stdout)
             exc_frame = deepest_frame(exc_traceback)
-            module, name, filename, line, code = _info(exc_frame)
+            module, name, filename, line, code = info(exc_frame)
             # print('info', module, name, filename, line, code)
             if code is not None:
                 # We've already displayed picture so just augment message
@@ -142,20 +213,10 @@ class ExplainTensorTracer:
         if len(self.filenames)>0 and filename not in self.filenames:
             return
 
-        if event=='call':
-            self.call_listener(module, name, filename, line)
-            return self.listener
-
-        # TODO: ignore c_call etc...
-
         if event=='line':
             self.line_listener(module, name, filename, line, info, frame)
 
         return None
-
-    def call_listener(self, module, name, filename, line):
-        # print(f"A call encountered in {module}.{name}() at {filename}:{line}")
-        pass
 
     def line_listener(self, module, name, filename, line, info, frame):
         code = info.code_context[0].strip()
@@ -168,13 +229,13 @@ class ExplainTensorTracer:
             # print(f"A line encountered in {module}.{name}() at {filename}:{line}")
             # print("\t", code)
             # print("\t", repr(t))
-            view = viz_statement(self, code, frame)
+            viz_statement(self, code, frame)
 
 
 def eval(statement:str, frame=None) -> (tsensor.ast.ParseTreeNode, object):
     """
-    Parse statement and return ast. Evaluate ast in context of
-    frame if available, which sets the value field of all ast nodes.
+    Parse statement and return an ast in the context of execution frame or, if None,
+    the invoking function's frame. Set the value field of all ast nodes.
     Overall result is in root.value.
     """
     p = tsensor.parsing.PyExprParser(statement)
@@ -209,7 +270,6 @@ def augment_exception(exc_value, subexpr):
     if hasattr(exc_value, "_message"):
         exc_value._message = exc_value.message + "\n" + augment
     else:
-        # print("Exc args:", exc_value.args)
         exc_value.args = [exc_value.args[0] + "\n" + augment]
 
 
@@ -233,6 +293,7 @@ def deepest_frame(exc_traceback):
     invalid operation.
 
     To detect libraries, look for code whose filename has "site-packages/{package}"
+    or "dist-packages/{package}".
     """
     tb = exc_traceback
     packages = ['numpy','torch','tensorflow']
@@ -250,7 +311,7 @@ def deepest_frame(exc_traceback):
     return prev.tb_frame
 
 
-def _info(frame):
+def info(frame):
     if hasattr(frame, '__name__'):
         module = frame.f_globals['__name__']
     else:
@@ -284,27 +345,27 @@ def smallest_matrix_subexpr(t):
 def _smallest_matrix_subexpr(t, nodes) -> bool:
     if t is None: return False  # prevent buggy code from causing us to fail
     if len(t.kids)==0: # leaf node
-        if _nonscalar(t.value):
+        if istensor(t.value):
             nodes.append(t)
-        return _nonscalar(t.value)
+        return istensor(t.value)
     n_matrix_below = 0 # once this latches true, it's passed all the way up to the root
     for sub in t.kids:
         matrix_below = _smallest_matrix_subexpr(sub, nodes)
         n_matrix_below += matrix_below # how many descendents evaluated two non-scalar?
     # If current node is matrix and no descendents are, then this is smallest
     # sub expression that evaluates to a matrix; keep track
-    if _nonscalar(t.value) and n_matrix_below==0:
+    if istensor(t.value) and n_matrix_below==0:
         nodes.append(t)
     # Report to caller that this node or some descendent is a matrix
-    return _nonscalar(t.value) or n_matrix_below>0
+    return istensor(t.value) or n_matrix_below > 0
 
 
-def _nonscalar(x):
+def istensor(x):
     return _shape(x) is not None
 
 
 def _shape(v):
-    # do we have a shape and it answer len(); should get stuff right.
+    # do we have a shape and it answers len()? Should get stuff right.
     if hasattr(v, "shape") and hasattr(v.shape,"__len__"):
         if isinstance(v.shape, torch.Size):
             if len(v.shape)==0:
