@@ -40,7 +40,7 @@ import tsensor.parsing
 class PyVizView:
     """
     An object that collects relevant information about viewing Python code
-    with visual annotations
+    with visual annotations.
     """
     def __init__(self, statement, fontname, fontsize, dimfontname, dimfontsize,
                  matrixcolor, vectorcolor, char_sep_scale, dpi):
@@ -67,7 +67,15 @@ class PyVizView:
         self.cause = None # Did an exception occurred during evaluation?
         self.offending_expr = None
 
-    def set_vars(self, maxh):
+    def set_locations(self, maxh):
+        """
+        This function finishes setting up necessary parameters about text
+        and graphics locations for the plot. We don't know how to set these
+        values until we know what the max height of the drawing will be. We don't know
+        what that height is until after we've parsed and so on, which requires that
+        we collect and store information in this view object before computing maxh.
+        That is why this is a separate function not part of the constructor.
+        """
         line2text = self.hchar / 1.7
         box2line  = line2text*2.6
         self.texty = self.bottomedge + maxh + box2line + line2text
@@ -76,10 +84,13 @@ class PyVizView:
         self.maxy = self.texty + 1.4 * self.fontsize
 
     def _repr_svg_(self):
+        "Show an SVG rendition in a notebook"
         return self.svg()
 
     def svg(self):
-        """Render as svg and return svg text."""
+        """
+        Render as svg and return svg text. Save file and store name in field svgfilename.
+        """
         if self.svgfilename is None: # cached?
             self.svgfilename = tempfile.mktemp(suffix='.svg')
             self.savefig(self.svgfilename)
@@ -88,6 +99,7 @@ class PyVizView:
         return svg
 
     def savefig(self, filename):
+        "Save viz in format according to file extension."
         plt.savefig(filename, dpi = self.dpi, bbox_inches = 'tight', pad_inches = 0)
 
     def show(self):
@@ -101,7 +113,19 @@ class PyVizView:
             display(SVG(svg))
         plt.close()
 
+    def boxsize(self, v):
+        """
+        How wide and tall should we draw the box representing a vector or matrix.
+        """
+        sh = tsensor.analysis._shape(v)
+        if sh is None: return None
+        if len(sh)==1: return self.vector_size(sh)
+        return self.matrix_size(sh)
+
     def matrix_size(self, sh):
+        """
+        How wide and tall should we draw the box representing a matrix.
+        """
         if len(sh)==1 and sh[0]==1:
             return self.vector_size(sh)
         elif len(sh) > 1 and sh[0] == 1 and sh[1] == 1:
@@ -114,12 +138,6 @@ class PyVizView:
 
     def vector_size(self, sh):
         return (self.matrix_size_scaler * self.wchar, self.vector_size_scaler * self.wchar)
-
-    def boxsize(self, v):
-        sh = tsensor.analysis._shape(v)
-        if sh is None: return None
-        if len(sh)==1: return self.vector_size(sh)
-        return self.matrix_size(sh)
 
     def draw(self, ax, sub):
         sh = tsensor.analysis._shape(sub.value)
@@ -188,9 +206,6 @@ class PyVizView:
                     verticalalignment='top', horizontalalignment='center',
                     fontname=self.dimfontname, fontsize=self.dimfontsize)
 
-    # def draw_matrix(self,ax,sub):
-    #     pass
-
     @staticmethod
     def nabbrev(n) -> str:
         if n % 1_000_000 == 0:
@@ -204,8 +219,62 @@ def pyviz(statement: str, frame=None,
           fontname='Consolas', fontsize=13,
           dimfontname='Arial', dimfontsize=9, matrixcolor="#cfe2d4",
           vectorcolor="#fefecd", char_sep_scale=1.8, fontcolor='#444443',
-          underline_color='#C2C2C2', ignored_color='#B4B4B4', error_color='#A40227',
-          ax=None, figsize=None, dpi=200, hush_errors=True):
+          underline_color='#C2C2C2', ignored_color='#B4B4B4', error_op_color='#A40227',
+          ax=None, dpi=200, hush_errors=True) -> PyVizView:
+    """
+    Parse and evaluate the Python code in the statement string passed in using
+    the indicated execution frame. The execution frame of the invoking function
+    is used if frame is None.
+
+    The visualization finds the smallest subexpressions that evaluate to
+    tensors then underlies them and shows a box or rectangle representing
+    the tensor dimensions. Boxes in blue (default) have two or more dimensions
+    but rectangles in yellow (default) have one dimension with shape (n,).
+
+    Upon tensor-related execution error, the offending self-expression is
+    highlighted (by de-highlighting the other code) and the operator is shown
+    using error_op_color.
+
+    To adjust the size of the generated visualization to be smaller or bigger,
+    decrease or increase the font size.
+
+    :param statement: A string representing the line of Python code to visualize within an execution frame.
+    :param frame: The execution frame in which to evaluate the statement. If None,
+                  use the execution frame of the invoking function
+    :param fontname: The name of the font used to display Python code
+    :param fontsize: The font size used to display Python code; default is 13.
+                     Also use this to increase the size of the generated figure;
+                     larger font size means larger image.
+    :param dimfontname:  The name of the font used to display the dimensions on the matrix and vector boxes
+    :param dimfontsize: The  size of the font used to display the dimensions on the matrix and vector boxes
+    :param matrixcolor:  The  color of matrix boxes
+    :param vectorcolor: The color of vector boxes; only for tensors whose shape is (n,).
+    :param char_sep_scale: It is notoriously difficult to discover how wide and tall
+                           text is when plotted in matplotlib. In fact there's probably,
+                           no hope to discover this information accurately in all cases.
+                           Certainly, I gave up after spending huge effort. We have a
+                           situation here where the font should be constant width, so
+                           we can just use a simple scaler times the font size  to get
+                           a reasonable approximation to the width and height of a
+                           character box; the default of 1.8 seems to work reasonably
+                           well for a wide range of fonts, but you might have to tweak it
+                           when you change the font size.
+    :param fontcolor:  The color of the Python code.
+    :param underline_color:  The color of the lines that underscore tensor subexpressions; default is grey
+    :param ignored_color: The de-highlighted color for deemphasizing code not involved in an erroneous sub expression
+    :param error_op_color: The color to use for characters associated with the erroneous operator
+    :param ax: If not none, this is the matplotlib drawing region in which to draw the visualization
+    :param dpi: This library tries to generate SVG files, which are vector graphics not
+                2D arrays of pixels like PNG files. However, it needs to know how to
+                compute the exact figure size to remove padding around the visualization.
+                Matplotlib uses inches for its figure size and so we must convert
+                from pixels or data units to inches, which means we have to know what the
+                dots per inch, dpi, is for the image.
+    :param hush_errors: Normally, error messages from true syntax errors but also
+                        unhandled code caught by my parser are ignored. Turn this off
+                        to see what the error messages are coming from my parser.
+    :return:
+    """
     view = PyVizView(statement, fontname, fontsize, dimfontname, dimfontsize, matrixcolor,
                      vectorcolor, char_sep_scale, dpi)
 
@@ -220,29 +289,23 @@ def pyviz(statement: str, frame=None,
         root.eval(frame)
     except tsensor.ast.IncrEvalTrap as e:
         root_to_viz = e.offending_expr
-        # print("cause:",e.__cause__)
-        # print('error at', root_to_viz, root_to_viz.start.index, ':', root_to_viz.stop.index)
-        # print("trap evaluating:\n", repr(subexpr), "\nin", repr(t))
         view.offending_expr = e.offending_expr
         view.cause = e.__cause__
-        # if len(cause.args)==0:
-        #     view.cause._message = cause.message + "\n" + augment
-        # else:
-        #     view.cause.args = [cause.args[0] + "\n" + augment]
-        # Don't raise the exception; keep going to display code
-        # After visualization via settrace() the code executed here
-        # will fail again during normal execution and an exception will be thrown.
-        # Then, the tracer for explain/clarify will update the error message
+        # Don't raise the exception; keep going to visualize code and erroneous
+        # subexpressions. If this function is invoked from clarify() or explain(),
+        # the statement will be executed and will fail again during normal execution;
+        # an exception will be thrown at that time. Then explain/clarify
+        # will update the error message
     subexprs = tsensor.analysis.smallest_matrix_subexpr(root_to_viz)
 
-    # print(statement)
+    # print(statement) # For debugging
     # for i in range(8):
     #     for j in range(10):
     #         print(j,end='')
     # print()
 
     if ax is None:
-        fig, ax = plt.subplots(1, 1, figsize=figsize, dpi=dpi)
+        fig, ax = plt.subplots(1, 1, dpi=dpi)
     else:
         fig = ax.figure
 
@@ -266,7 +329,8 @@ def pyviz(statement: str, frame=None,
             lpad[sub.start.cstart_idx] += (w - view.wchar) / 2
             rpad[sub.stop.cstop_idx - 1] += (w - view.wchar) / 2
 
-    view.set_vars(maxh)
+    # Now we know how to place all the elements, since we know what the maximum height is
+    view.set_locations(maxh)
 
     # Find each character's position based upon width of a character and any padding
     charx = np.empty((len(statement),))
@@ -276,7 +340,6 @@ def pyviz(statement: str, frame=None,
         charx[i] = x
         x += view.wchar
         x += rpad[i]
-    # print("charx",charx)
 
     # Draw text for statement or expression
     if view.offending_expr is not None: # highlight erroneous subexpr
@@ -291,18 +354,8 @@ def pyviz(statement: str, frame=None,
             if highlight[i]:
                 color = fontcolor
             if errors[i]: # override color if operator token
-                color = error_color
+                color = error_op_color
             ax.text(charx[i], view.texty, c, color=color, fontname=fontname, fontsize=fontsize)
-        # if root_to_viz.optokens: # can we highlight an operator token?
-        #     op = root_to_viz.optokens
-        #     a = charx[tokens[op.index].cstart_idx]
-        #     b = charx[tokens[op.index].cstop_idx]
-        #     mid = (a + b) / 2
-        #     shift = 8
-        #     ax.plot([mid, mid],
-        #             [view.liney-shift, view.liney-shift],
-        #             '^', markersize=6,# markerfacecolor='none',
-        #             c=error_color)
     else:
         for i, c in enumerate(statement):
             ax.text(charx[i], view.texty, c, color=fontcolor, fontname=fontname, fontsize=fontsize)
@@ -330,8 +383,6 @@ def pyviz(statement: str, frame=None,
     ax.set_ylim(0, view.maxy)
 
     return view
-
-
 
 
 # ----------------
@@ -396,22 +447,6 @@ def pyviz_dot(statement:str, frame,
     atomsS = set(atoms)
     ops = [nd for nd in nodes if nd not in atomsS] # keep order
 
-    # result = root.eval(frame)
-
-    # ignore = set()
-    # def foo(t):
-    #     # print("walk", t, repr(t), tsensor.analysis._shape(t.value))
-    #     if isinstance(t,tsensor.ast.Member):
-    #         if tsensor.analysis._shape(t.obj.value) is None:
-    #             # print("\tignore", t)
-    #             ignore.add(t)
-    #     else:
-    #         if tsensor.analysis._shape(t.value) is None:
-    #             # print("\tignore", t)
-    #             ignore.add(t)
-    # tsensor.ast.walk(root, post=foo)
-    # print("ignore",[str(n) for n in ignore])
-    #
     # map tokens to nodes so we can get variable values
     tok2node = {nd.token:nd for nd in atoms}
     # print(tok2node)
