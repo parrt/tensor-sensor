@@ -21,8 +21,10 @@ def foo():
     x = torch.rand(size=(2000, 1))
     # g = tsensor.astviz("b = W@b + (h+3).dot(h) + torch.abs(torch.tensor(34))",
     #                    sys._getframe())
+    frame = sys._getframe()
+    frame = None
     g = tsensor.astviz("b = W[:,:,0,0]@b + (h+3).dot(h) + torch.abs(torch.tensor(34))",
-                       sys._getframe())
+                       frame)
     g.view()
 
 foo()
