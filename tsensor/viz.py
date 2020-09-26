@@ -221,9 +221,10 @@ def pyviz(statement: str, frame=None,
           dimfontname='Arial', dimfontsize=9, matrixcolor="#cfe2d4",
           vectorcolor="#fefecd", char_sep_scale=1.8, fontcolor='#444443',
           underline_color='#C2C2C2', ignored_color='#B4B4B4', error_op_color='#A40227',
+          dimorder=None,
           ax=None, dpi=200, hush_errors=True) -> PyVizView:
     """
-    Parse and evaluate the Python code in the statement string passed in using
+    Parse and evaluate the Python code in argument statement (string) using
     the indicated execution frame. The execution frame of the invoking function
     is used if frame is None.
 
@@ -264,6 +265,20 @@ def pyviz(statement: str, frame=None,
     :param underline_color:  The color of the lines that underscore tensor subexpressions; default is grey
     :param ignored_color: The de-highlighted color for deemphasizing code not involved in an erroneous sub expression
     :param error_op_color: The color to use for characters associated with the erroneous operator
+    :param dimorder: When training deep learning models in batches, we must add a
+                     batch dimension to our training data matrix. The dimension order
+                     required by the deep learning model might be different than the way
+                     we want to visualize it. For example, if each input instance is
+                     a 2D image, then our training data has shape, say, (width,height,n).
+                     If we need to add the batch dimension first, that changes to
+                     (batch,width,height,n) but we still want to visualize the input
+                     as width,height as a 2D picture with a number of instances going
+                     back into the screen (like a 3D cube). It would be convenient to
+                     visualize the batch dimension as the fourth. This parameter
+                     allows you to specify the order of dimensions for any variable
+                     referenced in the code being visualized. E.g., if the input is in
+                     variable X with shape (batch,width,height,n) but we want to display
+                     X as (width,height,n,batch), pass in dimorder=dict(X=[1,2,3,0]).
     :param ax: If not none, this is the matplotlib drawing region in which to draw the visualization
     :param dpi: This library tries to generate SVG files, which are vector graphics not
                 2D arrays of pixels like PNG files. However, it needs to know how to
