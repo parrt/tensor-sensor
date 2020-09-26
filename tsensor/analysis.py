@@ -406,6 +406,12 @@ def smallest_matrix_subexpr(t):
 
 def _smallest_matrix_subexpr(t, nodes) -> bool:
     if t is None: return False  # prevent buggy code from causing us to fail
+    if isinstance(t, tsensor.ast.Member) and \
+       isinstance(t.obj, tsensor.ast.Atom) and \
+       isinstance(t.member, tsensor.ast.Atom) and \
+       str(t.member)=='T':
+        nodes.append(t)
+        return True
     if len(t.kids)==0: # leaf node
         if istensor(t.value):
             nodes.append(t)

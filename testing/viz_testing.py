@@ -48,22 +48,23 @@ h = torch.rand(size=(1_000_000,2))
 x = torch.rand(size=(1_000_000,2))
 a = 3
 
-foo = torch.rand(size=(2000,))
-torch.relu(foo)
+# foo = torch.rand(size=(2000,))
+# torch.relu(foo)
 
 g = GRU()
 
-with tsensor.clarify():
-    tf.constant([1,2]) @ tf.constant([1,3])
+# with tsensor.clarify():
+#     tf.constant([1,2]) @ tf.constant([1,3])
 
 
-# code = "b = g.W[0,:,:,1]@b+torch.zeros(200,1)+(h+3).dot(h)"
-# code = "torch.relu(foo)"
-# code = "np.dot(b,b)"
-# g = tsensor.pyviz(code, fontname='Courier New', fontsize=16, dimfontsize=9,
-#                   char_sep_scale=1.8, hush_errors=False)
-# plt.tight_layout()
-# plt.savefig("/tmp/t.svg", dpi=200, bbox_inches='tight', pad_inches=0)
+code = "b = g.W[0,:,:,1]@b+torch.zeros(200,1)+(h+3).dot(h)"
+code = "torch.relu(foo)"
+code = "np.dot(b,b)"
+code = "b.T"
+g = tsensor.pyviz(code, fontname='Courier New', fontsize=16, dimfontsize=9,
+                  char_sep_scale=1.8, hush_errors=False)
+plt.tight_layout()
+plt.savefig("/tmp/t.svg", dpi=200, bbox_inches='tight', pad_inches=0)
 
 # W = torch.tensor([[1, 2], [3, 4]])
 # x = torch.tensor([4, 5]).reshape(2, 1)
