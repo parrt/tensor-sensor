@@ -39,6 +39,32 @@ class clarify:
                  underline_color='#C2C2C2', ignored_color='#B4B4B4', error_op_color='#A40227',
                  show:(None,'viz')='viz'):
         """
+        Augment tensor-related exceptions generated from numpy, pytorch, and tensorflow.
+        Also display a visual representation of the offending Python line that
+        shows the shape of tensors referenced by the code. All you have to do is wrap
+        the outermost level of your code and clarify() will activate upon exception.
+
+        Visualizations pop up in a separate window unless running from a notebook,
+        in which case the visualization appears as part of the cell execution output.
+
+        There is no runtime overhead associated with clarify() unless an exception occurs.
+
+        The offending code is executed a second time, to identify which sub expressions
+        are to blame. This implies that code with side effects could conceivably cause
+        a problem, but since an exception has been generated, results are suspicious
+        anyway.
+
+        Example:
+
+        import numpy as np
+        import tsensor
+
+        b = np.array([9, 10]).reshape(2, 1)
+        with tsensor.clarify():
+            np.dot(b,b) # tensor code or call to a function with tensor code
+
+        See examples.ipynb for more examples.
+
         :param fontname: The name of the font used to display Python code
         :param fontsize: The font size used to display Python code; default is 13.
                          Also use this to increase the size of the generated figure;
@@ -112,6 +138,39 @@ class explain:
                  underline_color='#C2C2C2', ignored_color='#B4B4B4', error_op_color='#A40227',
                  savefig=None):
         """
+        As the Python virtual machine executes lines of code, generate a
+        visualization for tensor-related expressions using from numpy, pytorch,
+        and tensorflow. The shape of tensors referenced by the code are displayed.
+
+        Visualizations pop up in a separate window unless running from a notebook,
+        in which case the visualization appears as part of the cell execution output.
+
+        There is heavy runtime overhead associated with explain() as every line
+        is executed twice: once by explain() and then another time by the interpreter
+        as part of normal execution.
+
+        Expressions with side effects can easily generate incorrect results. Due to
+        this and the overhead, you should limit the use of this to code you're trying
+        to debug.  Assignments are not evaluated by explain so code `x = ...` causes
+        an assignment to x just once, during normal execution. This explainer
+        knows the value of x and will display it but does not assign to it.
+
+        Upon exception, execution will stop as usual but, like clarify(), explain()
+        will augment the exception to indicate the offending sub expression. Further,
+        the visualization will deemphasize code not associated with the offending
+        sub expression. The sizes of relevant tensor values are still visualized.
+
+        Example:
+
+        import numpy as np
+        import tsensor
+
+        b = np.array([9, 10]).reshape(2, 1)
+        with tsensor.explain():
+            b + b # tensor code or call to a function with tensor code
+
+        See examples.ipynb for more examples.
+
         :param fontname: The name of the font used to display Python code
         :param fontsize: The font size used to display Python code; default is 13.
                          Also use this to increase the size of the generated figure;

@@ -27,7 +27,7 @@ def foo():
                        frame)
     g.view()
 
-foo()
+#foo()
 
 class GRU:
     def __init__(self):
@@ -53,8 +53,8 @@ torch.relu(foo)
 
 g = GRU()
 
-# with tsensor.clarify():
-#     tf.constant([1,2]) @ tf.constant([1,3])
+with tsensor.clarify():
+    tf.constant([1,2]) @ tf.constant([1,3])
 
 
 # code = "b = g.W[0,:,:,1]@b+torch.zeros(200,1)+(h+3).dot(h)"
