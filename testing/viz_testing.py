@@ -13,6 +13,20 @@ import matplotlib.font_manager as fm
 import tsensor
 # from tsensor.viz import pyviz, astviz
 
+def foo():
+    # W = torch.rand(size=(2000, 2000))
+    W = torch.rand(size=(2000, 2000, 10, 8))
+    b = torch.rand(size=(2000, 1))
+    h = torch.rand(size=(1_000_000,))
+    x = torch.rand(size=(2000, 1))
+    # g = tsensor.astviz("b = W@b + (h+3).dot(h) + torch.abs(torch.tensor(34))",
+    #                    sys._getframe())
+    g = tsensor.astviz("b = W[:,:,0,0]@b + (h+3).dot(h) + torch.abs(torch.tensor(34))",
+                       sys._getframe())
+    g.view()
+
+foo()
+
 class GRU:
     def __init__(self):
         self.W = torch.rand(size=(2,20,2000,10))
@@ -37,16 +51,17 @@ torch.relu(foo)
 
 g = GRU()
 
-with tsensor.clarify():
-    tf.constant([1,2]) @ tf.constant([1,3])
+# with tsensor.clarify():
+#     tf.constant([1,2]) @ tf.constant([1,3])
 
-code = "b = g.W[0,:,:,1]@b+torch.zeros(200,1)+(h+3).dot(h)"
-code = "torch.relu(foo)"
-code = "np.dot(b,b)"
-g = tsensor.pyviz(code, fontname='Courier New', fontsize=16, dimfontsize=9,
-                  char_sep_scale=1.8, hush_errors=False)
-plt.tight_layout()
-plt.savefig("/tmp/t.svg", dpi=200, bbox_inches='tight', pad_inches=0)
+
+# code = "b = g.W[0,:,:,1]@b+torch.zeros(200,1)+(h+3).dot(h)"
+# code = "torch.relu(foo)"
+# code = "np.dot(b,b)"
+# g = tsensor.pyviz(code, fontname='Courier New', fontsize=16, dimfontsize=9,
+#                   char_sep_scale=1.8, hush_errors=False)
+# plt.tight_layout()
+# plt.savefig("/tmp/t.svg", dpi=200, bbox_inches='tight', pad_inches=0)
 
 # W = torch.tensor([[1, 2], [3, 4]])
 # x = torch.tensor([4, 5]).reshape(2, 1)
@@ -62,9 +77,3 @@ plt.savefig("/tmp/t.svg", dpi=200, bbox_inches='tight', pad_inches=0)
 # g1 = tsensor.pyviz("b = g.W@b")
 # g1.view()
 # g2 = tsensor.astviz("b = g.W@b + g.h.dot(g.h) + torch.abs(torch.tensor(34))")
-#
-# #g1.render(filename="g1", directory="/tmp", format="svg", quiet=True)
-# # g2.render(filename="g2", directory="/tmp")
-# # g1.view(tempfile.mktemp('.dot'))
-# g2.view(quiet=True)
-# # g2.view(quiet=True)

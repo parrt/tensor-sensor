@@ -27,8 +27,6 @@ import traceback
 import torch
 import inspect
 
-from IPython.display import display, SVG
-from IPython import get_ipython
 import matplotlib.pyplot as plt
 
 import tsensor
@@ -229,7 +227,20 @@ class ExplainTensorTracer:
             # print(f"A line encountered in {module}.{name}() at {filename}:{line}")
             # print("\t", code)
             # print("\t", repr(t))
-            viz_statement(self, code, frame)
+            ExplainTensorTracer.viz_statement(self, code, frame)
+
+    @staticmethod
+    def viz_statement(tracer, code, frame):
+        view = tsensor.viz.pyviz(code, frame)
+        tracer.views.append(view)
+        if tracer.savefig is not None:
+            svgfilename = f"{tracer.savefig}-{tracer.linecount}.svg"
+            view.savefig(svgfilename)
+            view.filename = svgfilename
+            plt.close()
+        else:
+            view.show()
+        return view
 
 
 def eval(statement:str, frame=None) -> (tsensor.ast.ParseTreeNode, object):
@@ -237,6 +248,11 @@ def eval(statement:str, frame=None) -> (tsensor.ast.ParseTreeNode, object):
     Parse statement and return an ast in the context of execution frame or, if None,
     the invoking function's frame. Set the value field of all ast nodes.
     Overall result is in root.value.
+    :param statement: A string representing the line of Python code to visualize within an execution frame.
+    :param frame: The execution frame in which to evaluate the statement. If None,
+                  use the execution frame of the invoking function
+    :return An abstract parse tree representing the statement; nodes are
+            ParseTreeNode subclasses.
     """
     p = tsensor.parsing.PyExprParser(statement)
     root = p.parse()
@@ -244,19 +260,6 @@ def eval(statement:str, frame=None) -> (tsensor.ast.ParseTreeNode, object):
         frame = sys._getframe().f_back
     root.eval(frame)
     return root, root.value
-
-
-def viz_statement(tracer, code, frame):
-    view = tsensor.viz.pyviz(code, frame)
-    tracer.views.append(view)
-    if tracer.savefig is not None:
-        svgfilename = f"{tracer.savefig}-{tracer.linecount}.svg"
-        view.savefig(svgfilename)
-        view.filename = svgfilename
-        plt.close()
-    else:
-        view.show()
-    return view
 
 
 def augment_exception(exc_value, subexpr):

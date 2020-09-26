@@ -250,15 +250,13 @@ class PyExprParser:
         return tsensor.ast.Assign(eq, kwarg, e, start, stop)
 
     def subexpr(self):
-        start = self.LT(1)
-        self.match(LPAR)
+        start = self.match(LPAR)
         e = self.exprlist()  # could be a tuple like (3,4) or even (3,4,)
         istuple = len(e)>1
         if self.LA(1)==COMMA:
             self.match(COMMA)
             istuple = True
-        self.match(RPAR)
-        stop = self.LT(-1)
+        stop = self.match(RPAR)
         if istuple:
             return tsensor.ast.TupleLiteral(e, start, stop)
         subexpr = e[0]

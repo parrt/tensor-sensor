@@ -420,21 +420,21 @@ def pyviz_dot(statement:str, frame,
         # print(x,'has',sh,label)
         return label
 
-    def internal_label(node):
-        text = str(node)
-        if node.optokens:
-            text = node.optokens[0].value
-        sh = tsensor.ast._shape(node.value) # get value for this node in tree
-        label = f'<font face="{fontname}" color="#444443" point-size="{fontsize}">{text}</font>'
-        if sh is not None:
-            if len(sh) == 1:
-                label = matrix_html(sh[0], None, text, fontname=fontname,
-                                    fontsize=fontsize, color=vectorcolor)
-            elif len(sh) == 2:
-                label = matrix_html(sh[0], sh[1], text, fontname=fontname,
-                                    fontsize=fontsize, color=matrixcolor)
-        # print(x,'has',sh,label)
-        return label
+    # def internal_label(node):
+    #     text = str(node)
+    #     if node.optokens:
+    #         text = node.optokens[0].value
+    #     sh = tsensor.ast._shape(node.value) # get value for this node in tree
+    #     label = f'<font face="{fontname}" color="#444443" point-size="{fontsize}">{text}</font>'
+    #     if sh is not None:
+    #         if len(sh) == 1:
+    #             label = matrix_html(sh[0], None, text, fontname=fontname,
+    #                                 fontsize=fontsize, color=vectorcolor)
+    #         elif len(sh) == 2:
+    #             label = matrix_html(sh[0], sh[1], text, fontname=fontname,
+    #                                 fontsize=fontsize, color=matrixcolor)
+    #     # print(x,'has',sh,label)
+    #     return label
 
     root, tokens = tsensor.parsing.parse(statement)
     root.eval(frame)
@@ -526,19 +526,15 @@ def astviz(statement:str, frame=None) -> graphviz.Source:
 
 
 def astviz_dot(statement:str, frame=None) -> str:
-    def internal_label(node):
-        text = str(node)
-        if node.optokens:
-            text = node.optokens[0].value
+    def internal_label(node,color="yellow"):
+        text = ''.join(str(t) for t in node.optokens)
         sh = tsensor.analysis._shape(node.value)
         if sh is None:
             return f'<font face="{fontname}" color="#444443" point-size="{fontsize}">{text}</font>'
 
-        if len(sh)==1:
-            sz = str(sh[0])
-        else:
-            sz = f"{sh[0]}x{sh[1]}"
-        return f"""<font face="Consolas" color="#444443" point-size="{fontsize}">{text}</font><br/><font face="Consolas" color="#444443" point-size="{dimfontsize}">{sz}</font>"""
+        sz = 'x'.join([PyVizView.nabbrev(sh[i]) for i in range(len(sh))])
+        print(sz)
+        return f"""<font face="Consolas" color="#444443" point-size="{fontsize}">{text}</font><br/><font face="Arial" color="#444443" point-size="{dimfontsize}">{sz}</font>"""
 
     root, tokens = tsensor.parsing.parse(statement)
     if frame is not None:
@@ -571,6 +567,9 @@ def astviz_dot(statement:str, frame=None) -> str:
         t = tokens[i]
         if t.type!=token.ENDMARKER:
             nodetext = t.value
+            # if ']' in nodetext:
+            if nodetext==']':
+                nodetext = nodetext.replace(']','&zwnj;]') # &zwnj; is 0-width nonjoiner. ']' by itself is bad for DOT
             label = f'<font face="{fontname}" color="#444443" point-size="{fontsize}">{nodetext}</font>'
             _spread = spread
             if t.type==token.DOT:
@@ -598,9 +597,6 @@ def astviz_dot(statement:str, frame=None) -> str:
 
     # Draw internal ops nodes
     for nd in ops:
-        # for sub in nd.kids:
-        #     if tsensor.analysis._shape(sub.value) is None:
-        #         continue
         label = internal_label(nd)
         sh = tsensor.analysis._shape(nd.value)
         if sh is None:

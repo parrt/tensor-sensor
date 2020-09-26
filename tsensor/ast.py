@@ -137,12 +137,12 @@ class Index(ParseTreeNode):
     @property
     def optokens(self):
         arr = None # assume complicated like f()[i] with no clear array var
-        if isinstance(self.arr, Member):
-            arr = self.arr.member
-        elif isinstance(self.arr, Atom):
-            arr = self.arr
-        if arr:
-            return [arr,self.lbrack,self.stop]
+        # if isinstance(self.arr, Member):
+        #     arr = self.arr.member
+        # elif isinstance(self.arr, Atom):
+        #     arr = self.arr
+        # if arr:
+        #     return [self.lbrack,self.stop]
         return [self.lbrack,self.stop]
     @property
     def kids(self):
@@ -263,6 +263,9 @@ class SubExpr(ParseTreeNode):
     def eval(self, frame):
         self.value = self.e.eval(frame)
         return self.value # don't re-evaluate
+    @property
+    def optokens(self):
+        return [self.start, self.stop]
     @property
     def kids(self):
         return [self.e]
