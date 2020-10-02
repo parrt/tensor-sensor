@@ -122,6 +122,27 @@ class Call(ParseTreeNode):
         args_ = ','.join([str(a) for a in self.args])
         return f"{self.func}({args_})"
 
+class Return(ParseTreeNode):
+    def __init__(self, result, start, stop):
+        super().__init__()
+        self.result = result
+        self.start, self.stop = start, stop
+    def eval(self, frame):
+        self.value = [a.eval(frame) for a in self.result]
+        if len(self.value)==1:
+            self.value = self.value[0]
+        return self.value
+    @property
+    def optokens(self):
+        return [self.start]
+    @property
+    def kids(self):
+        return self.result
+    def __str__(self):
+        r = self.result
+        r = ','.join(str(v) for v in r)
+        return f"return {r}"
+
 class Index(ParseTreeNode):
     def __init__(self, arr, lbrack, index, start, stop):
         super().__init__()

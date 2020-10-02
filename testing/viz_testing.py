@@ -1,7 +1,6 @@
 import sys
 import torch
 import numpy as np
-import tensorflow as tf
 import graphviz
 import tempfile
 import matplotlib.patches as patches
@@ -28,6 +27,29 @@ def foo():
     g.view()
 
 #foo()
+
+class Linear:
+    def __init__(self, d, n_neurons):
+        self.W = torch.randn(n_neurons,  d)
+        self.b = torch.zeros(n_neurons, 1)
+    def __call__(self, x):
+        return self.W@x + self.b
+
+
+n = 200         # number of instances
+d = 764         # number of instance features
+n_neurons = 100 # how many neurons in this layer?
+L = Linear(d,n_neurons)
+
+import tensorflow as tf
+X = tf.random.uniform((n,d))
+with tsensor.clarify(hush_errors=False):
+    Y = L(X)
+
+# g = tsensor.pyviz("Y = L(X)", hush_errors=False)
+# g.show()
+
+exit()
 
 class GRU:
     def __init__(self):
@@ -58,9 +80,9 @@ g = GRU()
 
 
 code = "b = g.W[0,:,:,1]@b+torch.zeros(200,1)+(h+3).dot(h)"
-code = "torch.relu(foo)"
-code = "np.dot(b,b)"
-code = "b.T"
+# code = "torch.relu(foo)"
+# code = "np.dot(b,b)"
+# code = "b.T"
 g = tsensor.pyviz(code, fontname='Courier New', fontsize=16, dimfontsize=9,
                   char_sep_scale=1.8, hush_errors=False)
 plt.tight_layout()

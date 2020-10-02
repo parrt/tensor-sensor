@@ -113,20 +113,25 @@ class PyExprParser:
         # print(self.tokens)
         # only process assignments and expressions
         root = None
-        if not keyword.iskeyword(self.tokens[0].value):
+        if self.tokens[0].value=='return' or not keyword.iskeyword(self.tokens[0].value):
             if self.hush_errors:
                 try:
-                    root = self.assignment_or_expr()
+                    root = self.assignment_or_return_or_expr()
                     self.match(ENDMARKER)
                 except SyntaxError as e:
                     root = None
             else:
-                root = self.assignment_or_expr()
+                root = self.assignment_or_return_or_expr()
                 self.match(ENDMARKER)
         return root
 
-    def assignment_or_expr(self):
+    def assignment_or_return_or_expr(self):
         start = self.LT(1)
+        if self.LA(1)==NAME and self.LT(1).value=='return':
+            self.match(NAME)
+            r = self.exprlist()
+            stop = self.LT(-1)
+            return tsensor.ast.Return(r,start,stop)
         lhs = self.expression()
         if self.LA(1) in ASSIGNOP:
             eq = self.LT(1)

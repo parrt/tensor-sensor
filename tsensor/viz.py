@@ -22,6 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 import sys
+import os
 import tempfile
 import graphviz
 import token
@@ -60,12 +61,13 @@ class PyVizView:
         self.linewidth = .7
         self.leftedge = 25
         self.bottomedge = 3
-        self.svgfilename = None
+        self.filename = None
         self.matrix_size_scaler = 3.5      # How wide or tall as scaled fontsize is matrix?
         self.vector_size_scaler = 3.2 / 4  # How wide or tall as scaled fontsize is vector for skinny part?
         self.shift3D = 6
         self.cause = None # Did an exception occurred during evaluation?
         self.offending_expr = None
+        self.fignumber = None
 
     def set_locations(self, maxh):
         """
@@ -91,16 +93,33 @@ class PyVizView:
         """
         Render as svg and return svg text. Save file and store name in field svgfilename.
         """
-        if self.svgfilename is None: # cached?
-            self.svgfilename = tempfile.mktemp(suffix='.svg')
-            self.savefig(self.svgfilename)
-        with open(self.svgfilename, encoding='UTF-8') as f:
+        if self.filename is None: # have we saved before? (i.e., is it cached?)
+            self.savefig(tempfile.mktemp(suffix='.svg'))
+        elif not self.filename.endswith(".svg"):
+            return None
+        with open(self.filename, encoding='UTF-8') as f:
             svg = f.read()
         return svg
 
     def savefig(self, filename):
         "Save viz in format according to file extension."
-        plt.savefig(filename, dpi = self.dpi, bbox_inches = 'tight', pad_inches = 0)
+        if plt.fignum_exists(self.fignumber):
+            # If the matplotlib figure is still active, save it
+            self.filename = filename # Remember the file so we can pull it back
+            plt.savefig(filename, dpi = self.dpi, bbox_inches = 'tight', pad_inches = 0)
+        else: # we have already closed it so try to copy to new filename from the previous
+            if filename!=self.filename:
+                f,ext = os.path.splitext(filename)
+                prev_f,prev_ext = os.path.splitext(self.filename)
+                if ext != prev_ext:
+                    print(f"File extension {ext} differs from previous {prev_ext}; uses previous.")
+                    ext = prev_ext
+                filename = f+ext # make sure that we don't copy raw bits and change the file extension to be inconsistent
+                with open(self.filename, 'rb') as f:
+                    img = f.read()
+                with open(filename, 'wb') as f:
+                    f.write(img)
+                self.filename = filename  # overwrite the filename with new name
 
     def show(self):
         "Display an SVG in a notebook or pop up a window if not in notebook"
@@ -284,6 +303,7 @@ def pyviz(statement: str, frame=None,
         frame = sys._getframe().f_back
     root, tokens = tsensor.parsing.parse(statement, hush_errors=hush_errors)
     if root is None:
+        print(f"Can't parse {statement}; root is None")
         # likely syntax error in statement or code I can't handle
         return None
     root_to_viz = root
@@ -310,6 +330,7 @@ def pyviz(statement: str, frame=None,
         fig, ax = plt.subplots(1, 1, dpi=dpi)
     else:
         fig = ax.figure
+    view.fignumber = fig.number # track this so that we can determine if the figure has been closed
 
     ax.axis("off")
 

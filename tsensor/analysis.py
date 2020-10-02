@@ -37,7 +37,8 @@ class clarify:
                  dimfontname='Arial', dimfontsize=9, matrixcolor="#cfe2d4",
                  vectorcolor="#fefecd", char_sep_scale=1.8, fontcolor='#444443',
                  underline_color='#C2C2C2', ignored_color='#B4B4B4', error_op_color='#A40227',
-                 show:(None,'viz')='viz'):
+                 show:(None,'viz')='viz',
+                 hush_errors=True):
         """
         Augment tensor-related exceptions generated from numpy, pytorch, and tensorflow.
         Also display a visual representation of the offending Python line that
@@ -102,10 +103,11 @@ class clarify:
         self.show = show
         self.fontname, self.fontsize, self.dimfontname, self.dimfontsize, \
         self.matrixcolor, self.vectorcolor, self.char_sep_scale,\
-        self.fontcolor, self.underline_color, self.ignored_color, self.error_op_color = \
+        self.fontcolor, self.underline_color, self.ignored_color, \
+        self.error_op_color, self.hush_errors = \
             fontname, fontsize, dimfontname, dimfontsize, \
             matrixcolor, vectorcolor, char_sep_scale, \
-            fontcolor, underline_color, ignored_color, error_op_color
+            fontcolor, underline_color, ignored_color, error_op_color, hush_errors
 
     def __enter__(self):
         self.frame = sys._getframe().f_back # where do we start tracking
@@ -119,15 +121,16 @@ class clarify:
             module, name, filename, line, code = info(exc_frame)
             # print('info', module, name, filename, line, code)
             if code is not None:
-                view = tsensor.viz.pyviz(code, exc_frame,
-                                         self.fontname, self.fontsize, self.dimfontname,
-                                         self.dimfontsize, self.matrixcolor, self.vectorcolor,
-                                         self.char_sep_scale, self.fontcolor,
-                                         self.underline_color, self.ignored_color,
-                                         self.error_op_color)
+                self.view = tsensor.viz.pyviz(code, exc_frame,
+                                              self.fontname, self.fontsize, self.dimfontname,
+                                              self.dimfontsize, self.matrixcolor, self.vectorcolor,
+                                              self.char_sep_scale, self.fontcolor,
+                                              self.underline_color, self.ignored_color,
+                                              self.error_op_color,
+                                              hush_errors=self.hush_errors)
                 if self.show=='viz':
-                    view.show()
-                augment_exception(exc_value, view.offending_expr)
+                    self.view.show()
+                augment_exception(exc_value, self.view.offending_expr)
 
 
 class explain:
@@ -136,7 +139,8 @@ class explain:
                  dimfontname='Arial', dimfontsize=9, matrixcolor="#cfe2d4",
                  vectorcolor="#fefecd", char_sep_scale=1.8, fontcolor='#444443',
                  underline_color='#C2C2C2', ignored_color='#B4B4B4', error_op_color='#A40227',
-                 savefig=None):
+                 savefig=None,
+                 hush_errors=True):
         """
         As the Python virtual machine executes lines of code, generate a
         visualization for tensor-related expressions using from numpy, pytorch,
@@ -209,14 +213,15 @@ class explain:
         self.savefig = savefig
         self.fontname, self.fontsize, self.dimfontname, self.dimfontsize, \
         self.matrixcolor, self.vectorcolor, self.char_sep_scale,\
-        self.fontcolor, self.underline_color, self.ignored_color, self.error_op_color = \
+        self.fontcolor, self.underline_color, self.ignored_color, \
+        self.error_op_color, self.hush_errors = \
             fontname, fontsize, dimfontname, dimfontsize, \
             matrixcolor, vectorcolor, char_sep_scale, \
-            fontcolor, underline_color, ignored_color, error_op_color
+            fontcolor, underline_color, ignored_color, error_op_color, hush_errors
 
-    def __enter__(self, format="svg"):
+    def __enter__(self):
         # print("ON trace")
-        self.tracer = ExplainTensorTracer(self.savefig, format=format)
+        self.tracer = ExplainTensorTracer(self)
         sys.settrace(self.tracer.listener)
         frame = sys._getframe()
         prev = frame.f_back # get block wrapped in "with"
@@ -250,25 +255,17 @@ class explain:
 
 
 class ExplainTensorTracer:
-    def __init__(self, savefig:str=None, format="svg", modules=['__main__'], filenames=[]):
-        self.savefig = savefig
-        self.format = format
-        self.modules = modules
-        self.filenames = filenames
+    def __init__(self, explainer):
+        self.explainer = explainer
         self.exceptions = set()
         self.linecount = 0
         self.views = []
 
     def listener(self, frame, event, arg):
         module = frame.f_globals['__name__']
-        if module not in self.modules:
-            return
-
         info = inspect.getframeinfo(frame)
         filename, line = info.filename, info.lineno
         name = info.function
-        if len(self.filenames)>0 and filename not in self.filenames:
-            return
 
         if event=='line':
             self.line_listener(module, name, filename, line, info, frame)
@@ -286,14 +283,21 @@ class ExplainTensorTracer:
             # print(f"A line encountered in {module}.{name}() at {filename}:{line}")
             # print("\t", code)
             # print("\t", repr(t))
-            ExplainTensorTracer.viz_statement(self, code, frame)
+            self.viz_statement(code, frame)
 
-    @staticmethod
-    def viz_statement(tracer, code, frame):
-        view = tsensor.viz.pyviz(code, frame)
-        tracer.views.append(view)
-        if tracer.savefig is not None:
-            svgfilename = f"{tracer.savefig}-{tracer.linecount}.svg"
+    def viz_statement(self, code, frame):
+        view = tsensor.viz.pyviz(code, frame,
+                                 self.explainer.fontname, self.explainer.fontsize,
+                                 self.explainer.dimfontname,
+                                 self.explainer.dimfontsize, self.explainer.matrixcolor,
+                                 self.explainer.vectorcolor,
+                                 self.explainer.char_sep_scale, self.explainer.fontcolor,
+                                 self.explainer.underline_color, self.explainer.ignored_color,
+                                 self.explainer.error_op_color,
+                                 hush_errors=self.explainer.hush_errors)
+        self.views.append(view)
+        if self.explainer.savefig is not None:
+            svgfilename = f"{self.explainer.savefig}-{self.linecount}.svg"
             view.savefig(svgfilename)
             view.filename = svgfilename
             plt.close()
