@@ -39,17 +39,15 @@ class Linear:
 n = 200         # number of instances
 d = 764         # number of instance features
 n_neurons = 100 # how many neurons in this layer?
-L = Linear(d,n_neurons)
-
-import tensorflow as tf
-X = tf.random.uniform((n,d))
-with tsensor.clarify(hush_errors=False):
-    Y = L(X)
+# L = Linear(d,n_neurons)
+#
+# import tensorflow as tf
+# X = tf.random.uniform((n,d))
+# with tsensor.clarify(hush_errors=False):
+#     Y = L(X)
 
 # g = tsensor.pyviz("Y = L(X)", hush_errors=False)
 # g.show()
-
-exit()
 
 class GRU:
     def __init__(self):

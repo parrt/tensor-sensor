@@ -26,6 +26,7 @@ import sys
 import traceback
 import torch
 import inspect
+import hashlib
 
 import matplotlib.pyplot as plt
 
@@ -260,6 +261,9 @@ class ExplainTensorTracer:
         self.exceptions = set()
         self.linecount = 0
         self.views = []
+        # set of hashes for statements already visualized;
+        # generate each combination of statement and shapes once
+        self.done = set()
 
     def listener(self, frame, event, arg):
         module = frame.f_globals['__name__']
@@ -270,19 +274,29 @@ class ExplainTensorTracer:
         if event=='line':
             self.line_listener(module, name, filename, line, info, frame)
 
+        # By returning none, we prevent explain()'ing from descending into
+        # invoked functions. In principle, we could allow a certain amount
+        # of tracing but I'm not sure that would be super useful.
         return None
 
     def line_listener(self, module, name, filename, line, info, frame):
         code = info.code_context[0].strip()
         if code.startswith("sys.settrace(None)"):
             return
-        self.linecount += 1
+
+        # Don't generate a statement visualization more than once
+        h = self.hash(code)
+        if h in self.done:
+            return
+        self.done.add(h)
+
         p = tsensor.parsing.PyExprParser(code)
         t = p.parse()
         if t is not None:
             # print(f"A line encountered in {module}.{name}() at {filename}:{line}")
             # print("\t", code)
             # print("\t", repr(t))
+            self.linecount += 1
             self.viz_statement(code, frame)
 
     def viz_statement(self, code, frame):
@@ -304,6 +318,14 @@ class ExplainTensorTracer:
         else:
             view.show()
         return view
+
+    def hash(self, statement):
+        """
+        We want to avoid generating a visualization more than once.
+        For now, assume that the code for a statement is the unique identifier.
+        """
+        return hashlib.md5(statement.encode('utf-8')).hexdigest()
+
 
 
 def eval(statement:str, frame=None) -> (tsensor.ast.ParseTreeNode, object):
