@@ -23,8 +23,10 @@ SOFTWARE.
 """
 import sys
 import os
+from pathlib import Path
 import tempfile
 import graphviz
+from graphviz.backend import run
 import token
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
@@ -420,12 +422,34 @@ class QuietGraphvizWrapper(graphviz.Source):
     def _repr_svg_(self):
         return self.pipe(format='svg', quiet=True).decode(self._encoding)
 
+    def savefig(self, filename):
+        path = Path(filename)
+        if not path.parent.exists:
+            os.makedirs(path.parent)
 
-def astviz(statement:str, frame=None) -> graphviz.Source:
+        dotfilename = self.save(directory=path.parent.as_posix(), filename=path.stem)
+        format = path.suffix[1:]  # ".svg" -> "svg" etc...
+        cmd = ["dot", f"-T{format}", "-o", filename, dotfilename]
+        # print(' '.join(cmd))
+        run(cmd, capture_output=True, check=True, quiet=False)
+
+
+def astviz(statement:str, frame='current') -> graphviz.Source:
+    """
+    Display the abstract syntax tree (AST) for the indicated Python code
+    in statement. Evaluate that code in the context of frame. If the frame
+    is not specified, the default is to execute the code within the context of
+    the invoking code. Pass in frame=None to avoid evaluation and just display
+    the AST.
+
+    Returns a QuietGraphvizWrapper that renders as SVG in a notebook but
+    you can also call `savefig()` to save the file and in a variety of formats,
+    according to the file extension.
+    """
     return QuietGraphvizWrapper(astviz_dot(statement, frame))
 
 
-def astviz_dot(statement:str, frame=None) -> str:
+def astviz_dot(statement:str, frame='current') -> str:
     def internal_label(node,color="yellow"):
         text = ''.join(str(t) for t in node.optokens)
         sh = tsensor.analysis._shape(node.value)
@@ -433,11 +457,16 @@ def astviz_dot(statement:str, frame=None) -> str:
             return f'<font face="{fontname}" color="#444443" point-size="{fontsize}">{text}</font>'
 
         sz = 'x'.join([PyVizView.nabbrev(sh[i]) for i in range(len(sh))])
-        print(sz)
         return f"""<font face="Consolas" color="#444443" point-size="{fontsize}">{text}</font><br/><font face="Arial" color="#444443" point-size="{dimfontsize}">{sz}</font>"""
 
     root, tokens = tsensor.parsing.parse(statement)
-    if frame is not None:
+
+    if frame=='current': # use frame of caller if nothing passed in
+        frame = sys._getframe().f_back
+        if frame.f_code.co_name=='astviz':
+            frame = frame.f_back
+
+    if frame is not None: # if the passed in None, then don't do the evaluation
         root.eval(frame)
 
     nodes = tsensor.ast.postorder(root)

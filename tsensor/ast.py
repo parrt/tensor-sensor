@@ -41,7 +41,7 @@ class ParseTreeNode:
         was in this tree
         """
         try:
-            self.value = eval(str(self), frame.f_locals, frame.f_globals)
+            self.value = eval(str(self), frame.f_globals, frame.f_locals)
         except BaseException as e:
             raise IncrEvalTrap(self) from e
         # print(self, "=>", self.value)

@@ -1,17 +1,16 @@
 import torch
 import tsensor
+nhidden = 256
+n = 200         # number of instances
+d = 764         # number of instance features
+n_neurons = 100 # how many neurons in this layer?
 
-n = 200                          # number of instances
-d = 764                          # number of instance features
-n_neurons = 100                  # how many neurons in this layer?
-batch_size = 10                  # how many records per batch?
-n_batches = n // batch_size
+Whh_ = torch.eye(nhidden, nhidden)
+Uxh_ = torch.randn(nhidden, d)
+bh_  = torch.zeros(nhidden, 1)
+h = torch.randn(nhidden, 1)  # fake previous hidden state h
+r = torch.randn(nhidden, 1)  # fake this computation
+X = torch.rand(n,d)          # fake input
 
-W = torch.rand(n_neurons,d)
-b = torch.rand(n_neurons,1)
-X = torch.rand(n_batches,batch_size,d)
-
-with tsensor.explain():
-    for i in range(n_batches):
-        batch = X[i,:,:]
-        Y = W @ batch.T + b 
+g = tsensor.astviz("h_ = torch.tanh(Whh_ @ (r*h) + Uxh_ @ X.T + bh_)")
+g.savefig("/tmp/torch-gru-ast-shapes.svg")

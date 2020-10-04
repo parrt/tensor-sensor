@@ -353,8 +353,6 @@ def augment_exception(exc_value, subexpr):
     if explanation is not None:
         augment = explanation
     # Reuse exception but overwrite the message
-    # print(f"Exc type is {type(exc_value)}, len(args)={len(exc_value.args)}, has '_message'=={hasattr(exc_value, '_message')}")
-    # print(f"Msg {str(exc_value)}")
     if hasattr(exc_value, "_message"):
         exc_value._message = exc_value.message + "\n" + augment
     else:
@@ -419,12 +417,10 @@ def smallest_matrix_subexpr(t):
     During visualization, we need to find the smallest expression
     that evaluates to a non-scalar. That corresponds to the deepest subtree
     that evaluates to a non-scalar. Because we do not have parent pointers,
-    we cannot start at the leaves and walk upwards. Instead, set a Boolean
-    in each node to indicate whether one of the descendents (but not itself)
+    we cannot start at the leaves and walk upwards. Instead, pass a Boolean
+    back to indicate whether this note or one of the descendents
     evaluates to a non-scalar.  Nodes in the tree that have matrix values and
-    not matrix_below are the ones to visualize.
-
-    This routine modifies the tree nodes to turn on matrix_below where appropriate.
+    no matrix below are the ones to visualize.
     """
     nodes = []
     _smallest_matrix_subexpr(t, nodes)
