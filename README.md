@@ -1,118 +1,38 @@
 # Tensor Sensor
 
-The goal of this library is to generate more helpful exception
-messages for numpy/pytorch/tensorflow matrix algebra expressions.  Because the
-matrix algebra in these libraries is all done in C/C++, they do not
-have access to the Python execution environment so they are literally
-unable to give information about which Python variables and subexpression caused the problem.  Only by catching the exception and then analyzing/re-executing the Python code can we get this kind of an error message.
+<img src="https://explained.ai/tensor-sensor/images/teaser.png" width="40%" align="right">One of the biggest challenges when writing code to implement deep learning networks, particularly for us newbies, is getting all of the tensor (matrix and vector) dimensions to line up properly. It's really easy to lose track of tensor dimensionality in complicated expressions involving multiple tensors and tensor operations.  Even when just feeding data into predefined [Tensorflow](https://www.tensorflow.org/) network layers, we still need to get the dimensions right. When you ask for improper computations, you're going to run into some less than helpful exception messages.  To help myself and other programmers debug tensor code, I built this library.  TensorSensor clarifies exceptions by augmenting messages and visualizing Python code to indicate the shape of tensor variables (see figure to the right for a teaser). It works with [Tensorflow](https://www.tensorflow.org/), [PyTorch](https://pytorch.org/), and [Numpy](https://numpy.org/), as well as higher-level libraries like [Keras](https://keras.io/) and [fastai](https://www.fast.ai/).
 
-The Python `with` statement allows me to trap exceptions that occur
-and then I literally parse the Python code of the offending line, build an
-expression tree, and then incrementally evaluate the operands
-bottom-up until I run into an exception. That tells me which of the
-subexpressions caused the problem and then I can pull it apart and
-ask if any of those operands are matrices.
-
-Imagine you have a complicated little matrix expression like:
-
-```
-W @ torch.dot(b,b)+ torch.eye(2,2)@x + z
-```
-
-And you get this unhelpful error message from pytorch:
-
-```
-RuntimeError: 1D tensors expected, got 2D, 2D tensors at [...]/THTensorEvenMoreMath.cpp:83
-```
-
-There are two problems: it does not tell you which of the sub
-expressions threw the exception and it does not tell you what the
-shape of relevant operands are.  This library that lets you
-do this:
-
-```
-import tsensor
-with tsensor.clarify():
-    W @ torch.dot(b,b)+ torch.eye(2,2)@x + z
-```
-
-which then augments the exception message with the following clarification:
-
-```
-Cause: torch.dot(b,b) tensor arg b w/shape [2, 1], arg b w/shape [2, 1]
-```
-
-Here’s another default error message that is almost helpful for expression `W @ z`:
-
-```
-RuntimeError: size mismatch, get 2, 2x2,3
-```
-
-But tensor-sensor gives:
-
-```
-Cause: @ on tensor operand W w/shape [2, 2] and operand z w/shape [3]
-```
-
-Non-tensor args/values are ignored.
-
-```
-with tsensor.clarify():
-    torch.dot(b, 3)
-```
-
-gives:
-
-```
-TypeError: dot(): argument 'tensor' (position 2) must be Tensor, not int
-Cause: torch.dot(b,3) tensor arg b w/shape [2, 1]
-```
-
-If there are no tensor args, it just shows the cause:
-
-```
-with tsensor.clarify():
-    z.reshape(1,2,2)
-```
-
-gives:
-
-```
-RuntimeError: shape '[1, 2, 2]' is invalid for input of size 3
-Cause: z.reshape(1,2,2)
-```
+*TensorSensor is currently at 0.1b1 so I'm happy to receive issues created at this repo or direct email*.
 
 ## Visualizations
 
 For more, see [examples.ipynb](testing/examples.ipynb).
 
 ```python
-import tsensor
-import graphviz
 import torch
-import sys
-
-W = torch.tensor([[1, 2], [3, 4]])
-b = torch.tensor([9, 10]).reshape(2, 1)
-x = torch.tensor([4, 5]).reshape(2, 1)
-h = torch.tensor([1,2])
-
-with tsensor.explain():
-    a = torch.relu(x)
-    b = W @ b + h.dot(h)
+W = torch.rand(d,n_neurons)
+b = torch.rand(n_neurons,1)
+X = torch.rand(n,d)
+with tsensor.clarify():
+    Y = W @ X.T + b
 ```
 
-Displays this in a notebook:
+Displays this in a jupyter notebook or separate window:
 
-<img src="images/sample-1.svg">
+<img src="https://explained.ai/tensor-sensor/images/mm.svg">
 
-<img src="images/sample-2.svg">
+Instead of the following default exception message:
+
+<font bgcolor="#FEE4E5">RuntimeError: size mismatch, m1: [764 x 100], m2: [764 x 200] at /tmp/pip-req-build-as628lz5/aten/src/TH/generic/THTensorMath.cpp:41</font>
+
+TensorSensor augmented with:
+
+<font bgcolor="#FEE4E5">Cause: @ on tensor operand W w/shape [764, 100] and operand X.T w/shape [764, 200]</font>
 
 
 ## Install
 
 ```
-pip install -U graphviz # make sure you have latest
 pip install tensor-sensor
 ```
 
@@ -163,14 +83,6 @@ Or download and install locally
 $ cd ~/github/tensor-sensor
 $ pip install .
 ```
-
-## Notes
-
-The behavior of clarify. Clarify has no burden on the run time unless an exception occurs. At this time, it reevaluates the offending line looking for the self-expression that caused the problem. It not only updates the error message in the exception object, but it visualizes the error.
-
-The behavior of explain.  Explain is a big burden on runtime execution. Before every line is executed, explain will evaluate all sub expressions and produce a visualization. Then, the line executes normally. If there is an exception in that line, we detected during visualization and display an altered view of that statement that highlights the offending sub expression.  We also need to behave like clarify for the error message in the exception triggered when the Python VM executes that statement normally (after are visualization).
-
-So, in both cases, we trap exceptions using the `with` construct and augment exception messages. Explain differs from clarify in that we use `settrace()` to process each line of code before the VM executes it normally.  Clarify never needs to deal with tracing.
 
 ### TODO
 
