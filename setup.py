@@ -25,7 +25,7 @@ from setuptools import setup
 
 tensorflow_requires = ['tensorflow']
 torch_requires = ['torch']
-all_requires = tensorflow_requires + pytorch_requires
+all_requires = tensorflow_requires + torch_requires
 
 exec(open('tsensor/version.py').read())
 setup(
@@ -39,9 +39,9 @@ setup(
     python_requires='>=3.6',
     install_requires=['graphviz>=0.14.1','numpy','IPython', 'matplotlib'],
     extra_requires = {'all': all_requires,
-                      'torch' torch_requires,
+                      'torch': torch_requires,
                       'tensorflow': tensorflow_requires
-                     }
+                     },
     description='The goal of this library is to generate more helpful exception messages for numpy/pytorch tensor algebra expressions.',
 #    keywords='visualization data structures',
     classifiers=['License :: OSI Approved :: MIT License',
