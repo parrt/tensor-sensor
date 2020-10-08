@@ -26,7 +26,7 @@ import os
 from pathlib import Path
 import tempfile
 import graphviz
-from graphviz.backend import run
+import graphviz.backend
 import token
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
@@ -431,7 +431,7 @@ class QuietGraphvizWrapper(graphviz.Source):
         format = path.suffix[1:]  # ".svg" -> "svg" etc...
         cmd = ["dot", f"-T{format}", "-o", filename, dotfilename]
         # print(' '.join(cmd))
-        run(cmd, capture_output=True, check=True, quiet=False)
+        graphviz.backend.run(cmd, capture_output=True, check=True, quiet=False)
 
 
 def astviz(statement:str, frame='current') -> graphviz.Source:
