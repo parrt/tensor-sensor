@@ -24,7 +24,6 @@ SOFTWARE.
 import os
 import sys
 import traceback
-import torch
 import inspect
 import hashlib
 
@@ -456,8 +455,8 @@ def istensor(x):
 
 def _shape(v):
     # do we have a shape and it answers len()? Should get stuff right.
-    if hasattr(v, "shape") and hasattr(v.shape,"__len__"):
-        if isinstance(v.shape, torch.Size):
+    if hasattr(v, "shape") and hasattr(v.shape, "__len__"):
+        if v.shape.__class__.__module__ == "torch" and v.shape.__class__.__name__ == "Size":
             if len(v.shape)==0:
                 return None
             return list(v.shape)
