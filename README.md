@@ -4,7 +4,7 @@
 
 Please read the complete description in article [Clarifying exceptions and visualizing tensor operations in deep learning code](https://explained.ai/tensor-sensor/index.html).
 
-*TensorSensor is currently at 0.1b3 so I'm happy to receive issues created at this repo or direct email*.
+*TensorSensor is currently at 0.1b4 so I'm happy to receive issues created at this repo or direct email*.
 
 ## Visualizations
 
