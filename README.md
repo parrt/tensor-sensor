@@ -39,10 +39,10 @@ Cause: @ on tensor operand W w/shape [764, 100] and operand X.T w/shape [764, 20
 ## Install
 
 ```
-pip install tensor-sensor # This will only install the library for you
-pip install tensor-sensor[torch] # install pytorch related dependency
+pip install tensor-sensor             # This will only install the library for you
+pip install tensor-sensor[torch]      # install pytorch related dependency
 pip install tensor-sensor[tensorflow] # install tensorflow related dependency
-pip install tensor-sensor[all] # install both tensorflow and pytorch
+pip install tensor-sensor[all]        # install both tensorflow and pytorch
 ```
 
 which gives you module `tsensor`. I developed and tested with the following versions
