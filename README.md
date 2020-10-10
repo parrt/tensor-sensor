@@ -60,7 +60,9 @@ torch                              1.6.0
 
 ### Graphviz for tsensor.astviz()
 
-For displaying abstract syntax trees (ASTs) with `tsensor.astviz(...)`, then you need the `dot` executable from graphviz, not just the python library. On **Mac**, do this before or after tensor-sensor install:
+For displaying abstract syntax trees (ASTs) with `tsensor.astviz(...)`, then you need the `dot` executable from graphviz, not just the python library. 
+
+On **Mac**, do this before or after tensor-sensor install:
 
 ```
 brew install graphviz
