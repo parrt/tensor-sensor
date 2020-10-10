@@ -23,6 +23,7 @@ SOFTWARE.
 """
 import numpy as np
 import dis
+import torch 
 
 a = np.array([1,2,3])
 g = globals()
