@@ -76,6 +76,17 @@ def test_add_mul():
     c = 5
     check("a+b*c", 23)
 
+def test_pow():
+    a = 3
+    b = 4
+    check("a**b", 3**4)
+
+def test_pow2():
+    a = 3
+    b = 4
+    c = 5
+    check("a**(b+1)**c", 3**5**5)
+
 def test_parens():
     a = 3
     b = 4

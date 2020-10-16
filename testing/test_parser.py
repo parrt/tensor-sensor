@@ -131,6 +131,16 @@ def test_arith():
                       rhs=BinaryOp(op=<STAR:*,11:12>,lhs=z,rhs=h_))""")
 
 
+def test_pow():
+    check("a**2",
+          """BinaryOp(op=<DOUBLESTAR:**,1:3>,lhs=a,rhs=2)""")
+
+
+def test_chained_pow():
+    check("a**b**c",
+          """BinaryOp(op=<DOUBLESTAR:**,1:3>,lhs=a,rhs=BinaryOp(op=<DOUBLESTAR:**,4:6>,lhs=b,rhs=c))""")
+
+
 def test_chained_op():
     check("a + b + c",
           """BinaryOp(op=<PLUS:+,6:7>,

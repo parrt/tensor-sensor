@@ -30,7 +30,7 @@ from tokenize import tokenize, \
     NOTEQUAL, PERCENTEQUAL, AMPEREQUAL, DOUBLESTAREQUAL, STAREQUAL, PLUSEQUAL,\
     MINEQUAL, DOUBLESLASHEQUAL, SLASHEQUAL, LEFTSHIFTEQUAL,\
     LESSEQUAL, EQUAL, EQEQUAL, GREATEREQUAL, RIGHTSHIFTEQUAL, ATEQUAL,\
-    CIRCUMFLEXEQUAL, VBAREQUAL
+    CIRCUMFLEXEQUAL, VBAREQUAL, DOUBLESTAR
 
 import tsensor.ast
 
@@ -157,13 +157,23 @@ class PyExprParser:
 
     def multexpr(self):
         start = self.LT(1)
-        root = self.unaryexpr()
+        root = self.powexpr()
         while self.LA(1) in MULOP:
             op = self.LT(1)
             self.t += 1
-            b = self.unaryexpr()
+            b = self.powexpr()
             stop = self.LT(-1)
             root = tsensor.ast.BinaryOp(op, root, b, start, stop)
+        return root
+
+    def powexpr(self):
+        start = self.LT(1)
+        root = self.unaryexpr()
+        if self.LA(1)==DOUBLESTAR:
+            op = self.match(DOUBLESTAR)
+            r = self.powexpr()
+            stop = self.LT(-1)
+            root = tsensor.ast.BinaryOp(op, root, r, start, stop)
         return root
 
     def unaryexpr(self):
