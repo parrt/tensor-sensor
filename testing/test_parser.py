@@ -80,6 +80,11 @@ def test_method2():
           "Call(func=Member(op=<DOT:.,2:3>,obj=np,member=dot),args=[b,b])")
 
 
+def test_method3():
+    check("y_pred = model(X)",
+          "Assign(op=<EQUAL:=,7:8>,lhs=y_pred,rhs=Call(func=model,args=[X]))")
+
+
 def test_field():
     check("a.b", "Member(op=<DOT:.,1:2>,obj=a,member=b)")
 
