@@ -363,7 +363,8 @@ def is_interesting_exception(e):
     if e.__class__.__module__.startswith("tensorflow"):
         return True
     sentinels = {'matmul', 'THTensorMath', 'tensor', 'tensors', 'dimension',
-                 'not aligned', 'size mismatch', 'shape', 'shapes', 'matrix'}
+                 'not aligned', 'size mismatch', 'shape', 'shapes', 'matrix',
+                 'call to _th_addmm'}
     if len(e.args)==0:
         msg = e.message
     else:
