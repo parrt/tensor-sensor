@@ -32,6 +32,14 @@ import matplotlib.pyplot as plt
 import tsensor
 
 class clarify:
+    # Prevent nested clarify() calls from processing exceptions.
+    # See https://github.com/parrt/tensor-sensor/issues/18
+    # Probably will fail with Python `threading` package due to this class var
+    # but only if multiple threads call clarify().
+    # Multiprocessing forks new processes so not a problem. Each vm has it's own class var.
+    # Bump in __enter__, drop in __exit__
+    nesting = 0
+
     def __init__(self,
                  fontname='Consolas', fontsize=13,
                  dimfontname='Arial', dimfontsize=9, matrixcolor="#cfe2d4",
@@ -110,16 +118,23 @@ class clarify:
             fontcolor, underline_color, ignored_color, error_op_color, hush_errors
 
     def __enter__(self):
-        self.frame = sys._getframe().f_back # where do we start tracking
+        self.frame = sys._getframe().f_back # where do we start tracking? Hmm...not sure we use this
+        # print("ENTER", clarify.nesting, self.frame, id(self.frame))
+        clarify.nesting += 1
         return self
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
+        # print("EXIT", clarify.nesting, self.frame, id(self.frame))
+        clarify.nesting -= 1
+        if clarify.nesting>0:
+            return
         if exc_type is not None and is_interesting_exception(exc_value):
             # print("exception:", exc_value, exc_traceback)
             # traceback.print_tb(exc_traceback, limit=5, file=sys.stdout)
             exc_frame = deepest_frame(exc_traceback)
             module, name, filename, line, code = info(exc_frame)
             # print('info', module, name, filename, line, code)
+            print("exc id", id(exc_value))
             if code is not None:
                 self.view = tsensor.viz.pyviz(code, exc_frame,
                                               self.fontname, self.fontsize, self.dimfontname,
