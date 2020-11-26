@@ -95,6 +95,8 @@ watch out for side effects!  I don't do assignments, but any functions you call 
 
 Can't handle `\` continuations.
 
+With Python `threading` package, don't use multiple threads calling clarify(). `multiprocessing` package should be fine.
+
 Also note: I've built my own parser to handle just the assignments / expressions tsensor can handle.
 
 ## Deploy (parrt's use)
