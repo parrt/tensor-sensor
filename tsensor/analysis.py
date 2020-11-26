@@ -220,7 +220,7 @@ class explain:
             fontcolor, underline_color, ignored_color, error_op_color, hush_errors
 
     def __enter__(self):
-        # print("ON trace")
+        # print("ON trace", sys._getframe())
         self.tracer = ExplainTensorTracer(self)
         sys.settrace(self.tracer.listener)
         frame = sys._getframe()
@@ -229,6 +229,7 @@ class explain:
         return self.tracer
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
+        # print("OFF trace")
         sys.settrace(None)
         # At this point we have already tried to visualize the statement
         # If there was no error, the visualization will look normal
@@ -265,6 +266,14 @@ class ExplainTensorTracer:
         self.done = set()
 
     def listener(self, frame, event, arg):
+        # print("listener", event, ":", frame)
+        if event!='line':
+            # It seems that we are getting CALL events even for calls in foo() from:
+            #   with tsensor.explain(): foo()
+            # Must be that we already have a listener and, though we returned None here,
+            # somehow the original listener is still getting events. Strange but oh well.
+            # We must ignore these.
+            return None
         module = frame.f_globals['__name__']
         info = inspect.getframeinfo(frame)
         filename, line = info.filename, info.lineno
