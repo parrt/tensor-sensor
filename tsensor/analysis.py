@@ -143,9 +143,10 @@ class clarify:
                                               self.underline_color, self.ignored_color,
                                               self.error_op_color,
                                               hush_errors=self.hush_errors)
-                if self.show=='viz':
-                    self.view.show()
-                augment_exception(exc_value, self.view.offending_expr)
+                if self.view is not None: # Ignore if we can't process code causing exception (I use a subparser)
+                    if self.show=='viz':
+                        self.view.show()
+                    augment_exception(exc_value, self.view.offending_expr)
 
 
 class explain:
