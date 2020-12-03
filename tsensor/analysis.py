@@ -261,7 +261,6 @@ class explain:
         if lib_entry_frame is not None or is_interesting_exception(exc_value):
             # print("exception:", exc_value, exc_traceback)
             # traceback.print_tb(exc_traceback, limit=5, file=sys.stdout)
-            exc_frame = tensor_lib_entry_frame(exc_traceback)
             module, name, filename, line, code = info(exc_frame)
             # print('info', module, name, filename, line, code)
             if code is not None:
