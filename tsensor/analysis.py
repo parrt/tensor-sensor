@@ -128,13 +128,15 @@ class clarify:
         clarify.nesting -= 1
         if clarify.nesting>0:
             return
-        if exc_type is not None and is_interesting_exception(exc_value):
+        if exc_type is None:
+            return
+        exc_frame, lib_entry_frame = tensor_lib_entry_frame(exc_traceback)
+        if lib_entry_frame is not None or is_interesting_exception(exc_value):
             # print("exception:", exc_value, exc_traceback)
             # traceback.print_tb(exc_traceback, limit=5, file=sys.stdout)
-            exc_frame = deepest_frame(exc_traceback)
             module, name, filename, line, code = info(exc_frame)
             # print('info', module, name, filename, line, code)
-            print("exc id", id(exc_value))
+            # print("exc id", id(exc_value))
             if code is not None:
                 self.view = tsensor.viz.pyviz(code, exc_frame,
                                               self.fontname, self.fontsize, self.dimfontname,
@@ -253,10 +255,13 @@ class explain:
         # That was artificial execution of the code. Now the VM has executed
         # the statement for real and has found the same exception. Make sure to
         # augment the message with causal information.
-        if exc_type is not None and is_interesting_exception(exc_value):
+        if exc_type is None:
+            return
+        exc_frame, lib_entry_frame = tensor_lib_entry_frame(exc_traceback)
+        if lib_entry_frame is not None or is_interesting_exception(exc_value):
             # print("exception:", exc_value, exc_traceback)
             # traceback.print_tb(exc_traceback, limit=5, file=sys.stdout)
-            exc_frame = deepest_frame(exc_traceback)
+            exc_frame = tensor_lib_entry_frame(exc_traceback)
             module, name, filename, line, code = info(exc_frame)
             # print('info', module, name, filename, line, code)
             if code is not None:
@@ -397,17 +402,22 @@ def is_interesting_exception(e):
     return sum([s in msg for s in sentinels])>0
 
 
-def deepest_frame(exc_traceback):
+def tensor_lib_entry_frame(exc_traceback):
     """
-    Don't trace into internals of numpy/torch/tensorflow; we want to reset frame
+    Don't trace into internals of numpy/torch/tensorflow/jax; we want to reset frame
     to where in the user's python code it asked the tensor lib to perform an
     invalid operation.
 
     To detect libraries, look for code whose filename has "site-packages/{package}"
     or "dist-packages/{package}".
+
+    Return last-user-frame, first-tensor-lib-frame if lib found else last-user-frame, None
+
+    Note: Sometimes operators yield exceptions and no tensor lib entry frame. E.g.,
+    np.ones(1) @ np.ones(2).
     """
     tb = exc_traceback
-    packages = ['numpy','torch','tensorflow']
+    packages = ['numpy','torch','tensorflow','jax']
     dirs = [os.path.join('site-packages',p) for p in packages]
     dirs += [os.path.join('dist-packages',p) for p in packages]
     dirs += ['<__array_function__'] # numpy seems to not have real filename
@@ -416,10 +426,10 @@ def deepest_frame(exc_traceback):
         filename = tb.tb_frame.f_code.co_filename
         reached_lib = [p in filename for p in dirs]
         if sum(reached_lib)>0:
-            break
+            return prev.tb_frame, tb.tb_frame
         prev = tb
         tb = tb.tb_next
-    return prev.tb_frame
+    return prev.tb_frame, None
 
 
 def info(frame):
