@@ -35,6 +35,16 @@ TensorSensor augments the message with more information about which operator cau
 Cause: @ on tensor operand W w/shape [764, 100] and operand X.T w/shape [764, 200]
 ```
 
+You can also get the full computation graph for an expression that includes all of these sub result shapes.
+ 
+```python
+g = tsensor.astviz("b = W@b + (h+3).dot(h) + torch.abs(torch.tensor(34))", sys._getframe()) # eval, highlight vectors
+g
+```
+
+yields the following abstract syntax tree with shapes:
+
+<img src="images/ast.svg" width="400">
 
 ## Install
 
@@ -42,7 +52,8 @@ Cause: @ on tensor operand W w/shape [764, 100] and operand X.T w/shape [764, 20
 pip install tensor-sensor             # This will only install the library for you
 pip install tensor-sensor[torch]      # install pytorch related dependency
 pip install tensor-sensor[tensorflow] # install tensorflow related dependency
-pip install tensor-sensor[all]        # install both tensorflow and pytorch
+pip install tensor-sensor[jax]        # install jax, jaxlib
+pip install tensor-sensor[all]        # install tensorflow, pytorch, jax
 ```
 
 which gives you module `tsensor`. I developed and tested with the following versions
@@ -56,6 +67,9 @@ numpy                              1.18.5
 numpydoc                           1.1.0
 $ pip list | grep -i torch
 torch                              1.6.0
+$ pip list | grep -i jax
+jax                                0.2.6
+jaxlib                             0.1.57
 ```
 
 ### Graphviz for tsensor.astviz()
@@ -115,5 +129,3 @@ $ pip install .
 ### TODO
 
 * can i call pyviz in debugger?
-* try on real examples
-* `dict(W=[3,0,1,2], b=[1,0])` that would indicate (300, 30, 60, 3) would best be displayed as (30,60,3, 300) and b would be  first dimension last and last dimension first
