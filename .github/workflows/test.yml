@@ -26,4 +26,7 @@ jobs:
     - name: Test with pytest
       run: |
         pip install pytest
+        pytest testing/test_incr_eval.py 
+        pytest testing/test_invalid_stat.py 
         pytest testing/test_parser.py 
+        pytest testing/test_tree_eval.py 
