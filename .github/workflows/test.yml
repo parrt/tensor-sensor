@@ -16,18 +16,18 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-	- name: Set up python 3
+    - name: Set up python 3
       uses: actions/setup-python@v2
-	  with: python-version: '3.x'
-	- name: Install dependencies
-	  run: |
-		python -m pip install --upgrade pip
+      with: python-version: '3.x'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
                 pip install graphviz>=0.14.1
                 pip install numpy
                 pip install IPython
                 pip install matplotlib
 
-	- name: Test with pytest
-	  run: |
-		pip install pytest
+    - name: Test with pytest
+      run: |
+        pip install pytest
         pytest testing/test_parser.py 
