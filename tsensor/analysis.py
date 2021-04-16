@@ -416,6 +416,9 @@ def tensor_lib_entry_frame(exc_traceback):
     np.ones(1) @ np.ones(2).
     """
     tb = exc_traceback
+    # import traceback
+    # for t in traceback.extract_tb(exc_traceback):
+    #     print(t)
     packages = ['numpy','torch','tensorflow','jax']
     dirs = [os.path.join('site-packages',p) for p in packages]
     dirs += [os.path.join('dist-packages',p) for p in packages]
@@ -452,13 +455,14 @@ def smallest_matrix_subexpr(t):
     that evaluates to a non-scalar. That corresponds to the deepest subtree
     that evaluates to a non-scalar. Because we do not have parent pointers,
     we cannot start at the leaves and walk upwards. Instead, pass a Boolean
-    back to indicate whether this note or one of the descendents
+    back to indicate whether this node or one of the descendants
     evaluates to a non-scalar.  Nodes in the tree that have matrix values and
     no matrix below are the ones to visualize.
     """
     nodes = []
     _smallest_matrix_subexpr(t, nodes)
     return nodes
+
 
 def _smallest_matrix_subexpr(t, nodes) -> bool:
     if t is None: return False  # prevent buggy code from causing us to fail
