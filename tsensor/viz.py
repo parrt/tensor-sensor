@@ -434,7 +434,7 @@ class QuietGraphvizWrapper(graphviz.Source):
         graphviz.backend.run(cmd, capture_output=True, check=True, quiet=False)
 
 
-def astviz(statement:str, frame='current') -> graphviz.Source:
+def astviz(statement:str, frame='current', show_sub=True) -> graphviz.Source:
     """
     Display the abstract syntax tree (AST) for the indicated Python code
     in statement. Evaluate that code in the context of frame. If the frame
@@ -446,10 +446,10 @@ def astviz(statement:str, frame='current') -> graphviz.Source:
     you can also call `savefig()` to save the file and in a variety of formats,
     according to the file extension.
     """
-    return QuietGraphvizWrapper(astviz_dot(statement, frame))
+    return QuietGraphvizWrapper(astviz_dot(statement, frame, show_sub))
 
 
-def astviz_dot(statement:str, frame='current') -> str:
+def astviz_dot(statement:str, frame='current', show_sub=True) -> str:
     def internal_label(node,color="yellow"):
         text = ''.join(str(t) for t in node.optokens)
         sh = tsensor.analysis._shape(node.value)
@@ -472,7 +472,9 @@ def astviz_dot(statement:str, frame='current') -> str:
     nodes = tsensor.ast.postorder(root)
     atoms = tsensor.ast.leaves(root)
     atomsS = set(atoms)
-    ops = [nd for nd in nodes if nd not in atomsS] # keep order
+    ops = [nd for nd in nodes if (nd not in atomsS 
+                                 and (not isinstance(nd, tsensor.ast.SubExpr)
+                                      or show_sub))] # keep order and drop () nodes if not show_sub
 
     gr = """digraph G {
         margin=0;
@@ -537,12 +539,16 @@ def astviz_dot(statement:str, frame='current') -> str:
 
     # Link internal nodes to other nodes or leaves
     for nd in nodes:
-        kids = nd.kids
-        for sub in kids:
-            if sub in atomsS:
-                gr += f'node{id(nd)} -> leaf{id(sub.token)} [dir=back, penwidth="0.5", color="#6B6B6B", arrowsize=.3];\n'
-            else:
-                gr += f'node{id(nd)} -> node{id(sub)} [dir=back, penwidth="0.5", color="#6B6B6B", arrowsize=.3];\n'
+        if nd in ops or show_sub:
+            kids = nd.kids
+            for sub in kids:
+                if isinstance(sub, tsensor.ast.SubExpr) and not show_sub:
+                    sub = sub.kids[0]
+                if not isinstance(sub, tsensor.ast.SubExpr) or show_sub:
+                    if sub in atomsS:
+                        gr += f'node{id(nd)} -> leaf{id(sub.token)} [dir=back, penwidth="0.5", color="#6B6B6B", arrowsize=.3];\n'
+                    else:
+                        gr += f'node{id(nd)} -> node{id(sub)} [dir=back, penwidth="0.5", color="#6B6B6B", arrowsize=.3];\n'
 
     gr += "}\n"
     return gr
