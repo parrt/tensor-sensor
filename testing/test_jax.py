@@ -53,7 +53,7 @@ def test_scalar_arg():
     except TypeError as e:
         msg = e.args[0]
 
-    expected = 'data type "foo" not understood\n'+\
+    expected = 'data type \'foo\' not understood\n'+\
                'Cause: jnp.dot(x,"foo") tensor arg x w/shape (5000, 5000)'
     assert msg==expected
 

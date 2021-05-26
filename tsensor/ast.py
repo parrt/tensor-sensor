@@ -29,9 +29,10 @@ import tsensor
 # control the kinds of statements I process.
 
 class ParseTreeNode:
-    def __init__(self):
+    def __init__(self, parser):
+        self.parser = parser # which parser object created this node;
+                             # useful for getting access to the code string from a token
         self.value = None # used during evaluation
-        # self.matrix_below = False # indicates decendant has non-scalar value UNUSED
         self.start = None # start token
         self.stop = None  # end token
     def eval(self, frame):
@@ -58,7 +59,7 @@ class ParseTreeNode:
         pass
     def __repr__(self):
         fields = self.__dict__.copy()
-        kill = ['start', 'stop', 'lbrack', 'lparen']
+        kill = ['start', 'stop', 'lbrack', 'lparen', 'parser']
         for name in kill:
             if name in fields: del fields[name]
         args = [v+'='+fields[v].__repr__() for v in fields if v!='value' or fields['value'] is not None]
@@ -66,8 +67,8 @@ class ParseTreeNode:
         return f"{self.__class__.__name__}({args})"
 
 class Assign(ParseTreeNode):
-    def __init__(self, op, lhs, rhs, start, stop):
-        super().__init__()
+    def __init__(self, parser, op, lhs, rhs, start, stop):
+        super().__init__(parser)
         self.op, self.lhs, self.rhs = op, lhs, rhs
         self.start, self.stop = start, stop
     def eval(self, frame):
@@ -85,8 +86,8 @@ class Assign(ParseTreeNode):
         return str(self.lhs)+'='+str(self.rhs)
 
 class Call(ParseTreeNode):
-    def __init__(self, func, lparen, args, start, stop):
-        super().__init__()
+    def __init__(self, parser, func, lparen, args, start, stop):
+        super().__init__(parser)
         self.func = func
         self.lparen = lparen
         self.args = args
@@ -123,8 +124,8 @@ class Call(ParseTreeNode):
         return f"{self.func}({args_})"
 
 class Return(ParseTreeNode):
-    def __init__(self, result, start, stop):
-        super().__init__()
+    def __init__(self, parser, result, start, stop):
+        super().__init__(parser)
         self.result = result
         self.start, self.stop = start, stop
     def eval(self, frame):
@@ -144,8 +145,8 @@ class Return(ParseTreeNode):
         return f"return {r}"
 
 class Index(ParseTreeNode):
-    def __init__(self, arr, lbrack, index, start, stop):
-        super().__init__()
+    def __init__(self, parser, arr, lbrack, index, start, stop):
+        super().__init__(parser)
         self.arr = arr
         self.lbrack = lbrack
         self.index = index
@@ -174,8 +175,8 @@ class Index(ParseTreeNode):
         return f"{self.arr}[{i}]"
 
 class Member(ParseTreeNode):
-    def __init__(self, op, obj, member, start, stop):
-        super().__init__()
+    def __init__(self, parser, op, obj, member, start, stop):
+        super().__init__(parser)
         self.op = op # always DOT
         self.obj = obj
         self.member = member
@@ -194,8 +195,8 @@ class Member(ParseTreeNode):
         return f"{self.obj}.{self.member}"
 
 class BinaryOp(ParseTreeNode):
-    def __init__(self, op, lhs, rhs, start, stop):
-        super().__init__()
+    def __init__(self, parser, op, lhs, rhs, start, stop):
+        super().__init__(parser)
         self.op, self.lhs, self.rhs = op, lhs, rhs
         self.start, self.stop = start, stop
     def eval(self, frame):
@@ -221,8 +222,8 @@ class BinaryOp(ParseTreeNode):
         return f"{self.lhs}{self.op}{self.rhs}"
 
 class UnaryOp(ParseTreeNode):
-    def __init__(self, op, opnd, start, stop):
-        super().__init__()
+    def __init__(self, parser, op, opnd, start, stop):
+        super().__init__(parser)
         self.op = op
         self.opnd = opnd
         self.start, self.stop = start, stop
@@ -239,8 +240,8 @@ class UnaryOp(ParseTreeNode):
         return f"{self.op}{self.opnd}"
 
 class ListLiteral(ParseTreeNode):
-    def __init__(self, elems, start, stop):
-        super().__init__()
+    def __init__(self, parser, elems, start, stop):
+        super().__init__(parser)
         self.elems = elems
         self.start, self.stop = start, stop
     def eval(self, frame):
@@ -258,8 +259,8 @@ class ListLiteral(ParseTreeNode):
         return f"[{elems_}]"
 
 class TupleLiteral(ParseTreeNode):
-    def __init__(self, elems, start, stop):
-        super().__init__()
+    def __init__(self, parser, elems, start, stop):
+        super().__init__(parser)
         self.elems = elems
         self.start, self.stop = start, stop
     def eval(self, frame):
@@ -277,8 +278,8 @@ class TupleLiteral(ParseTreeNode):
 
 class SubExpr(ParseTreeNode):
     # record parens for later display to keep precedence
-    def __init__(self, e, start, stop):
-        super().__init__()
+    def __init__(self, parser, e, start, stop):
+        super().__init__(parser)
         self.e = e
         self.start, self.stop = start, stop
     def eval(self, frame):
@@ -294,8 +295,8 @@ class SubExpr(ParseTreeNode):
         return f"({self.e})"
 
 class Atom(ParseTreeNode):
-    def __init__(self, token):
-        super().__init__()
+    def __init__(self, parser, token):
+        super().__init__(parser)
         self.token = token
         self.start, self.stop = token, token
     def eval(self, frame):
