@@ -275,7 +275,9 @@ class PyExprParser:
         if istuple:
             return tsensor.ast.TupleLiteral(self, e, start, stop)
         subexpr = e[0]
-        return tsensor.ast.SubExpr(self, subexpr, start, stop)
+        # Parentheses just alter the precedence and don't actually indicate an operator
+        # so we just pass the sub expression through (if not a tuple)
+        return subexpr
 
     def listatom(self):
         start = self.LT(1)
