@@ -102,7 +102,7 @@ def test_field_and_func():
 
 
 def test_parens():
-    check("(a+b)*c", "BinaryOp(op=<STAR:*,5:6>,lhs=SubExpr(e=BinaryOp(op=<PLUS:+,2:3>,lhs=a,rhs=b)),rhs=c)")
+    check("(a+b)*c", "BinaryOp(op=<STAR:*,5:6>,lhs=BinaryOp(op=<PLUS:+,2:3>,lhs=a,rhs=b),rhs=c)")
 
 
 def test_1tuple():
@@ -129,9 +129,9 @@ def test_arith():
     check("(1-z)*h + z*h_",
           """BinaryOp(op=<PLUS:+,8:9>,
                       lhs=BinaryOp(op=<STAR:*,5:6>,
-                                 lhs=SubExpr(e=BinaryOp(op=<MINUS:-,2:3>,
-                                                      lhs=1,
-                                                      rhs=z)),
+                                 lhs=BinaryOp(op=<MINUS:-,2:3>,
+                                              lhs=1,
+                                              rhs=z),
                                  rhs=h),
                       rhs=BinaryOp(op=<STAR:*,11:12>,lhs=z,rhs=h_))""")
 
