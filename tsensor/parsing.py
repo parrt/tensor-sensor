@@ -131,14 +131,14 @@ class PyExprParser:
             self.match(NAME)
             r = self.exprlist()
             stop = self.LT(-1)
-            return tsensor.ast.Return(r,start,stop)
+            return tsensor.ast.Return(self,r,start,stop)
         lhs = self.expression()
         if self.LA(1) in ASSIGNOP:
             eq = self.LT(1)
             self.t += 1
             rhs = self.expression()
             stop = self.LT(-1)
-            return tsensor.ast.Assign(eq,lhs,rhs,start,stop)
+            return tsensor.ast.Assign(self,eq,lhs,rhs,start,stop)
         return lhs
 
     def expression(self):
@@ -152,7 +152,7 @@ class PyExprParser:
             self.t += 1
             b = self.multexpr()
             stop = self.LT(-1)
-            root = tsensor.ast.BinaryOp(op, root, b, start, stop)
+            root = tsensor.ast.BinaryOp(self, op, root, b, start, stop)
         return root
 
     def multexpr(self):
@@ -163,7 +163,7 @@ class PyExprParser:
             self.t += 1
             b = self.powexpr()
             stop = self.LT(-1)
-            root = tsensor.ast.BinaryOp(op, root, b, start, stop)
+            root = tsensor.ast.BinaryOp(self, op, root, b, start, stop)
         return root
 
     def powexpr(self):
@@ -173,7 +173,7 @@ class PyExprParser:
             op = self.match(DOUBLESTAR)
             r = self.powexpr()
             stop = self.LT(-1)
-            root = tsensor.ast.BinaryOp(op, root, r, start, stop)
+            root = tsensor.ast.BinaryOp(self, op, root, r, start, stop)
         return root
 
     def unaryexpr(self):
@@ -183,7 +183,7 @@ class PyExprParser:
             self.t += 1
             e = self.unaryexpr()
             stop = self.LT(-1)
-            return tsensor.ast.UnaryOp(op, e, start, stop)
+            return tsensor.ast.UnaryOp(self, op, e, start, stop)
         elif self.isatom() or self.isgroup():
             return self.postexpr()
         else:
@@ -201,20 +201,20 @@ class PyExprParser:
                     el = self.arglist()
                 self.match(RPAR)
                 stop = self.LT(-1)
-                root = tsensor.ast.Call(root, lp, el, start, stop)
+                root = tsensor.ast.Call(self, root, lp, el, start, stop)
             if self.LA(1)==LSQB:
                 lb = self.LT(1)
                 self.match(LSQB)
                 el = self.exprlist()
                 self.match(RSQB)
                 stop = self.LT(-1)
-                root = tsensor.ast.Index(root, lb, el, start, stop)
+                root = tsensor.ast.Index(self, root, lb, el, start, stop)
             if self.LA(1)==DOT:
                 op = self.match(DOT)
                 m = self.match(NAME)
-                m = tsensor.ast.Atom(m)
+                m = tsensor.ast.Atom(self, m)
                 stop = self.LT(-1)
-                root = tsensor.ast.Member(op, root, m, start, stop)
+                root = tsensor.ast.Member(self, op, root, m, start, stop)
         return root
 
     def atom(self):
@@ -225,7 +225,7 @@ class PyExprParser:
         elif self.LA(1) in {NUMBER, NAME, STRING, COLON}:
             atom = self.LT(1)
             self.t += 1
-            return tsensor.ast.Atom(atom)
+            return tsensor.ast.Atom(self, atom)
         else:
             self.error("unknown or missing atom:"+str(self.LT(1)))
 
@@ -260,9 +260,9 @@ class PyExprParser:
         kwarg = self.match(NAME)
         eq = self.match(EQUAL)
         e = self.expression()
-        kwarg = tsensor.ast.Atom(kwarg)
+        kwarg = tsensor.ast.Atom(self, kwarg)
         stop = self.LT(-1)
-        return tsensor.ast.Assign(eq, kwarg, e, start, stop)
+        return tsensor.ast.Assign(self, eq, kwarg, e, start, stop)
 
     def subexpr(self):
         start = self.match(LPAR)
@@ -273,9 +273,11 @@ class PyExprParser:
             istuple = True
         stop = self.match(RPAR)
         if istuple:
-            return tsensor.ast.TupleLiteral(e, start, stop)
+            return tsensor.ast.TupleLiteral(self, e, start, stop)
         subexpr = e[0]
-        return tsensor.ast.SubExpr(subexpr, start, stop)
+        # Parentheses just alter the precedence and don't actually indicate an operator
+        # so we just pass the sub expression through (if not a tuple)
+        return subexpr
 
     def listatom(self):
         start = self.LT(1)
@@ -283,7 +285,7 @@ class PyExprParser:
         e = self.exprlist()
         self.match(RSQB)
         stop = self.LT(-1)
-        return tsensor.ast.ListLiteral(e, start, stop)
+        return tsensor.ast.ListLiteral(self, e, start, stop)
 
     def isatom(self):
         return self.LA(1) in {NUMBER, NAME, STRING, COLON}
