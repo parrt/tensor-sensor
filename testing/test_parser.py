@@ -114,7 +114,7 @@ def test_2tuple():
 
 
 def test_2tuple_with_trailing_comma():
-    check("(3,4,)", "TupleLiteral(elems=[3,4])", expect_str="(3,4)")
+    check("(3,4,)", "TupleLiteral(elems=[3,4])")
 
 
 def test_field_array():

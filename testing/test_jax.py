@@ -38,7 +38,7 @@ def test_dot():
         msg = e.args[0]
 
     expected = "Incompatible shapes for dot: got (5000, 5000) and (5, 1).\n"+\
-               "Cause: jnp.dot(x,y) tensor arg x w/shape (5000, 5000), arg y w/shape (5, 1)"
+               "Cause: jnp.dot(x, y) tensor arg x w/shape (5000, 5000), arg y w/shape (5, 1)"
     assert msg==expected
 
 
@@ -54,7 +54,7 @@ def test_scalar_arg():
         msg = e.args[0]
 
     expected = 'data type \'foo\' not understood\n'+\
-               'Cause: jnp.dot(x,"foo") tensor arg x w/shape (5000, 5000)'
+               'Cause: jnp.dot(x, "foo") tensor arg x w/shape (5000, 5000)'
     assert msg==expected
 
 
@@ -86,5 +86,5 @@ def test_fft():
         print(msg)
 
     expected = 'jax.numpy.fft.fft only supports norm=None, got something weird\n'+\
-               'Cause: jnp.fft.fft(x,norm="something weird") tensor arg x w/shape (8,)'
+               'Cause: jnp.fft.fft(x, norm="something weird") tensor arg x w/shape (8,)'
     assert msg==expected
