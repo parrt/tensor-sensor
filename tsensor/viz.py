@@ -110,18 +110,20 @@ class PyVizView:
             self.filename = filename # Remember the file so we can pull it back
             plt.savefig(filename, dpi = self.dpi, bbox_inches = 'tight', pad_inches = 0)
         else: # we have already closed it so try to copy to new filename from the previous
-            if filename!=self.filename:
-                f,ext = os.path.splitext(filename)
-                prev_f,prev_ext = os.path.splitext(self.filename)
-                if ext != prev_ext:
-                    print(f"File extension {ext} differs from previous {prev_ext}; uses previous.")
-                    ext = prev_ext
-                filename = f+ext # make sure that we don't copy raw bits and change the file extension to be inconsistent
-                with open(self.filename, 'rb') as f:
-                    img = f.read()
-                with open(filename, 'wb') as f:
-                    f.write(img)
-                self.filename = filename  # overwrite the filename with new name
+           if filename != self.filename:
+                file_path = Path(filename)
+                prev_path = Path(self.filename)
+                if file_path.suffix != prev_path.suffix:
+                    print(
+                        f"File extension {file_path.suffix} differs from previous {prev_path.suffix}; uses previous."
+                    )
+                    # make sure that we don't copy raw bits and change the file extension to be inconsistent
+                    file_path = file_path.with_suffix(prev_path.suffix)
+
+                img = prev_path.read_bytes()
+                file_path.write_bytes(img)
+                # overwrite the filename with new name
+                self.filename = str(file_path)
 
     def show(self):
         "Display an SVG in a notebook or pop up a window if not in notebook"
