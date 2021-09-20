@@ -51,9 +51,7 @@ class ParseTreeNode:
         return self.value
 
     @property
-    def optokens(
-        self,
-    ):
+    def optokens(self):
         # the associated token if atom or representative token if operation
         return None
 
@@ -181,7 +179,7 @@ class Index(ParseTreeNode):
 
     @property
     def optokens(self):
-        arr = None  # assume complicated like f()[i] with no clear array var
+        # arr = None  # assume complicated like f()[i] with no clear array var
         # if isinstance(self.arr, Member):
         #     arr = self.arr.member
         # elif isinstance(self.arr, Atom):
@@ -209,9 +207,7 @@ class Member(ParseTreeNode):
         return super().eval(frame)
 
     @property
-    def optokens(
-        self,
-    ):
+    def optokens(self):
         # the associated token if atom or representative token if operation
         return [self.op]
 
@@ -242,9 +238,7 @@ class BinaryOp(ParseTreeNode):
         return f"Cause: {self.op} on tensor " + " and ".join(opnd_msgs)
 
     @property
-    def optokens(
-        self,
-    ):
+    def optokens(self):
         # the associated token if atom or representative token if operation
         return [self.op]
 
