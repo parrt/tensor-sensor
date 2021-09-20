@@ -374,9 +374,7 @@ class ExplainTensorTracer:
         info = inspect.getframeinfo(frame)
         filename, line = info.filename, info.lineno
         name = info.function
-
-        if event == "line":
-            self.line_listener(module, name, filename, line, info, frame)
+        self.line_listener(module, name, filename, line, info, frame)
 
         # By returning none, we prevent explain()'ing from descending into
         # invoked functions. In principle, we could allow a certain amount
