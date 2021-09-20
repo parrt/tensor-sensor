@@ -2,13 +2,13 @@
 
 See article [Clarifying exceptions and visualizing tensor operations in deep learning code](https://explained.ai/tensor-sensor/index.html) and [TensorSensor implementation slides](https://github.com/parrt/tensor-sensor/raw/master/talks/tensor-sensor.pdf) (PDF).
 
-(*As of September 2021, M1 macs experience illegal instructions in many of the tensor libraries, so you should expect TensorSensor to work only on Intel-based Macs at the moment.*)
+(*As of September 2021, M1 macs experience illegal instructions in many of the tensor libraries installed via Anaconda, so you should expect TensorSensor to work only on Intel-based Macs at the moment.*)
 
 <img src="https://explained.ai/tensor-sensor/images/teaser.png" width="50%" align="right">One of the biggest challenges when writing code to implement deep learning networks, particularly for us newbies, is getting all of the tensor (matrix and vector) dimensions to line up properly. It's really easy to lose track of tensor dimensionality in complicated expressions involving multiple tensors and tensor operations.  Even when just feeding data into predefined [Tensorflow](https://www.tensorflow.org/) network layers, we still need to get the dimensions right. When you ask for improper computations, you're going to run into some less than helpful exception messages.  
 
 To help myself and other programmers debug tensor code, I built this library.  TensorSensor clarifies exceptions by augmenting messages and visualizing Python code to indicate the shape of tensor variables (see figure to the right for a teaser). It works with [Tensorflow](https://www.tensorflow.org/), [PyTorch](https://pytorch.org/), [JAX](https://github.com/google/jax), and [Numpy](https://numpy.org/), as well as higher-level libraries like [Keras](https://keras.io/) and [fastai](https://www.fast.ai/).
 
-*TensorSensor is currently at 0.1 (Dec 2020) so I'm happy to receive issues created at this repo or direct email*.
+*TensorSensor is currently at 0.1.2 (May 2021) so I'm happy to receive issues created at this repo or direct email*.
 
 ## Visualizations
 
@@ -64,21 +64,22 @@ which gives you module `tsensor`. I developed and tested with the following vers
 
 ```
 $ pip list | grep -i flow
-tensorflow                         2.3.0
-tensorflow-estimator               2.3.0
+tensorflow                         2.5.0
+tensorflow-estimator               2.5.0
 $ pip list | grep -i numpy
-numpy                              1.18.5
+numpy                              1.19.5
 numpydoc                           1.1.0
 $ pip list | grep -i torch
-torch                              1.6.0
+torch                              1.9.0
+torchvision                        0.10.0
 $ pip list | grep -i jax
-jax                                0.2.6
-jaxlib                             0.1.57
+jax                                0.2.20
+jaxlib                             0.1.71
 ```
 
 ### Graphviz for tsensor.astviz()
 
-For displaying abstract syntax trees (ASTs) with `tsensor.astviz(...)`, then you need the `dot` executable from graphviz, not just the python library. 
+For displaying abstract syntax trees (ASTs) with `tsensor.astviz(...)`, you need the `dot` executable from graphviz, not just the python library. 
 
 On **Mac**, do this before or after tensor-sensor install:
 

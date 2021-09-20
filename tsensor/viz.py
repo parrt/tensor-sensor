@@ -288,7 +288,7 @@ class PyVizView:
                 rotation=45,
             )
         if len(sh) > 3:
-            remaining = r"$\cdots\times$" + r"$\times$".join(
+            remaining = r"$\cdots\mathsf{x}$" + r"$\mathsf{x}$".join(
                 [self.nabbrev(sh[i]) for i in range(3, len(sh))]
             )
             ax.text(
