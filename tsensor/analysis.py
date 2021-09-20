@@ -26,6 +26,7 @@ import sys
 import traceback
 import inspect
 import hashlib
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 
@@ -339,9 +340,10 @@ class ExplainTensorTracer:
                                  hush_errors=self.explainer.hush_errors)
         self.views.append(view)
         if self.explainer.savefig is not None:
-            svgfilename = f"{self.explainer.savefig}-{self.linecount}.svg"
-            view.savefig(svgfilename)
-            view.filename = svgfilename
+            file_path = Path(self.explainer.savefig)
+            file_path = f"{file_path.stem}-{self.linecount}{file_path.suffix}"
+            view.savefig(file_path)
+            view.filename = file_path
             plt.close()
         else:
             view.show()
