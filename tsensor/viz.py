@@ -614,9 +614,8 @@ def astviz_dot(statement: str, frame="current") -> str:
             nodetext = t.value
             # if ']' in nodetext:
             if nodetext == "]":
-                nodetext = nodetext.replace(
-                    "]", "&zwnj;]"
-                )  # &zwnj; is 0-width nonjoiner. ']' by itself is bad for DOT
+                # &zwnj; is 0-width nonjoiner. ']' by itself is bad for DOT
+                nodetext = nodetext.replace("]", "&zwnj;]")
             label = f'<font face="{fontname}" color="#444443" point-size="{fontsize}">{nodetext}</font>'
             _spread = spread
             if t.type == token.DOT:
