@@ -16,6 +16,7 @@ For more, see [examples.ipynb](testing/examples.ipynb).
 
 ```python
 import torch
+import tsensor
 W = torch.rand(d,n_neurons)
 b = torch.rand(n_neurons,1)
 X = torch.rand(n,d)
