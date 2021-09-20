@@ -27,42 +27,50 @@ import sys
 import numpy as np
 
 
-def check(s,expected):
+def check(s, expected):
     frame = sys._getframe()
     caller = frame.f_back
     p = PyExprParser(s)
     t = p.parse()
     result = t.eval(caller)
-    assert str(result)==str(expected)
+    assert str(result) == str(expected)
 
 
 def test_int():
     check("34", 34)
 
+
 def test_assign():
     check("a = 34", 34)
+
 
 def test_var():
     a = 34
     check("a", 34)
 
+
 def test_member_var():
     class A:
         def __init__(self):
             self.a = 34
+
     x = A()
     check("x.a", 34)
+
 
 def test_member_func():
     class A:
         def f(self, a):
-            return a+4
+            return a + 4
+
     x = A()
     check("x.f(30)", 34)
 
+
 def test_index():
-    a = [1,2,3]
+    a = [1, 2, 3]
     check("a[2]", 3)
+
 
 def test_add():
     a = 3
@@ -70,22 +78,26 @@ def test_add():
     c = 5
     check("a+b+c", 12)
 
+
 def test_add_mul():
     a = 3
     b = 4
     c = 5
     check("a+b*c", 23)
 
+
 def test_pow():
     a = 3
     b = 4
-    check("a**b", 3**4)
+    check("a**b", 3 ** 4)
+
 
 def test_pow2():
     a = 3
     b = 4
     c = 5
-    check("a**(b+1)**c", 3**5**5)
+    check("a**(b+1)**c", 3 ** 5 ** 5)
+
 
 def test_parens():
     a = 3
@@ -93,21 +105,22 @@ def test_parens():
     c = 5
     check("(a+b)*c", 35)
 
+
 def test_list_literal():
-    a = [[1,2,3],[4,5,6]]
+    a = [[1, 2, 3], [4, 5, 6]]
     check("a", """[[1, 2, 3], [4, 5, 6]]""")
 
 
 def test_np_literal():
-    a = np.array([[1,2,3],[4,5,6]])
+    a = np.array([[1, 2, 3], [4, 5, 6]])
     check("a*2", """[[ 2  4  6]\n [ 8 10 12]]""")
 
 
 def test_np_add():
-    a = np.array([[1,2,3],[4,5,6]])
+    a = np.array([[1, 2, 3], [4, 5, 6]])
     check("a+a", """[[ 2  4  6]\n [ 8 10 12]]""")
 
 
 def test_np_add2():
-    a = np.array([[1,2,3],[4,5,6]])
+    a = np.array([[1, 2, 3], [4, 5, 6]])
     check("a+a+a", """[[ 3  6  9]\n [12 15 18]]""")

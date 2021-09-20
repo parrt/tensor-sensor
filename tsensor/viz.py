@@ -45,8 +45,19 @@ class PyVizView:
     An object that collects relevant information about viewing Python code
     with visual annotations.
     """
-    def __init__(self, statement, fontname, fontsize, dimfontname, dimfontsize,
-                 matrixcolor, vectorcolor, char_sep_scale, dpi):
+
+    def __init__(
+        self,
+        statement,
+        fontname,
+        fontsize,
+        dimfontname,
+        dimfontsize,
+        matrixcolor,
+        vectorcolor,
+        char_sep_scale,
+        dpi,
+    ):
         self.statement = statement
         self.fontsize = fontsize
         self.fontname = fontname
@@ -60,14 +71,16 @@ class PyVizView:
         self.hchar = self.char_sep_scale * self.fontsize
         self.dim_ypadding = 5
         self.dim_xpadding = 0
-        self.linewidth = .7
+        self.linewidth = 0.7
         self.leftedge = 25
         self.bottomedge = 3
         self.filename = None
-        self.matrix_size_scaler = 3.5      # How wide or tall as scaled fontsize is matrix?
-        self.vector_size_scaler = 3.2 / 4  # How wide or tall as scaled fontsize is vector for skinny part?
+        self.matrix_size_scaler = 3.5  # How wide or tall as scaled fontsize is matrix?
+        self.vector_size_scaler = (
+            3.2 / 4
+        )  # How wide or tall as scaled fontsize is vector for skinny part?
         self.shift3D = 6
-        self.cause = None # Did an exception occurred during evaluation?
+        self.cause = None  # Did an exception occurred during evaluation?
         self.offending_expr = None
         self.fignumber = None
 
@@ -81,10 +94,10 @@ class PyVizView:
         That is why this is a separate function not part of the constructor.
         """
         line2text = self.hchar / 1.7
-        box2line  = line2text*2.6
+        box2line = line2text * 2.6
         self.texty = self.bottomedge + maxh + box2line + line2text
         self.liney = self.bottomedge + maxh + box2line
-        self.box_topy  = self.bottomedge + maxh
+        self.box_topy = self.bottomedge + maxh
         self.maxy = self.texty + 1.4 * self.fontsize
 
     def _repr_svg_(self):
@@ -95,11 +108,11 @@ class PyVizView:
         """
         Render as svg and return svg text. Save file and store name in field svgfilename.
         """
-        if self.filename is None: # have we saved before? (i.e., is it cached?)
-            self.savefig(tempfile.mktemp(suffix='.svg'))
+        if self.filename is None:  # have we saved before? (i.e., is it cached?)
+            self.savefig(tempfile.mktemp(suffix=".svg"))
         elif not self.filename.endswith(".svg"):
             return None
-        with open(self.filename, encoding='UTF-8') as f:
+        with open(self.filename, encoding="UTF-8") as f:
             svg = f.read()
         return svg
 
@@ -107,10 +120,10 @@ class PyVizView:
         "Save viz in format according to file extension."
         if plt.fignum_exists(self.fignumber):
             # If the matplotlib figure is still active, save it
-            self.filename = filename # Remember the file so we can pull it back
-            plt.savefig(filename, dpi = self.dpi, bbox_inches = 'tight', pad_inches = 0)
-        else: # we have already closed it so try to copy to new filename from the previous
-           if filename != self.filename:
+            self.filename = filename  # Remember the file so we can pull it back
+            plt.savefig(filename, dpi=self.dpi, bbox_inches="tight", pad_inches=0)
+        else:  # we have already closed it so try to copy to new filename from the previous
+            if filename != self.filename:
                 file_path = Path(filename)
                 prev_path = Path(self.filename)
                 if file_path.suffix != prev_path.suffix:
@@ -128,7 +141,7 @@ class PyVizView:
     def show(self):
         "Display an SVG in a notebook or pop up a window if not in notebook"
         if get_ipython() is None:
-            svgfilename = tempfile.mktemp(suffix='.svg')
+            svgfilename = tempfile.mktemp(suffix=".svg")
             self.savefig(svgfilename)
             self.filename = svgfilename
             plt.show()
@@ -142,112 +155,180 @@ class PyVizView:
         How wide and tall should we draw the box representing a vector or matrix.
         """
         sh = tsensor.analysis._shape(v)
-        if sh is None: return None
-        if len(sh)==1: return self.vector_size(sh)
+        if sh is None:
+            return None
+        if len(sh) == 1:
+            return self.vector_size(sh)
         return self.matrix_size(sh)
 
     def matrix_size(self, sh):
         """
         How wide and tall should we draw the box representing a matrix.
         """
-        if len(sh)==1 and sh[0]==1:
+        if len(sh) == 1 and sh[0] == 1:
             return self.vector_size(sh)
         elif len(sh) > 1 and sh[0] == 1 and sh[1] == 1:
             # A special case where we have a 1x1 matrix extending into the screen.
             # Make the 1x1 part a little bit wider than a vector so it's more readable
-            return (2*self.vector_size_scaler * self.wchar, 2*self.vector_size_scaler * self.wchar)
+            return (
+                2 * self.vector_size_scaler * self.wchar,
+                2 * self.vector_size_scaler * self.wchar,
+            )
         elif len(sh) > 1 and sh[1] == 1:
             return (
-            self.vector_size_scaler * self.wchar, self.matrix_size_scaler * self.wchar)
-        elif len(sh)>1 and sh[0]==1:
-            return (self.matrix_size_scaler * self.wchar, self.vector_size_scaler * self.wchar)
-        return (self.matrix_size_scaler * self.wchar, self.matrix_size_scaler * self.wchar)
+                self.vector_size_scaler * self.wchar,
+                self.matrix_size_scaler * self.wchar,
+            )
+        elif len(sh) > 1 and sh[0] == 1:
+            return (
+                self.matrix_size_scaler * self.wchar,
+                self.vector_size_scaler * self.wchar,
+            )
+        return (
+            self.matrix_size_scaler * self.wchar,
+            self.matrix_size_scaler * self.wchar,
+        )
 
     def vector_size(self, sh):
-        return (self.matrix_size_scaler * self.wchar, self.vector_size_scaler * self.wchar)
+        return (
+            self.matrix_size_scaler * self.wchar,
+            self.vector_size_scaler * self.wchar,
+        )
 
     def draw(self, ax, sub):
         sh = tsensor.analysis._shape(sub.value)
-        if len(sh)==1: self.draw_vector(ax, sub)
-        else: self.draw_matrix(ax, sub)
+        if len(sh) == 1:
+            self.draw_vector(ax, sub)
+        else:
+            self.draw_matrix(ax, sub)
 
-    def draw_vector(self,ax,sub):
+    def draw_vector(self, ax, sub):
         a, b = sub.leftx, sub.rightx
         mid = (a + b) / 2
         sh = tsensor.analysis._shape(sub.value)
-        w,h = self.vector_size(sh)
-        rect1 = patches.Rectangle(xy=(mid - w/2, self.box_topy-h),
-                                  width=w,
-                                  height=h,
-                                  linewidth=self.linewidth,
-                                  facecolor=self.vectorcolor,
-                                  edgecolor='grey',
-                                  fill=True)
+        w, h = self.vector_size(sh)
+        rect1 = patches.Rectangle(
+            xy=(mid - w / 2, self.box_topy - h),
+            width=w,
+            height=h,
+            linewidth=self.linewidth,
+            facecolor=self.vectorcolor,
+            edgecolor="grey",
+            fill=True,
+        )
         ax.add_patch(rect1)
-        ax.text(mid, self.box_topy + self.dim_ypadding, self.nabbrev(sh[0]),
-                horizontalalignment='center',
-                fontname=self.dimfontname, fontsize=self.dimfontsize)
+        ax.text(
+            mid,
+            self.box_topy + self.dim_ypadding,
+            self.nabbrev(sh[0]),
+            horizontalalignment="center",
+            fontname=self.dimfontname,
+            fontsize=self.dimfontsize,
+        )
 
-    def draw_matrix(self,ax,sub):
+    def draw_matrix(self, ax, sub):
         a, b = sub.leftx, sub.rightx
         mid = (a + b) / 2
         sh = tsensor.analysis._shape(sub.value)
-        w,h = self.matrix_size(sh)
+        w, h = self.matrix_size(sh)
         box_left = mid - w / 2
-        if len(sh)>2:
-            back_rect = patches.Rectangle(xy=(box_left + self.shift3D, self.box_topy - h + self.shift3D),
-                                          width=w,
-                                          height=h,
-                                          linewidth=self.linewidth,
-                                          facecolor=self.matrixcolor,
-                                          edgecolor='grey',
-                                          fill=True)
+        if len(sh) > 2:
+            back_rect = patches.Rectangle(
+                xy=(box_left + self.shift3D, self.box_topy - h + self.shift3D),
+                width=w,
+                height=h,
+                linewidth=self.linewidth,
+                facecolor=self.matrixcolor,
+                edgecolor="grey",
+                fill=True,
+            )
             ax.add_patch(back_rect)
-        rect = patches.Rectangle(xy=(box_left, self.box_topy - h),
-                                  width=w,
-                                  height=h,
-                                  linewidth=self.linewidth,
-                                  facecolor=self.matrixcolor,
-                                  edgecolor='grey',
-                                  fill=True)
+        rect = patches.Rectangle(
+            xy=(box_left, self.box_topy - h),
+            width=w,
+            height=h,
+            linewidth=self.linewidth,
+            facecolor=self.matrixcolor,
+            edgecolor="grey",
+            fill=True,
+        )
         ax.add_patch(rect)
-        ax.text(box_left, self.box_topy - h/2, self.nabbrev(sh[0]),
-                verticalalignment='center', horizontalalignment='right',
-                fontname=self.dimfontname, fontsize=self.dimfontsize, rotation=90)
-        if len(sh)>1:
+        ax.text(
+            box_left,
+            self.box_topy - h / 2,
+            self.nabbrev(sh[0]),
+            verticalalignment="center",
+            horizontalalignment="right",
+            fontname=self.dimfontname,
+            fontsize=self.dimfontsize,
+            rotation=90,
+        )
+        if len(sh) > 1:
             textx = mid
             texty = self.box_topy + self.dim_ypadding
             if len(sh) > 2:
                 texty += self.dim_ypadding
                 textx += self.shift3D
-            ax.text(textx, texty, self.nabbrev(sh[1]), horizontalalignment='center',
-                    fontname=self.dimfontname, fontsize=self.dimfontsize)
-        if len(sh)>2:
-            ax.text(box_left+w, self.box_topy - h/2, self.nabbrev(sh[2]),
-                    verticalalignment='center', horizontalalignment='center',
-                    fontname=self.dimfontname, fontsize=self.dimfontsize,
-                    rotation=45)
-        if len(sh)>3:
-            remaining = r"$\cdots\times$"+r"$\times$".join([self.nabbrev(sh[i]) for i in range(3,len(sh))])
-            ax.text(mid, self.box_topy - h - self.dim_ypadding, remaining,
-                    verticalalignment='top', horizontalalignment='center',
-                    fontname=self.dimfontname, fontsize=self.dimfontsize)
+            ax.text(
+                textx,
+                texty,
+                self.nabbrev(sh[1]),
+                horizontalalignment="center",
+                fontname=self.dimfontname,
+                fontsize=self.dimfontsize,
+            )
+        if len(sh) > 2:
+            ax.text(
+                box_left + w,
+                self.box_topy - h / 2,
+                self.nabbrev(sh[2]),
+                verticalalignment="center",
+                horizontalalignment="center",
+                fontname=self.dimfontname,
+                fontsize=self.dimfontsize,
+                rotation=45,
+            )
+        if len(sh) > 3:
+            remaining = r"$\cdots\times$" + r"$\times$".join(
+                [self.nabbrev(sh[i]) for i in range(3, len(sh))]
+            )
+            ax.text(
+                mid,
+                self.box_topy - h - self.dim_ypadding,
+                remaining,
+                verticalalignment="top",
+                horizontalalignment="center",
+                fontname=self.dimfontname,
+                fontsize=self.dimfontsize,
+            )
 
     @staticmethod
     def nabbrev(n) -> str:
         if n % 1_000_000 == 0:
-            return str(n // 1_000_000)+'m'
+            return str(n // 1_000_000) + "m"
         if n % 1_000 == 0:
-            return str(n // 1000)+'k'
+            return str(n // 1000) + "k"
         return str(n)
 
 
-def pyviz(statement: str, frame=None,
-          fontname='Consolas', fontsize=13,
-          dimfontname='Arial', dimfontsize=9, matrixcolor="#cfe2d4",
-          vectorcolor="#fefecd", char_sep_scale=1.8, fontcolor='#444443',
-          underline_color='#C2C2C2', ignored_color='#B4B4B4', error_op_color='#A40227',
-          ax=None, dpi=200, hush_errors=True) -> PyVizView:
+def pyviz(
+    statement: str,
+    frame=None,
+    fontname="Consolas",
+    fontsize=13,
+    dimfontname="Arial",
+    dimfontsize=9,
+    matrixcolor="#cfe2d4",
+    vectorcolor="#fefecd",
+    char_sep_scale=1.8,
+    fontcolor="#444443",
+    underline_color="#C2C2C2",
+    ignored_color="#B4B4B4",
+    error_op_color="#A40227",
+    ax=None,
+    dpi=200,
+    hush_errors=True,
+) -> PyVizView:
     """
     Parse and evaluate the Python code in the statement string passed in using
     the indicated execution frame. The execution frame of the invoking function
@@ -303,10 +384,19 @@ def pyviz(statement: str, frame=None,
     :return: Returns a PyVizView holding info about the visualization; from a notebook
              an SVG image will appear. Return none upon parsing error in statement.
     """
-    view = PyVizView(statement, fontname, fontsize, dimfontname, dimfontsize, matrixcolor,
-                     vectorcolor, char_sep_scale, dpi)
+    view = PyVizView(
+        statement,
+        fontname,
+        fontsize,
+        dimfontname,
+        dimfontsize,
+        matrixcolor,
+        vectorcolor,
+        char_sep_scale,
+        dpi,
+    )
 
-    if frame is None: # use frame of caller if not passed in
+    if frame is None:  # use frame of caller if not passed in
         frame = sys._getframe().f_back
     root, tokens = tsensor.parsing.parse(statement, hush_errors=hush_errors)
     if root is None:
@@ -337,25 +427,31 @@ def pyviz(statement: str, frame=None,
         fig, ax = plt.subplots(1, 1, dpi=dpi)
     else:
         fig = ax.figure
-    view.fignumber = fig.number # track this so that we can determine if the figure has been closed
+    view.fignumber = (
+        fig.number
+    )  # track this so that we can determine if the figure has been closed
 
     ax.axis("off")
 
     # First, we need to figure out how wide the visualization components are
     # for each sub expression. If these are wider than the sub expression text,
     # than we need to leave space around the sub expression text
-    lpad = np.zeros((len(statement),)) # pad for characters
+    lpad = np.zeros((len(statement),))  # pad for characters
     rpad = np.zeros((len(statement),))
     maxh = 0
     for sub in subexprs:
         w, h = view.boxsize(sub.value)
         maxh = max(h, maxh)
         nexpr = sub.stop.cstop_idx - sub.start.cstart_idx
-        if (sub.start.cstart_idx-1)>0 and statement[sub.start.cstart_idx - 1]== ' ': # if char to left is space
+        if (sub.start.cstart_idx - 1) > 0 and statement[
+            sub.start.cstart_idx - 1
+        ] == " ":  # if char to left is space
             nexpr += 1
-        if sub.stop.cstop_idx<len(statement) and statement[sub.stop.cstop_idx]== ' ':     # if char to right is space
+        if (
+            sub.stop.cstop_idx < len(statement) and statement[sub.stop.cstop_idx] == " "
+        ):  # if char to right is space
             nexpr += 1
-        if w>view.wchar * nexpr:
+        if w > view.wchar * nexpr:
             lpad[sub.start.cstart_idx] += (w - view.wchar) / 2
             rpad[sub.stop.cstop_idx - 1] += (w - view.wchar) / 2
 
@@ -365,43 +461,63 @@ def pyviz(statement: str, frame=None,
     # Find each character's position based upon width of a character and any padding
     charx = np.empty((len(statement),))
     x = view.leftedge
-    for i,c in enumerate(statement):
+    for i, c in enumerate(statement):
         x += lpad[i]
         charx[i] = x
         x += view.wchar
         x += rpad[i]
 
     # Draw text for statement or expression
-    if view.offending_expr is not None: # highlight erroneous subexpr
+    if view.offending_expr is not None:  # highlight erroneous subexpr
         highlight = np.full(shape=(len(statement),), fill_value=False, dtype=bool)
-        for tok in tokens[root_to_viz.start.index:root_to_viz.stop.index+1]:
-            highlight[tok.cstart_idx:tok.cstop_idx] = True
+        for tok in tokens[root_to_viz.start.index : root_to_viz.stop.index + 1]:
+            highlight[tok.cstart_idx : tok.cstop_idx] = True
         errors = np.full(shape=(len(statement),), fill_value=False, dtype=bool)
         for tok in root_to_viz.optokens:
-            errors[tok.cstart_idx:tok.cstop_idx] = True
+            errors[tok.cstart_idx : tok.cstop_idx] = True
         for i, c in enumerate(statement):
             color = ignored_color
             if highlight[i]:
                 color = fontcolor
-            if errors[i]: # override color if operator token
+            if errors[i]:  # override color if operator token
                 color = error_op_color
-            ax.text(charx[i], view.texty, c, color=color, fontname=fontname, fontsize=fontsize)
+            ax.text(
+                charx[i],
+                view.texty,
+                c,
+                color=color,
+                fontname=fontname,
+                fontsize=fontsize,
+            )
     else:
         for i, c in enumerate(statement):
-            ax.text(charx[i], view.texty, c, color=fontcolor, fontname=fontname, fontsize=fontsize)
+            ax.text(
+                charx[i],
+                view.texty,
+                c,
+                color=fontcolor,
+                fontname=fontname,
+                fontsize=fontsize,
+            )
 
     # Compute the left and right edges of subexpressions (alter nodes with info)
-    for i,sub in enumerate(subexprs):
+    for i, sub in enumerate(subexprs):
         a = charx[sub.start.cstart_idx]
         b = charx[sub.stop.cstop_idx - 1] + view.wchar
         sub.leftx = a
         sub.rightx = b
 
     # Draw grey underlines and draw matrices
-    for i,sub in enumerate(subexprs):
-        a,b = sub.leftx, sub.rightx
-        pad = view.wchar*0.1
-        ax.plot([a-pad, b+pad], [view.liney,view.liney], '-', linewidth=.5, c=underline_color)
+    for i, sub in enumerate(subexprs):
+        a, b = sub.leftx, sub.rightx
+        pad = view.wchar * 0.1
+        ax.plot(
+            [a - pad, b + pad],
+            [view.liney, view.liney],
+            "-",
+            linewidth=0.5,
+            c=underline_color,
+        )
         view.draw(ax, sub)
 
     fig_width = charx[-1] + view.wchar + rpad[-1]
@@ -417,12 +533,13 @@ def pyviz(statement: str, frame=None,
 
 # ---------------- SHOW AST STUFF ---------------------------
 
+
 class QuietGraphvizWrapper(graphviz.Source):
     def __init__(self, dotsrc):
         super().__init__(source=dotsrc)
 
     def _repr_svg_(self):
-        return self.pipe(format='svg', quiet=True).decode(self._encoding)
+        return self.pipe(format="svg", quiet=True).decode(self._encoding)
 
     def savefig(self, filename):
         path = Path(filename)
@@ -436,7 +553,7 @@ class QuietGraphvizWrapper(graphviz.Source):
         graphviz.backend.run(cmd, capture_output=True, check=True, quiet=False)
 
 
-def astviz(statement:str, frame='current') -> graphviz.Source:
+def astviz(statement: str, frame="current") -> graphviz.Source:
     """
     Display the abstract syntax tree (AST) for the indicated Python code
     in statement. Evaluate that code in the context of frame. If the frame
@@ -451,30 +568,30 @@ def astviz(statement:str, frame='current') -> graphviz.Source:
     return QuietGraphvizWrapper(astviz_dot(statement, frame))
 
 
-def astviz_dot(statement:str, frame='current') -> str:
-    def internal_label(node,color="yellow"):
-        text = ''.join(str(t) for t in node.optokens)
+def astviz_dot(statement: str, frame="current") -> str:
+    def internal_label(node, color="yellow"):
+        text = "".join(str(t) for t in node.optokens)
         sh = tsensor.analysis._shape(node.value)
         if sh is None:
             return f'<font face="{fontname}" color="#444443" point-size="{fontsize}">{text}</font>'
 
-        sz = 'x'.join([PyVizView.nabbrev(sh[i]) for i in range(len(sh))])
+        sz = "x".join([PyVizView.nabbrev(sh[i]) for i in range(len(sh))])
         return f"""<font face="Consolas" color="#444443" point-size="{fontsize}">{text}</font><br/><font face="Arial" color="#444443" point-size="{dimfontsize}">{sz}</font>"""
 
     root, tokens = tsensor.parsing.parse(statement)
 
-    if frame=='current': # use frame of caller if nothing passed in
+    if frame == "current":  # use frame of caller if nothing passed in
         frame = sys._getframe().f_back
-        if frame.f_code.co_name=='astviz':
+        if frame.f_code.co_name == "astviz":
             frame = frame.f_back
 
-    if frame is not None: # if the passed in None, then don't do the evaluation
+    if frame is not None:  # if the passed in None, then don't do the evaluation
         root.eval(frame)
 
     nodes = tsensor.ast.postorder(root)
     atoms = tsensor.ast.leaves(root)
     atomsS = set(atoms)
-    ops = [nd for nd in nodes if nd not in atomsS] # keep order
+    ops = [nd for nd in nodes if nd not in atomsS]  # keep order
 
     gr = """digraph G {
         margin=0;
@@ -486,43 +603,45 @@ def astviz_dot(statement:str, frame='current') -> str:
 
     matrixcolor = "#cfe2d4"
     vectorcolor = "#fefecd"
-    fontname="Consolas"
-    fontsize=12
+    fontname = "Consolas"
+    fontsize = 12
     dimfontsize = 9
     spread = 0
 
     # Gen leaf nodes
     for i in range(len(tokens)):
         t = tokens[i]
-        if t.type!=token.ENDMARKER:
+        if t.type != token.ENDMARKER:
             nodetext = t.value
             # if ']' in nodetext:
-            if nodetext==']':
-                nodetext = nodetext.replace(']','&zwnj;]') # &zwnj; is 0-width nonjoiner. ']' by itself is bad for DOT
+            if nodetext == "]":
+                nodetext = nodetext.replace(
+                    "]", "&zwnj;]"
+                )  # &zwnj; is 0-width nonjoiner. ']' by itself is bad for DOT
             label = f'<font face="{fontname}" color="#444443" point-size="{fontsize}">{nodetext}</font>'
             _spread = spread
-            if t.type==token.DOT:
-                _spread=.1
-            elif t.type==token.EQUAL:
-                _spread=.25
+            if t.type == token.DOT:
+                _spread = 0.1
+            elif t.type == token.EQUAL:
+                _spread = 0.25
             elif t.type in tsensor.parsing.ADDOP:
-                _spread=.4
+                _spread = 0.4
             elif t.type in tsensor.parsing.MULOP:
-                _spread=.2
-            gr += f'leaf{id(t)} [shape=box penwidth=0 margin=.001 width={_spread} label=<{label}>]\n'
+                _spread = 0.2
+            gr += f"leaf{id(t)} [shape=box penwidth=0 margin=.001 width={_spread} label=<{label}>]\n"
 
     # Make sure leaves are on same level
-    gr += f'{{ rank=same; '
+    gr += f"{{ rank=same; "
     for t in tokens:
-        if t.type!=token.ENDMARKER:
-            gr += f' leaf{id(t)}'
-    gr += '\n}\n'
+        if t.type != token.ENDMARKER:
+            gr += f" leaf{id(t)}"
+    gr += "\n}\n"
 
     # Make sure leaves are left to right by linking
     for i in range(len(tokens) - 2):
         t = tokens[i]
         t2 = tokens[i + 1]
-        gr += f'leaf{id(t)} -> leaf{id(t2)} [style=invis];\n'
+        gr += f"leaf{id(t)} -> leaf{id(t2)} [style=invis];\n"
 
     # Draw internal ops nodes
     for nd in ops:
@@ -531,11 +650,11 @@ def astviz_dot(statement:str, frame='current') -> str:
         if sh is None:
             color = ""
         else:
-            if len(sh)==1:
+            if len(sh) == 1:
                 color = f'fillcolor="{vectorcolor}" style=filled'
             else:
                 color = f'fillcolor="{matrixcolor}" style=filled'
-        gr += f'node{id(nd)} [shape=box {color} penwidth=0 margin=0 width=.25 height=.2 label=<{label}>]\n'
+        gr += f"node{id(nd)} [shape=box {color} penwidth=0 margin=0 width=.25 height=.2 label=<{label}>]\n"
 
     # Link internal nodes to other nodes or leaves
     for nd in nodes:

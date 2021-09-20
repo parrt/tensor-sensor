@@ -28,6 +28,7 @@ W = tf.constant([[1, 2], [3, 4]])
 b = tf.reshape(tf.constant([[9, 10]]), (2, 1))
 x = tf.reshape(tf.constant([[8, 5, 7]]), (3, 1))
 
+
 def test_addition():
     msg = ""
     try:
@@ -36,6 +37,8 @@ def test_addition():
     except tf.errors.InvalidArgumentError as iae:
         msg = iae.message
 
-    expected = "Incompatible shapes: [2,1] vs. [3,1] [Op:AddV2]\n"+\
-               "Cause: + on tensor operand b w/shape (2, 1) and operand x w/shape (3, 1)"
-    assert msg==expected
+    expected = (
+        "Incompatible shapes: [2,1] vs. [3,1] [Op:AddV2]\n"
+        + "Cause: + on tensor operand b w/shape (2, 1) and operand x w/shape (3, 1)"
+    )
+    assert msg == expected

@@ -24,66 +24,116 @@ SOFTWARE.
 from io import BytesIO
 import token
 import keyword
-from tokenize import tokenize, \
-    NUMBER, STRING, NAME, OP, ENDMARKER, LPAR, LSQB, RPAR, RSQB, COMMA, COLON,\
-    PLUS, MINUS, STAR, SLASH, AT, PERCENT, TILDE, DOT,\
-    NOTEQUAL, PERCENTEQUAL, AMPEREQUAL, DOUBLESTAREQUAL, STAREQUAL, PLUSEQUAL,\
-    MINEQUAL, DOUBLESLASHEQUAL, SLASHEQUAL, LEFTSHIFTEQUAL,\
-    LESSEQUAL, EQUAL, EQEQUAL, GREATEREQUAL, RIGHTSHIFTEQUAL, ATEQUAL,\
-    CIRCUMFLEXEQUAL, VBAREQUAL, DOUBLESTAR
+from tokenize import (
+    tokenize,
+    NUMBER,
+    STRING,
+    NAME,
+    OP,
+    ENDMARKER,
+    LPAR,
+    LSQB,
+    RPAR,
+    RSQB,
+    COMMA,
+    COLON,
+    PLUS,
+    MINUS,
+    STAR,
+    SLASH,
+    AT,
+    PERCENT,
+    TILDE,
+    DOT,
+    NOTEQUAL,
+    PERCENTEQUAL,
+    AMPEREQUAL,
+    DOUBLESTAREQUAL,
+    STAREQUAL,
+    PLUSEQUAL,
+    MINEQUAL,
+    DOUBLESLASHEQUAL,
+    SLASHEQUAL,
+    LEFTSHIFTEQUAL,
+    LESSEQUAL,
+    EQUAL,
+    EQEQUAL,
+    GREATEREQUAL,
+    RIGHTSHIFTEQUAL,
+    ATEQUAL,
+    CIRCUMFLEXEQUAL,
+    VBAREQUAL,
+    DOUBLESTAR,
+)
 
 import tsensor.ast
 
 
-ADDOP     = {PLUS, MINUS}
-MULOP     = {STAR, SLASH, AT, PERCENT}
-ASSIGNOP  = {NOTEQUAL,
-             PERCENTEQUAL,
-             AMPEREQUAL,
-             DOUBLESTAREQUAL,
-             STAREQUAL,
-             PLUSEQUAL,
-             MINEQUAL,
-             DOUBLESLASHEQUAL,
-             SLASHEQUAL,
-             LEFTSHIFTEQUAL,
-             LESSEQUAL,
-             EQUAL,
-             EQEQUAL,
-             GREATEREQUAL,
-             RIGHTSHIFTEQUAL,
-             ATEQUAL,
-             CIRCUMFLEXEQUAL,
-             VBAREQUAL}
-UNARYOP   = {TILDE}
+ADDOP = {PLUS, MINUS}
+MULOP = {STAR, SLASH, AT, PERCENT}
+ASSIGNOP = {
+    NOTEQUAL,
+    PERCENTEQUAL,
+    AMPEREQUAL,
+    DOUBLESTAREQUAL,
+    STAREQUAL,
+    PLUSEQUAL,
+    MINEQUAL,
+    DOUBLESLASHEQUAL,
+    SLASHEQUAL,
+    LEFTSHIFTEQUAL,
+    LESSEQUAL,
+    EQUAL,
+    EQEQUAL,
+    GREATEREQUAL,
+    RIGHTSHIFTEQUAL,
+    ATEQUAL,
+    CIRCUMFLEXEQUAL,
+    VBAREQUAL,
+}
+UNARYOP = {TILDE}
+
 
 class Token:
     """My own version of a token, with content copied from Python's TokenInfo object."""
-    def __init__(self, type, value,
-                 index,      # token index
-                 cstart_idx, # char start
-                 cstop_idx,  # one past char end index so text[start_idx:stop_idx] works
-                 line):
-        self.type, self.value, self.index, self.cstart_idx, self.cstop_idx, self.line = \
-            type, value, index, cstart_idx, cstop_idx, line
+
+    def __init__(
+        self,
+        type,
+        value,
+        index,  # token index
+        cstart_idx,  # char start
+        cstop_idx,  # one past char end index so text[start_idx:stop_idx] works
+        line,
+    ):
+        (
+            self.type,
+            self.value,
+            self.index,
+            self.cstart_idx,
+            self.cstop_idx,
+            self.line,
+        ) = (type, value, index, cstart_idx, cstop_idx, line)
+
     def __repr__(self):
         return f"<{token.tok_name[self.type]}:{self.value},{self.cstart_idx}:{self.cstop_idx}>"
+
     def __str__(self):
         return self.value
 
 
 def mytokenize(s):
     "Use Python's tokenizer to lex s and collect my own token objects"
-    tokensO = tokenize(BytesIO(s.encode('utf-8')).readline)
+    tokensO = tokenize(BytesIO(s.encode("utf-8")).readline)
     tokens = []
     i = 0
     for tok in tokensO:
         type, value, start, end, _ = tok
         line = start[0]
         start_idx = start[1]
-        stop_idx = end[1] # one past end index
+        stop_idx = end[1]  # one past end index
         if type in {NUMBER, STRING, NAME, OP, ENDMARKER}:
-            tokens.append(Token(tok.exact_type,value,i,start_idx,stop_idx,line))
+            tokens.append(Token(tok.exact_type, value, i, start_idx, stop_idx, line))
             i += 1
         else:
             # print("ignoring", type, value)
@@ -102,18 +152,21 @@ class PyExprParser:
     it's easier if I just parse the code I care about and ignore everything else.
     Building this parser was certainly no great burden.
     """
-    def __init__(self, code:str, hush_errors=True):
+
+    def __init__(self, code: str, hush_errors=True):
         self.code = code
         self.hush_errors = hush_errors
         self.tokens = mytokenize(code)
-        self.t = 0 # current lookahead
+        self.t = 0  # current lookahead
 
     def parse(self):
         # print("\nparse", self.code)
         # print(self.tokens)
         # only process assignments and expressions
         root = None
-        if self.tokens[0].value=='return' or not keyword.iskeyword(self.tokens[0].value):
+        if self.tokens[0].value == "return" or not keyword.iskeyword(
+            self.tokens[0].value
+        ):
             if self.hush_errors:
                 try:
                     root = self.assignment_or_return_or_expr()
@@ -127,18 +180,18 @@ class PyExprParser:
 
     def assignment_or_return_or_expr(self):
         start = self.LT(1)
-        if self.LA(1)==NAME and self.LT(1).value=='return':
+        if self.LA(1) == NAME and self.LT(1).value == "return":
             self.match(NAME)
             r = self.exprlist()
             stop = self.LT(-1)
-            return tsensor.ast.Return(self,r,start,stop)
+            return tsensor.ast.Return(self, r, start, stop)
         lhs = self.expression()
         if self.LA(1) in ASSIGNOP:
             eq = self.LT(1)
             self.t += 1
             rhs = self.expression()
             stop = self.LT(-1)
-            return tsensor.ast.Assign(self,eq,lhs,rhs,start,stop)
+            return tsensor.ast.Assign(self, eq, lhs, rhs, start, stop)
         return lhs
 
     def expression(self):
@@ -169,7 +222,7 @@ class PyExprParser:
     def powexpr(self):
         start = self.LT(1)
         root = self.unaryexpr()
-        if self.LA(1)==DOUBLESTAR:
+        if self.LA(1) == DOUBLESTAR:
             op = self.match(DOUBLESTAR)
             r = self.powexpr()
             stop = self.LT(-1)
@@ -193,7 +246,7 @@ class PyExprParser:
         start = self.LT(1)
         root = self.atom()
         while self.LA(1) in {LPAR, LSQB, DOT}:
-            if self.LA(1)==LPAR:
+            if self.LA(1) == LPAR:
                 lp = self.LT(1)
                 self.match(LPAR)
                 el = []
@@ -202,14 +255,14 @@ class PyExprParser:
                 self.match(RPAR)
                 stop = self.LT(-1)
                 root = tsensor.ast.Call(self, root, lp, el, start, stop)
-            if self.LA(1)==LSQB:
+            if self.LA(1) == LSQB:
                 lb = self.LT(1)
                 self.match(LSQB)
                 el = self.exprlist()
                 self.match(RSQB)
                 stop = self.LT(-1)
                 root = tsensor.ast.Index(self, root, lb, el, start, stop)
-            if self.LA(1)==DOT:
+            if self.LA(1) == DOT:
                 op = self.match(DOT)
                 m = self.match(NAME)
                 m = tsensor.ast.Atom(self, m)
@@ -227,13 +280,15 @@ class PyExprParser:
             self.t += 1
             return tsensor.ast.Atom(self, atom)
         else:
-            self.error("unknown or missing atom:"+str(self.LT(1)))
+            self.error("unknown or missing atom:" + str(self.LT(1)))
 
     def exprlist(self):
         elist = []
         e = self.expression()
         elist.append(e)
-        while self.LA(1)==COMMA and self.LA(2)!=RPAR: # could be trailing comma in a tuple like (3,4,)
+        while (
+            self.LA(1) == COMMA and self.LA(2) != RPAR
+        ):  # could be trailing comma in a tuple like (3,4,)
             self.match(COMMA)
             e = self.expression()
             elist.append(e)
@@ -241,14 +296,14 @@ class PyExprParser:
 
     def arglist(self):
         elist = []
-        if self.LA(1)==NAME and self.LA(2)==EQUAL:
+        if self.LA(1) == NAME and self.LA(2) == EQUAL:
             e = self.arg()
         else:
             e = self.expression()
         elist.append(e)
-        while self.LA(1)==COMMA:
+        while self.LA(1) == COMMA:
             self.match(COMMA)
-            if self.LA(1) == NAME and self.LA(2)==EQUAL:
+            if self.LA(1) == NAME and self.LA(2) == EQUAL:
                 e = self.arg()
             else:
                 e = self.expression()
@@ -267,8 +322,8 @@ class PyExprParser:
     def subexpr(self):
         start = self.match(LPAR)
         e = self.exprlist()  # could be a tuple like (3,4) or even (3,4,)
-        istuple = len(e)>1
-        if self.LA(1)==COMMA:
+        istuple = len(e) > 1
+        if self.LA(1) == COMMA:
             self.match(COMMA)
             istuple = True
         stop = self.match(RPAR)
@@ -292,24 +347,26 @@ class PyExprParser:
         # return idstart(self.LA(1)) or self.LA(1).isdigit() or self.LA(1)==':'
 
     def isgroup(self):
-        return self.LA(1)==LPAR or self.LA(1)==LSQB
+        return self.LA(1) == LPAR or self.LA(1) == LSQB
 
     def LA(self, i):
         return self.LT(i).type
 
     def LT(self, i):
-        if i==0:
+        if i == 0:
             return None
-        if i<0:
-            return self.tokens[self.t + i] # -1 should give prev token
+        if i < 0:
+            return self.tokens[self.t + i]  # -1 should give prev token
         ahead = self.t + i - 1
         if ahead >= len(self.tokens):
-            return self.tokens[-1] # return last (end marker)
+            return self.tokens[-1]  # return last (end marker)
         return self.tokens[ahead]
 
     def match(self, type):
-        if self.LA(1)!=type:
-            self.error(f"mismatch token {self.LT(1)}, looking for {token.tok_name[type]}")
+        if self.LA(1) != type:
+            self.error(
+                f"mismatch token {self.LT(1)}, looking for {token.tok_name[type]}"
+            )
         tok = self.LT(1)
         self.t += 1
         return tok
@@ -318,7 +375,7 @@ class PyExprParser:
         raise SyntaxError(msg)
 
 
-def parse(statement:str, hush_errors=True):
+def parse(statement: str, hush_errors=True):
     """
     Parse statement and return ast and token objects.  Parsing errors from invalid code
     or code that I cannot parse are ignored unless hush_hush_errors is False.

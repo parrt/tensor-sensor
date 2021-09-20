@@ -32,6 +32,7 @@ import matplotlib.pyplot as plt
 
 import tsensor
 
+
 class clarify:
     # Prevent nested clarify() calls from processing exceptions.
     # See https://github.com/parrt/tensor-sensor/issues/18
@@ -41,13 +42,22 @@ class clarify:
     # Bump in __enter__, drop in __exit__
     nesting = 0
 
-    def __init__(self,
-                 fontname='Consolas', fontsize=13,
-                 dimfontname='Arial', dimfontsize=9, matrixcolor="#cfe2d4",
-                 vectorcolor="#fefecd", char_sep_scale=1.8, fontcolor='#444443',
-                 underline_color='#C2C2C2', ignored_color='#B4B4B4', error_op_color='#A40227',
-                 show:(None,'viz')='viz',
-                 hush_errors=True):
+    def __init__(
+        self,
+        fontname="Consolas",
+        fontsize=13,
+        dimfontname="Arial",
+        dimfontsize=9,
+        matrixcolor="#cfe2d4",
+        vectorcolor="#fefecd",
+        char_sep_scale=1.8,
+        fontcolor="#444443",
+        underline_color="#C2C2C2",
+        ignored_color="#B4B4B4",
+        error_op_color="#A40227",
+        show: (None, "viz") = "viz",
+        hush_errors=True,
+    ):
         """
         Augment tensor-related exceptions generated from numpy, pytorch, and tensorflow.
         Also display a visual representation of the offending Python line that
@@ -109,17 +119,40 @@ class clarify:
                             to see what the error messages are coming from my parser.
         :param show: Show visualization upon tensor error if show='viz'.
         """
-        self.show = show
-        self.fontname, self.fontsize, self.dimfontname, self.dimfontsize, \
-        self.matrixcolor, self.vectorcolor, self.char_sep_scale,\
-        self.fontcolor, self.underline_color, self.ignored_color, \
-        self.error_op_color, self.hush_errors = \
-            fontname, fontsize, dimfontname, dimfontsize, \
-            matrixcolor, vectorcolor, char_sep_scale, \
-            fontcolor, underline_color, ignored_color, error_op_color, hush_errors
+        (
+            self.show,
+            self.fontname,
+            self.fontsize,
+            self.dimfontname,
+            self.dimfontsize,
+            self.matrixcolor,
+            self.vectorcolor,
+            self.char_sep_scale,
+            self.fontcolor,
+            self.underline_color,
+            self.ignored_color,
+            self.error_op_color,
+            self.hush_errors,
+        ) = (
+            show,
+            fontname,
+            fontsize,
+            dimfontname,
+            dimfontsize,
+            matrixcolor,
+            vectorcolor,
+            char_sep_scale,
+            fontcolor,
+            underline_color,
+            ignored_color,
+            error_op_color,
+            hush_errors,
+        )
 
     def __enter__(self):
-        self.frame = sys._getframe().f_back # where do we start tracking? Hmm...not sure we use this
+        self.frame = (
+            sys._getframe().f_back
+        )  # where do we start tracking? Hmm...not sure we use this
         # print("ENTER", clarify.nesting, self.frame, id(self.frame))
         clarify.nesting += 1
         return self
@@ -127,7 +160,7 @@ class clarify:
     def __exit__(self, exc_type, exc_value, exc_traceback):
         # print("EXIT", clarify.nesting, self.frame, id(self.frame))
         clarify.nesting -= 1
-        if clarify.nesting>0:
+        if clarify.nesting > 0:
             return
         if exc_type is None:
             return
@@ -139,27 +172,47 @@ class clarify:
             # print('info', module, name, filename, line, code)
             # print("exc id", id(exc_value))
             if code is not None:
-                self.view = tsensor.viz.pyviz(code, exc_frame,
-                                              self.fontname, self.fontsize, self.dimfontname,
-                                              self.dimfontsize, self.matrixcolor, self.vectorcolor,
-                                              self.char_sep_scale, self.fontcolor,
-                                              self.underline_color, self.ignored_color,
-                                              self.error_op_color,
-                                              hush_errors=self.hush_errors)
-                if self.view is not None: # Ignore if we can't process code causing exception (I use a subparser)
-                    if self.show=='viz':
+                self.view = tsensor.viz.pyviz(
+                    code,
+                    exc_frame,
+                    self.fontname,
+                    self.fontsize,
+                    self.dimfontname,
+                    self.dimfontsize,
+                    self.matrixcolor,
+                    self.vectorcolor,
+                    self.char_sep_scale,
+                    self.fontcolor,
+                    self.underline_color,
+                    self.ignored_color,
+                    self.error_op_color,
+                    hush_errors=self.hush_errors,
+                )
+                if (
+                    self.view is not None
+                ):  # Ignore if we can't process code causing exception (I use a subparser)
+                    if self.show == "viz":
                         self.view.show()
                     augment_exception(exc_value, self.view.offending_expr)
 
 
 class explain:
-    def __init__(self,
-                 fontname='Consolas', fontsize=13,
-                 dimfontname='Arial', dimfontsize=9, matrixcolor="#cfe2d4",
-                 vectorcolor="#fefecd", char_sep_scale=1.8, fontcolor='#444443',
-                 underline_color='#C2C2C2', ignored_color='#B4B4B4', error_op_color='#A40227',
-                 savefig=None,
-                 hush_errors=True):
+    def __init__(
+        self,
+        fontname="Consolas",
+        fontsize=13,
+        dimfontname="Arial",
+        dimfontsize=9,
+        matrixcolor="#cfe2d4",
+        vectorcolor="#fefecd",
+        char_sep_scale=1.8,
+        fontcolor="#444443",
+        underline_color="#C2C2C2",
+        ignored_color="#B4B4B4",
+        error_op_color="#A40227",
+        savefig=None,
+        hush_errors=True,
+    ):
         """
         As the Python virtual machine executes lines of code, generate a
         visualization for tensor-related expressions using from numpy, pytorch,
@@ -229,21 +282,42 @@ class explain:
         :param savefig: A string indicating where to save the visualization; don't save
                         a file if None.
         """
-        self.savefig = savefig
-        self.fontname, self.fontsize, self.dimfontname, self.dimfontsize, \
-        self.matrixcolor, self.vectorcolor, self.char_sep_scale,\
-        self.fontcolor, self.underline_color, self.ignored_color, \
-        self.error_op_color, self.hush_errors = \
-            fontname, fontsize, dimfontname, dimfontsize, \
-            matrixcolor, vectorcolor, char_sep_scale, \
-            fontcolor, underline_color, ignored_color, error_op_color, hush_errors
+        (
+            self.savefig,
+            self.fontname,
+            self.fontsize,
+            self.dimfontname,
+            self.dimfontsize,
+            self.matrixcolor,
+            self.vectorcolor,
+            self.char_sep_scale,
+            self.fontcolor,
+            self.underline_color,
+            self.ignored_color,
+            self.error_op_color,
+            self.hush_errors,
+        ) = (
+            savefig,
+            fontname,
+            fontsize,
+            dimfontname,
+            dimfontsize,
+            matrixcolor,
+            vectorcolor,
+            char_sep_scale,
+            fontcolor,
+            underline_color,
+            ignored_color,
+            error_op_color,
+            hush_errors,
+        )
 
     def __enter__(self):
         # print("ON trace", sys._getframe())
         self.tracer = ExplainTensorTracer(self)
         sys.settrace(self.tracer.listener)
         frame = sys._getframe()
-        prev = frame.f_back # get block wrapped in "with"
+        prev = frame.f_back  # get block wrapped in "with"
         prev.f_trace = self.tracer.listener
         return self.tracer
 
@@ -267,7 +341,8 @@ class explain:
             if code is not None:
                 # We've already displayed picture so just augment message
                 root, tokens = tsensor.parsing.parse(code)
-                if root is not None: # Could be syntax error in statement or code I can't handle
+                # Could be syntax error in statement or code I can't handle
+                if root is not None:
                     offending_expr = None
                     try:
                         root.eval(exc_frame)
@@ -288,19 +363,19 @@ class ExplainTensorTracer:
 
     def listener(self, frame, event, arg):
         # print("listener", event, ":", frame)
-        if event!='line':
+        if event != "line":
             # It seems that we are getting CALL events even for calls in foo() from:
             #   with tsensor.explain(): foo()
             # Must be that we already have a listener and, though we returned None here,
             # somehow the original listener is still getting events. Strange but oh well.
             # We must ignore these.
             return None
-        module = frame.f_globals['__name__']
+        module = frame.f_globals["__name__"]
         info = inspect.getframeinfo(frame)
         filename, line = info.filename, info.lineno
         name = info.function
 
-        if event=='line':
+        if event == "line":
             self.line_listener(module, name, filename, line, info, frame)
 
         # By returning none, we prevent explain()'ing from descending into
@@ -329,15 +404,22 @@ class ExplainTensorTracer:
             self.viz_statement(code, frame)
 
     def viz_statement(self, code, frame):
-        view = tsensor.viz.pyviz(code, frame,
-                                 self.explainer.fontname, self.explainer.fontsize,
-                                 self.explainer.dimfontname,
-                                 self.explainer.dimfontsize, self.explainer.matrixcolor,
-                                 self.explainer.vectorcolor,
-                                 self.explainer.char_sep_scale, self.explainer.fontcolor,
-                                 self.explainer.underline_color, self.explainer.ignored_color,
-                                 self.explainer.error_op_color,
-                                 hush_errors=self.explainer.hush_errors)
+        view = tsensor.viz.pyviz(
+            code,
+            frame,
+            self.explainer.fontname,
+            self.explainer.fontsize,
+            self.explainer.dimfontname,
+            self.explainer.dimfontsize,
+            self.explainer.matrixcolor,
+            self.explainer.vectorcolor,
+            self.explainer.char_sep_scale,
+            self.explainer.fontcolor,
+            self.explainer.underline_color,
+            self.explainer.ignored_color,
+            self.explainer.error_op_color,
+            hush_errors=self.explainer.hush_errors,
+        )
         self.views.append(view)
         if self.explainer.savefig is not None:
             file_path = Path(self.explainer.savefig)
@@ -354,10 +436,10 @@ class ExplainTensorTracer:
         We want to avoid generating a visualization more than once.
         For now, assume that the code for a statement is the unique identifier.
         """
-        return hashlib.md5(statement.encode('utf-8')).hexdigest()
+        return hashlib.md5(statement.encode("utf-8")).hexdigest()
 
 
-def eval(statement:str, frame=None) -> (tsensor.ast.ParseTreeNode, object):
+def eval(statement: str, frame=None) -> (tsensor.ast.ParseTreeNode, object):
     """
     Parse statement and return an ast in the context of execution frame or, if None,
     the invoking function's frame. Set the value field of all ast nodes.
@@ -370,7 +452,7 @@ def eval(statement:str, frame=None) -> (tsensor.ast.ParseTreeNode, object):
     """
     p = tsensor.parsing.PyExprParser(statement)
     root = p.parse()
-    if frame is None: # use frame of caller
+    if frame is None:  # use frame of caller
         frame = sys._getframe().f_back
     root.eval(frame)
     return root, root.value
@@ -392,14 +474,24 @@ def is_interesting_exception(e):
     # print(f"is_interesting_exception: type is {type(e)}")
     if e.__class__.__module__.startswith("tensorflow"):
         return True
-    sentinels = {'matmul', 'THTensorMath', 'tensor', 'tensors', 'dimension',
-                 'not aligned', 'size mismatch', 'shape', 'shapes', 'matrix',
-                 'call to _th_addmm'}
-    if len(e.args)==0:
+    sentinels = {
+        "matmul",
+        "THTensorMath",
+        "tensor",
+        "tensors",
+        "dimension",
+        "not aligned",
+        "size mismatch",
+        "shape",
+        "shapes",
+        "matrix",
+        "call to _th_addmm",
+    }
+    if len(e.args) == 0:
         msg = e.message
     else:
         msg = e.args[0]
-    return sum([s in msg for s in sentinels])>0
+    return sum([s in msg for s in sentinels]) > 0
 
 
 def tensor_lib_entry_frame(exc_traceback):
@@ -420,15 +512,15 @@ def tensor_lib_entry_frame(exc_traceback):
     # import traceback
     # for t in traceback.extract_tb(exc_traceback):
     #     print(t)
-    packages = ['numpy','torch','tensorflow','jax']
-    dirs = [os.path.join('site-packages',p) for p in packages]
-    dirs += [os.path.join('dist-packages',p) for p in packages]
-    dirs += ['<__array_function__'] # numpy seems to not have real filename
+    packages = ["numpy", "torch", "tensorflow", "jax"]
+    dirs = [os.path.join("site-packages", p) for p in packages]
+    dirs += [os.path.join("dist-packages", p) for p in packages]
+    dirs += ["<__array_function__"]  # numpy seems to not have real filename
     prev = tb
     while tb is not None:
         filename = tb.tb_frame.f_code.co_filename
         reached_lib = [p in filename for p in dirs]
-        if sum(reached_lib)>0:
+        if sum(reached_lib) > 0:
             return prev.tb_frame, tb.tb_frame
         prev = tb
         tb = tb.tb_next
@@ -436,8 +528,8 @@ def tensor_lib_entry_frame(exc_traceback):
 
 
 def info(frame):
-    if hasattr(frame, '__name__'):
-        module = frame.f_globals['__name__']
+    if hasattr(frame, "__name__"):
+        module = frame.f_globals["__name__"]
     else:
         module = None
     info = inspect.getframeinfo(frame)
@@ -466,24 +558,27 @@ def smallest_matrix_subexpr(t):
 
 
 def _smallest_matrix_subexpr(t, nodes) -> bool:
-    if t is None: return False  # prevent buggy code from causing us to fail
-    if isinstance(t, tsensor.ast.Member) and \
-       isinstance(t.obj, tsensor.ast.Atom) and \
-       isinstance(t.member, tsensor.ast.Atom) and \
-       str(t.member)=='T':
+    if t is None:
+        return False  # prevent buggy code from causing us to fail
+    if (
+        isinstance(t, tsensor.ast.Member)
+        and isinstance(t.obj, tsensor.ast.Atom)
+        and isinstance(t.member, tsensor.ast.Atom)
+        and str(t.member) == "T"
+    ):
         nodes.append(t)
         return True
-    if len(t.kids)==0: # leaf node
+    if len(t.kids) == 0:  # leaf node
         if istensor(t.value):
             nodes.append(t)
         return istensor(t.value)
-    n_matrix_below = 0 # once this latches true, it's passed all the way up to the root
+    n_matrix_below = 0  # once this latches true, it's passed all the way up to the root
     for sub in t.kids:
         matrix_below = _smallest_matrix_subexpr(sub, nodes)
-        n_matrix_below += matrix_below # how many descendents evaluated two non-scalar?
+        n_matrix_below += matrix_below  # how many descendents evaluated two non-scalar?
     # If current node is matrix and no descendents are, then this is smallest
     # sub expression that evaluates to a matrix; keep track
-    if istensor(t.value) and n_matrix_below==0:
+    if istensor(t.value) and n_matrix_below == 0:
         nodes.append(t)
     # Report to caller that this node or some descendent is a matrix
     return istensor(t.value) or n_matrix_below > 0
@@ -496,8 +591,11 @@ def istensor(x):
 def _shape(v):
     # do we have a shape and it answers len()? Should get stuff right.
     if hasattr(v, "shape") and hasattr(v.shape, "__len__"):
-        if v.shape.__class__.__module__ == "torch" and v.shape.__class__.__name__ == "Size":
-            if len(v.shape)==0:
+        if (
+            v.shape.__class__.__module__ == "torch"
+            and v.shape.__class__.__name__ == "Size"
+        ):
+            if len(v.shape) == 0:
                 return None
             return list(v.shape)
         return v.shape

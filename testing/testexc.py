@@ -6,10 +6,10 @@ try:
         foo.append(state)
 
     except Exception as e:
-        e.args = ("Appending '"+state+"' failed", *e.args)
+        e.args = ("Appending '" + state + "' failed", *e.args)
         raise
 
-    print(foo[0]) # would raise too
+    print(foo[0])  # would raise too
 
 except Exception as e:
     e.message = "foo"

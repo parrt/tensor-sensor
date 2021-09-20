@@ -27,7 +27,8 @@ import sys
 import numpy as np
 import torch
 
-def check(s,expected):
+
+def check(s, expected):
     frame = sys._getframe()
     caller = frame.f_back
     p = PyExprParser(s)
@@ -37,7 +38,7 @@ def check(s,expected):
         t.eval(caller)
     except IncrEvalTrap as exc:
         bad_subexpr = str(exc.offending_expr)
-    assert bad_subexpr==expected
+    assert bad_subexpr == expected
 
 
 def test_missing_var():
@@ -46,13 +47,16 @@ def test_missing_var():
     check("a+b+c", "b")
     check("z+b+c", "z")
 
+
 def test_matrix_mult():
     W = torch.tensor([[1, 2], [3, 4]])
-    b = torch.tensor([[1,2,3]])
+    b = torch.tensor([[1, 2, 3]])
     check("W@b+torch.abs(b)", "W@b")
+
 
 def test_bad_arg():
     check("torch.abs('foo')", "torch.abs('foo')")
+
 
 def test_parens():
     a = 3
@@ -60,14 +64,16 @@ def test_parens():
     c = 5
     check("(a+b)/0", "(a+b)/0")
 
+
 def test_array_literal():
-    a = torch.tensor([[1,2,3],[4,5,6]])
-    b = torch.tensor([[1,2,3]])
-    a+b
+    a = torch.tensor([[1, 2, 3], [4, 5, 6]])
+    b = torch.tensor([[1, 2, 3]])
+    a + b
     check("a + b@2", """b@2""")
 
+
 def test_array_literal2():
-    a = torch.tensor([[1,2,3],[4,5,6]])
-    b = torch.tensor([[1,2,3]])
-    a+b
+    a = torch.tensor([[1, 2, 3], [4, 5, 6]])
+    b = torch.tensor([[1, 2, 3]])
+    a + b
     check("(a+b)@2", """(a+b)@2""")

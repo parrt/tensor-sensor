@@ -12,9 +12,8 @@ z = 0
 # with tsensor.clarify(show='viz'):
 #     b + x * 3
 
-fig, ax = plt.subplots(1,1)
+fig, ax = plt.subplots(1, 1)
 tsensor.pyviz("b + x", ax=ax)
 plt.show()
 # with tsensor.explain():
 #     b + x
-

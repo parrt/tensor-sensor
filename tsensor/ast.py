@@ -28,13 +28,15 @@ import tsensor
 # This tree structure is easier to visit for my purposes here. Also lets me
 # control the kinds of statements I process.
 
+
 class ParseTreeNode:
     def __init__(self, parser):
-        self.parser = parser # which parser object created this node;
-                             # useful for getting access to the code string from a token
-        self.value = None # used during evaluation
-        self.start = None # start token
+        self.parser = parser  # which parser object created this node;
+        # useful for getting access to the code string from a token
+        self.value = None  # used during evaluation
+        self.start = None  # start token
         self.stop = None  # end token
+
     def eval(self, frame):
         """
         Evaluate the expression represented by this (sub)tree in context of frame.
@@ -47,39 +49,56 @@ class ParseTreeNode:
             raise IncrEvalTrap(self) from e
         # print(self, "=>", self.value)
         return self.value
+
     @property
-    def optokens(self): # the associated token if atom or representative token if operation
+    def optokens(
+        self,
+    ):
+        # the associated token if atom or representative token if operation
         return None
+
     @property
     def kids(self):
         return []
+
     def clarify(self):
         return None
+
     def __str__(self):
         # Extract text from the original code string using token character indexes
-        return self.parser.code[self.start.cstart_idx:self.stop.cstop_idx]
+        return self.parser.code[self.start.cstart_idx : self.stop.cstop_idx]
+
     def __repr__(self):
         fields = self.__dict__.copy()
-        kill = ['start', 'stop', 'lbrack', 'lparen', 'parser']
+        kill = ["start", "stop", "lbrack", "lparen", "parser"]
         for name in kill:
-            if name in fields: del fields[name]
-        args = [v+'='+fields[v].__repr__() for v in fields if v!='value' or fields['value'] is not None]
-        args = ','.join(args)
+            if name in fields:
+                del fields[name]
+        args = [
+            v + "=" + fields[v].__repr__()
+            for v in fields
+            if v != "value" or fields["value"] is not None
+        ]
+        args = ",".join(args)
         return f"{self.__class__.__name__}({args})"
+
 
 class Assign(ParseTreeNode):
     def __init__(self, parser, op, lhs, rhs, start, stop):
         super().__init__(parser)
         self.op, self.lhs, self.rhs = op, lhs, rhs
         self.start, self.stop = start, stop
+
     def eval(self, frame):
         self.value = self.rhs.eval(frame)
         # Don't eval this node as it causes side effect of making actual assignment to lhs
         self.lhs.value = self.value
         return self.value
+
     @property
     def optokens(self):
         return [self.op]
+
     @property
     def kids(self):
         return [self.lhs, self.rhs]
@@ -92,33 +111,37 @@ class Call(ParseTreeNode):
         self.lparen = lparen
         self.args = args
         self.start, self.stop = start, stop
+
     def eval(self, frame):
         self.func.eval(frame)
         for a in self.args:
             a.eval(frame)
         return super().eval(frame)
+
     def clarify(self):
         arg_msgs = []
         for a in self.args:
             ashape = tsensor.analysis._shape(a.value)
             if ashape:
                 arg_msgs.append(f"arg {a} w/shape {ashape}")
-        if len(arg_msgs)==0:
+        if len(arg_msgs) == 0:
             return f"Cause: {self}"
-        return f"Cause: {self} tensor " + ', '.join(arg_msgs)
+        return f"Cause: {self} tensor " + ", ".join(arg_msgs)
+
     @property
     def optokens(self):
-        f = None # assume complicated like a[i](args) with weird func expr
+        f = None  # assume complicated like a[i](args) with weird func expr
         if isinstance(self.func, Member):
             f = self.func.member
         elif isinstance(self.func, Atom):
             f = self.func
         if f:
-            return [f.token,self.lparen,self.stop]
-        return [self.lparen,self.stop]
+            return [f.token, self.lparen, self.stop]
+        return [self.lparen, self.stop]
+
     @property
     def kids(self):
-        return [self.func]+self.args
+        return [self.func] + self.args
 
 
 class Return(ParseTreeNode):
@@ -126,14 +149,17 @@ class Return(ParseTreeNode):
         super().__init__(parser)
         self.result = result
         self.start, self.stop = start, stop
+
     def eval(self, frame):
         self.value = [a.eval(frame) for a in self.result]
-        if len(self.value)==1:
+        if len(self.value) == 1:
             self.value = self.value[0]
         return self.value
+
     @property
     def optokens(self):
         return [self.start]
+
     @property
     def kids(self):
         return self.result
@@ -146,21 +172,24 @@ class Index(ParseTreeNode):
         self.lbrack = lbrack
         self.index = index
         self.start, self.stop = start, stop
+
     def eval(self, frame):
         self.arr.eval(frame)
         for i in self.index:
             i.eval(frame)
         return super().eval(frame)
+
     @property
     def optokens(self):
-        arr = None # assume complicated like f()[i] with no clear array var
+        arr = None  # assume complicated like f()[i] with no clear array var
         # if isinstance(self.arr, Member):
         #     arr = self.arr.member
         # elif isinstance(self.arr, Atom):
         #     arr = self.arr
         # if arr:
         #     return [self.lbrack,self.stop]
-        return [self.lbrack,self.stop]
+        return [self.lbrack, self.stop]
+
     @property
     def kids(self):
         return [self.arr] + self.index
@@ -169,17 +198,23 @@ class Index(ParseTreeNode):
 class Member(ParseTreeNode):
     def __init__(self, parser, op, obj, member, start, stop):
         super().__init__(parser)
-        self.op = op # always DOT
+        self.op = op  # always DOT
         self.obj = obj
         self.member = member
         self.start, self.stop = start, stop
+
     def eval(self, frame):
         self.obj.eval(frame)
         # don't eval member as it's just a name to look up in obj
         return super().eval(frame)
+
     @property
-    def optokens(self): # the associated token if atom or representative token if operation
+    def optokens(
+        self,
+    ):
+        # the associated token if atom or representative token if operation
         return [self.op]
+
     @property
     def kids(self):
         return [self.obj, self.member]
@@ -190,10 +225,12 @@ class BinaryOp(ParseTreeNode):
         super().__init__(parser)
         self.op, self.lhs, self.rhs = op, lhs, rhs
         self.start, self.stop = start, stop
+
     def eval(self, frame):
         self.lhs.eval(frame)
         self.rhs.eval(frame)
         return super().eval(frame)
+
     def clarify(self):
         opnd_msgs = []
         lshape = tsensor.analysis._shape(self.lhs.value)
@@ -202,10 +239,15 @@ class BinaryOp(ParseTreeNode):
             opnd_msgs.append(f"operand {self.lhs} w/shape {lshape}")
         if rshape:
             opnd_msgs.append(f"operand {self.rhs} w/shape {rshape}")
-        return f"Cause: {self.op} on tensor " + ' and '.join(opnd_msgs)
+        return f"Cause: {self.op} on tensor " + " and ".join(opnd_msgs)
+
     @property
-    def optokens(self): # the associated token if atom or representative token if operation
+    def optokens(
+        self,
+    ):
+        # the associated token if atom or representative token if operation
         return [self.op]
+
     @property
     def kids(self):
         return [self.lhs, self.rhs]
@@ -217,12 +259,15 @@ class UnaryOp(ParseTreeNode):
         self.op = op
         self.opnd = opnd
         self.start, self.stop = start, stop
+
     def eval(self, frame):
         self.opnd.eval(frame)
         return super().eval(frame)
+
     @property
     def optokens(self):
         return [self.op]
+
     @property
     def kids(self):
         return [self.opnd]
@@ -233,10 +278,12 @@ class ListLiteral(ParseTreeNode):
         super().__init__(parser)
         self.elems = elems
         self.start, self.stop = start, stop
+
     def eval(self, frame):
         for i in self.elems:
             i.eval(frame)
         return super().eval(frame)
+
     @property
     def kids(self):
         return self.elems
@@ -247,10 +294,12 @@ class TupleLiteral(ParseTreeNode):
         super().__init__(parser)
         self.elems = elems
         self.start, self.stop = start, stop
+
     def eval(self, frame):
         for i in self.elems:
             i.eval(frame)
         return super().eval(frame)
+
     @property
     def kids(self):
         return self.elems
@@ -262,12 +311,15 @@ class SubExpr(ParseTreeNode):
         super().__init__(parser)
         self.e = e
         self.start, self.stop = start, stop
+
     def eval(self, frame):
         self.value = self.e.eval(frame)
-        return self.value # don't re-evaluate
+        return self.value  # don't re-evaluate
+
     @property
     def optokens(self):
         return [self.start, self.stop]
+
     @property
     def kids(self):
         return [self.e]
@@ -278,10 +330,12 @@ class Atom(ParseTreeNode):
         super().__init__(parser)
         self.token = token
         self.start, self.stop = token, token
+
     def eval(self, frame):
         if self.token.type == tsensor.parsing.COLON:
-            return ':' # fake a value here
+            return ":"  # fake a value here
         return super().eval(frame)
+
     def __repr__(self):
         # v = f"{{{self.value}}}" if hasattr(self,'value') and self.value is not None else ""
         return self.token.value
@@ -331,5 +385,6 @@ class IncrEvalTrap(BaseException):
     Used during re-evaluation of python line that threw exception to trap which
     subexpression caused the problem.
     """
+
     def __init__(self, offending_expr):
-        self.offending_expr = offending_expr # where in tree did we get exception?
+        self.offending_expr = offending_expr  # where in tree did we get exception?

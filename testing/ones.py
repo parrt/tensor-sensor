@@ -5,4 +5,4 @@ import tsensor
 
 print(tsensor.__version__)
 with tsensor.explain():
-   a = np.ones(3)
+    a = np.ones(3)

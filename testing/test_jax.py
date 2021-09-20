@@ -25,6 +25,7 @@ import jax.numpy as jnp
 import numpy as np
 import tsensor
 
+
 def test_dot():
     size = 5000
     x = np.random.normal(size=(size, size)).astype(np.float32)
@@ -37,9 +38,11 @@ def test_dot():
     except TypeError as e:
         msg = e.args[0]
 
-    expected = "Incompatible shapes for dot: got (5000, 5000) and (5, 1).\n"+\
-               "Cause: jnp.dot(x, y) tensor arg x w/shape (5000, 5000), arg y w/shape (5, 1)"
-    assert msg==expected
+    expected = (
+        "Incompatible shapes for dot: got (5000, 5000) and (5, 1).\n"
+        + "Cause: jnp.dot(x, y) tensor arg x w/shape (5000, 5000), arg y w/shape (5, 1)"
+    )
+    assert msg == expected
 
 
 def test_scalar_arg():
@@ -53,9 +56,11 @@ def test_scalar_arg():
     except TypeError as e:
         msg = e.args[0]
 
-    expected = 'data type \'foo\' not understood\n'+\
-               'Cause: jnp.dot(x, "foo") tensor arg x w/shape (5000, 5000)'
-    assert msg==expected
+    expected = (
+        "data type 'foo' not understood\n"
+        + 'Cause: jnp.dot(x, "foo") tensor arg x w/shape (5000, 5000)'
+    )
+    assert msg == expected
 
 
 def test_mmul():
@@ -69,9 +74,11 @@ def test_mmul():
     except TypeError as e:
         msg = e.args[0]
 
-    expected = "dot_general requires contracting dimensions to have the same shape, got [2] and [3].\n"+\
-               "Cause: @ on tensor operand W w/shape (2, 2) and operand b w/shape (3,)"
-    assert msg==expected
+    expected = (
+        "dot_general requires contracting dimensions to have the same shape, got [2] and [3].\n"
+        + "Cause: @ on tensor operand W w/shape (2, 2) and operand b w/shape (3,)"
+    )
+    assert msg == expected
 
 
 def test_fft():
@@ -85,6 +92,8 @@ def test_fft():
         msg = e.args[0]
         print(msg)
 
-    expected = 'jax.numpy.fft.fft only supports norm=None, got something weird\n'+\
-               'Cause: jnp.fft.fft(x, norm="something weird") tensor arg x w/shape (8,)'
-    assert msg==expected
+    expected = (
+        "jax.numpy.fft.fft only supports norm=None, got something weird\n"
+        + 'Cause: jnp.fft.fft(x, norm="something weird") tensor arg x w/shape (8,)'
+    )
+    assert msg == expected
