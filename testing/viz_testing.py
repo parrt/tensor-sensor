@@ -12,6 +12,20 @@ import matplotlib.font_manager as fm
 import tsensor
 # from tsensor.viz import pyviz, astviz
 
+import torch
+import tsensor
+
+n = 100
+d = 10
+n_neurons = 100
+W = torch.rand(d,n_neurons)
+b = torch.rand(n_neurons,1)
+X = torch.rand(n,d)
+with tsensor.explain(savefig="my_inspection.pdf"):
+    Y = W @ X.T + b
+
+exit()
+
 def foo():
     # W = torch.rand(size=(2000, 2000))
     W = torch.rand(size=(2000, 2000, 10, 8))
