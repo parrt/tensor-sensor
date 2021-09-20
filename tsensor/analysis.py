@@ -355,9 +355,6 @@ class ExplainTensorTracer:
         return hashlib.md5(statement.encode('utf-8')).hexdigest()
 
 
-def f(x,y):
-    return x+y
-
 def eval(statement:str, frame=None) -> (tsensor.ast.ParseTreeNode, object):
     """
     Parse statement and return an ast in the context of execution frame or, if None,
