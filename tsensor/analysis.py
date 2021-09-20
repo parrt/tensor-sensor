@@ -421,7 +421,7 @@ class ExplainTensorTracer:
         self.views.append(view)
         if self.explainer.savefig is not None:
             file_path = Path(self.explainer.savefig)
-            file_path = f"{file_path.stem}-{self.linecount}{file_path.suffix}"
+            file_path = file_path.parent / f"{file_path.stem}-{self.linecount}{file_path.suffix}"
             view.savefig(file_path)
             view.filename = file_path
             plt.close()
