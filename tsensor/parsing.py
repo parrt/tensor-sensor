@@ -171,7 +171,7 @@ class PyExprParser:
                 try:
                     root = self.assignment_or_return_or_expr()
                     self.match(ENDMARKER)
-                except SyntaxError as e:
+                except SyntaxError:
                     root = None
             else:
                 root = self.assignment_or_return_or_expr()
@@ -286,9 +286,8 @@ class PyExprParser:
         elist = []
         e = self.expression()
         elist.append(e)
-        while (
-            self.LA(1) == COMMA and self.LA(2) != RPAR
-        ):  # could be trailing comma in a tuple like (3,4,)
+        # could be trailing comma in a tuple like (3,4,)
+        while self.LA(1) == COMMA and self.LA(2) != RPAR:
             self.match(COMMA)
             e = self.expression()
             elist.append(e)

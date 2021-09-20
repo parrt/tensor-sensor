@@ -76,9 +76,8 @@ class PyVizView:
         self.bottomedge = 3
         self.filename = None
         self.matrix_size_scaler = 3.5  # How wide or tall as scaled fontsize is matrix?
-        self.vector_size_scaler = (
-            3.2 / 4
-        )  # How wide or tall as scaled fontsize is vector for skinny part?
+        # How wide or tall as scaled fontsize is vector for skinny part?
+        self.vector_size_scaler = 3.2 / 4
         self.shift3D = 6
         self.cause = None  # Did an exception occurred during evaluation?
         self.offending_expr = None
@@ -307,7 +306,7 @@ class PyVizView:
         if n % 1_000_000 == 0:
             return str(n // 1_000_000) + "m"
         if n % 1_000 == 0:
-            return str(n // 1000) + "k"
+            return str(n // 1_000) + "k"
         return str(n)
 
 
@@ -427,9 +426,9 @@ def pyviz(
         fig, ax = plt.subplots(1, 1, dpi=dpi)
     else:
         fig = ax.figure
-    view.fignumber = (
-        fig.number
-    )  # track this so that we can determine if the figure has been closed
+
+    # track this so that we can determine if the figure has been closed
+    view.fignumber = fig.number
 
     ax.axis("off")
 
@@ -443,13 +442,13 @@ def pyviz(
         w, h = view.boxsize(sub.value)
         maxh = max(h, maxh)
         nexpr = sub.stop.cstop_idx - sub.start.cstart_idx
+        # if char to left is space
         if (sub.start.cstart_idx - 1) > 0 and statement[
             sub.start.cstart_idx - 1
-        ] == " ":  # if char to left is space
+        ] == " ":
             nexpr += 1
-        if (
-            sub.stop.cstop_idx < len(statement) and statement[sub.stop.cstop_idx] == " "
-        ):  # if char to right is space
+        # if char to right is space
+        if sub.stop.cstop_idx < len(statement) and statement[sub.stop.cstop_idx] == " ":
             nexpr += 1
         if w > view.wchar * nexpr:
             lpad[sub.start.cstart_idx] += (w - view.wchar) / 2
