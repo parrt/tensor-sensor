@@ -226,7 +226,7 @@ class PyVizView:
                     fontname=self.dimfontname, fontsize=self.dimfontsize,
                     rotation=45)
         if len(sh)>3:
-            remaining = r"$\cdots\times$"+r"$\times$".join([self.nabbrev(sh[i]) for i in range(3,len(sh))])
+            remaining = r"$\cdots\mathsf{x}$"+r"$\mathsf{x}$".join([self.nabbrev(sh[i]) for i in range(3,len(sh))])
             ax.text(mid, self.box_topy - h - self.dim_ypadding, remaining,
                     verticalalignment='top', horizontalalignment='center',
                     fontname=self.dimfontname, fontsize=self.dimfontsize)

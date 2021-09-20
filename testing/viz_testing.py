@@ -15,15 +15,14 @@ import tsensor
 import torch
 import tsensor
 
-n = 100
-d = 10
-n_neurons = 100
-W = torch.rand(d,n_neurons)
-b = torch.rand(n_neurons,1)
-X = torch.rand(n,d)
-with tsensor.explain(savefig="my_inspection.pdf"):
-    Y = W @ X.T + b
+W = torch.rand(size=(2000,2000))
+b = torch.rand(size=(2000,1))
+h = torch.rand(size=(1_000_000,))
+x = torch.rand(size=(2000,1))
 
+with tsensor.explain(savefig="/tmp/blort"): # save foo-1.svg and foo-2.svg in /tmp
+    a = torch.relu(x)
+    b = W @ b + x * 3 + h.dot(h)
 exit()
 
 def foo():
