@@ -399,7 +399,7 @@ def is_interesting_exception(e):
         msg = e.message
     else:
         msg = e.args[0]
-    return sum([s in msg for s in sentinels])>0
+    return any([s in msg for s in sentinels])
 
 
 def tensor_lib_entry_frame(exc_traceback):

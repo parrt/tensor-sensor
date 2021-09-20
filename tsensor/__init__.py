@@ -25,6 +25,7 @@ __all__ = ["ast", "parsing", "viz", "analysis", "version"]
 
 # To fix an OpenMP runtime link issue.
 import os
+
 os.environ['KMP_DUPLICATE_LIB_OK'] = "True"
 
 # These classes/functions are the primary user interface so import them directly

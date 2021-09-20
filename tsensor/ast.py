@@ -63,7 +63,11 @@ class ParseTreeNode:
         kill = ['start', 'stop', 'lbrack', 'lparen', 'parser']
         for name in kill:
             if name in fields: del fields[name]
-        args = [v+'='+fields[v].__repr__() for v in fields if v!='value' or fields['value'] is not None]
+        args = [
+            v + '=' + fields[v].__repr__()
+            for v in fields
+            if v != 'value' or fields['value'] is not None
+        ]
         args = ','.join(args)
         return f"{self.__class__.__name__}({args})"
 
@@ -153,13 +157,6 @@ class Index(ParseTreeNode):
         return super().eval(frame)
     @property
     def optokens(self):
-        arr = None # assume complicated like f()[i] with no clear array var
-        # if isinstance(self.arr, Member):
-        #     arr = self.arr.member
-        # elif isinstance(self.arr, Atom):
-        #     arr = self.arr
-        # if arr:
-        #     return [self.lbrack,self.stop]
         return [self.lbrack,self.stop]
     @property
     def kids(self):

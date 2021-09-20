@@ -24,37 +24,72 @@ SOFTWARE.
 from io import BytesIO
 import token
 import keyword
-from tokenize import tokenize, \
-    NUMBER, STRING, NAME, OP, ENDMARKER, LPAR, LSQB, RPAR, RSQB, COMMA, COLON,\
-    PLUS, MINUS, STAR, SLASH, AT, PERCENT, TILDE, DOT,\
-    NOTEQUAL, PERCENTEQUAL, AMPEREQUAL, DOUBLESTAREQUAL, STAREQUAL, PLUSEQUAL,\
-    MINEQUAL, DOUBLESLASHEQUAL, SLASHEQUAL, LEFTSHIFTEQUAL,\
-    LESSEQUAL, EQUAL, EQEQUAL, GREATEREQUAL, RIGHTSHIFTEQUAL, ATEQUAL,\
-    CIRCUMFLEXEQUAL, VBAREQUAL, DOUBLESTAR
-
 import tsensor.ast
+from tokenize import (
+    tokenize,
+    NUMBER,
+    STRING,
+    NAME,
+    OP,
+    ENDMARKER,
+    LPAR,
+    LSQB,
+    RPAR,
+    RSQB,
+    COMMA,
+    COLON,
+    PLUS,
+    MINUS,
+    STAR,
+    SLASH,
+    AT,
+    PERCENT,
+    TILDE,
+    DOT,
+    NOTEQUAL,
+    PERCENTEQUAL,
+    AMPEREQUAL,
+    DOUBLESTAREQUAL,
+    STAREQUAL,
+    PLUSEQUAL,
+    MINEQUAL,
+    DOUBLESLASHEQUAL,
+    SLASHEQUAL,
+    LEFTSHIFTEQUAL,
+    LESSEQUAL,
+    EQUAL,
+    EQEQUAL,
+    GREATEREQUAL,
+    RIGHTSHIFTEQUAL,
+    ATEQUAL,
+    CIRCUMFLEXEQUAL,
+    VBAREQUAL,
+    DOUBLESTAR,
+)
 
 
 ADDOP     = {PLUS, MINUS}
 MULOP     = {STAR, SLASH, AT, PERCENT}
-ASSIGNOP  = {NOTEQUAL,
-             PERCENTEQUAL,
-             AMPEREQUAL,
-             DOUBLESTAREQUAL,
-             STAREQUAL,
-             PLUSEQUAL,
-             MINEQUAL,
-             DOUBLESLASHEQUAL,
-             SLASHEQUAL,
-             LEFTSHIFTEQUAL,
-             LESSEQUAL,
-             EQUAL,
-             EQEQUAL,
-             GREATEREQUAL,
-             RIGHTSHIFTEQUAL,
-             ATEQUAL,
-             CIRCUMFLEXEQUAL,
-             VBAREQUAL}
+ASSIGNOP = {
+    NOTEQUAL,
+    PERCENTEQUAL,
+    AMPEREQUAL,
+    DOUBLESTAREQUAL,
+    STAREQUAL,
+    PLUSEQUAL,
+    MINEQUAL,
+    DOUBLESLASHEQUAL,
+    SLASHEQUAL,
+    LEFTSHIFTEQUAL,
+    LESSEQUAL,
+    EQUAL,
+    EQEQUAL,
+    GREATEREQUAL,
+    RIGHTSHIFTEQUAL,
+    ATEQUAL,
+    CIRCUMFLEXEQUAL,
+    VBAREQUAL,
+}
 UNARYOP   = {TILDE}
 
 class Token:
@@ -118,7 +153,7 @@ class PyExprParser:
                 try:
                     root = self.assignment_or_return_or_expr()
                     self.match(ENDMARKER)
-                except SyntaxError as e:
+                except SyntaxError:
                     root = None
             else:
                 root = self.assignment_or_return_or_expr()

@@ -450,11 +450,11 @@ def astviz(statement:str, frame='current') -> graphviz.Source:
 
 
 def astviz_dot(statement:str, frame='current') -> str:
-    def internal_label(node,color="yellow"):
+    def internal_label(node):
         text = ''.join(str(t) for t in node.optokens)
         sh = tsensor.analysis._shape(node.value)
         if sh is None:
-            return f'<font face="{fontname}" color="#444443" point-size="{fontsize}">{text}</font>'
+            return f'<font face="{fontname}" color="" point-size="{fontsize}">{text}</font>'
 
         sz = 'x'.join([PyVizView.nabbrev(sh[i]) for i in range(len(sh))])
         return f"""<font face="Consolas" color="#444443" point-size="{fontsize}">{text}</font><br/><font face="Arial" color="#444443" point-size="{dimfontsize}">{sz}</font>"""
