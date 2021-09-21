@@ -21,13 +21,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-__all__ = ["ast", "parsing", "viz", "analysis", "version"]
-
-# To fix an OpenMP runtime link issue.
-import os
-
-os.environ['KMP_DUPLICATE_LIB_OK'] = "True"
-
 # These classes/functions are the primary user interface so import them directly
 import tsensor.ast
 import tsensor.parsing
@@ -36,5 +29,12 @@ import tsensor.analysis
 from tsensor.analysis import explain, clarify, eval
 from tsensor.parsing import parse
 from tsensor.viz import pyviz, astviz
-
 from .version import __version__
+
+
+__all__ = ["ast", "parsing", "viz", "analysis", "version"]
+
+# To fix an OpenMP runtime link issue.
+import os
+
+os.environ['KMP_DUPLICATE_LIB_OK'] = "True"

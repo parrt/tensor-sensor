@@ -162,6 +162,11 @@ class PyVizView:
         return (self.matrix_size_scaler * self.wchar, self.matrix_size_scaler * self.wchar)
 
     def vector_size(self, sh):
+        """
+        How wide and tall is a vector?  It's not a function of vector length; instead
+        we make a row vector with same width as a matrix but height of just one char.
+        For consistency with matrix_size(), I pass in shape, though it's ignored.
+        """
         return (self.matrix_size_scaler * self.wchar, self.vector_size_scaler * self.wchar)
 
     def draw(self, ax, sub):
@@ -279,8 +284,8 @@ def pyviz(statement: str, frame=None,
                            no hope to discover this information accurately in all cases.
                            Certainly, I gave up after spending huge effort. We have a
                            situation here where the font should be constant width, so
-                           we can just use a simple scaler times the font size  to get
-                           a reasonable approximation to the width and height of a
+                           we can just use a simple scalar times the font size to get
+                           a reasonable approximation of the width and height of a
                            character box; the default of 1.8 seems to work reasonably
                            well for a wide range of fonts, but you might have to tweak it
                            when you change the font size.
