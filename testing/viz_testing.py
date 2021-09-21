@@ -15,15 +15,22 @@ import tsensor
 import torch
 import tsensor
 
-W = torch.rand(size=(2000,2000))
-b = torch.rand(size=(2000,1))
-x = torch.rand(size=(2000,1))
-h = torch.rand(size=(1_000_000,))
+n = 200         # number of instances
+d = 764         # number of instance features
+nhidden = 256
 
-with tsensor.clarify():
-    b = h.dot(h) @ W
+Whh = torch.eye(nhidden, nhidden)  # Identity matrix
+Uxh = torch.randn(nhidden, d)
+bh  = torch.zeros(nhidden, 1)
+h = torch.randn(nhidden, 1)         # fake previous hidden state h
+# r = torch.randn(nhidden, 1)         # fake this computation
+r = torch.randn(nhidden, 3)         # fake this computation
+X = torch.rand(n,d)                 # fake input
 
-#e.show()
+# Following code raises an exception
+with tsensor.explain(savefig="/Users/parrt/Desktop/toomany.png") as e:
+    h = torch.tanh(Whh @ (r*h) + Uxh @ X.T + bh)  # state vector update equation
+
 exit()
 
 def foo():

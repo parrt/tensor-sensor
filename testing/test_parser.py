@@ -105,6 +105,11 @@ def test_parens():
     check("(a+b)*c", "BinaryOp(op=<STAR:*,5:6>,lhs=BinaryOp(op=<PLUS:+,2:3>,lhs=a,rhs=b),rhs=c)")
 
 
+def test_expr_in_arg_with_parens():
+    check("h = torch.tanh( (1-z)*h + z*h_ )",
+          "Assign(op=<EQUAL:=,2:3>,lhs=h,rhs=Call(func=Member(op=<DOT:.,9:10>,obj=torch,member=tanh),args=[BinaryOp(op=<PLUS:+,24:25>,lhs=BinaryOp(op=<STAR:*,21:22>,lhs=BinaryOp(op=<MINUS:-,18:19>,lhs=1,rhs=z),rhs=h),rhs=BinaryOp(op=<STAR:*,27:28>,lhs=z,rhs=h_))]))")
+
+
 def test_1tuple():
     check("(3,)", "TupleLiteral(elems=[3])")
 
