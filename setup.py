@@ -45,7 +45,6 @@ setup(
                       'jax': jax_requires
                       },
     description='The goal of this library is to generate more helpful exception messages for numpy/pytorch tensor algebra expressions.',
-#    keywords='visualization data structures',
     classifiers=['License :: OSI Approved :: MIT License',
                  'Intended Audience :: Developers']
 )

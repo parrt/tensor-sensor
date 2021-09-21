@@ -17,12 +17,13 @@ import tsensor
 
 W = torch.rand(size=(2000,2000))
 b = torch.rand(size=(2000,1))
-h = torch.rand(size=(1_000_000,))
 x = torch.rand(size=(2000,1))
+h = torch.rand(size=(1_000_000,))
 
-with tsensor.explain(savefig="/tmp/blort"): # save foo-1.svg and foo-2.svg in /tmp
-    a = torch.relu(x)
-    b = W @ b + x * 3 + h.dot(h)
+with tsensor.clarify():
+    b = h.dot(h) @ W
+
+#e.show()
 exit()
 
 def foo():

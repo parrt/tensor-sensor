@@ -32,6 +32,7 @@ import matplotlib.pyplot as plt
 
 import tsensor
 
+
 class clarify:
     # Prevent nested clarify() calls from processing exceptions.
     # See https://github.com/parrt/tensor-sensor/issues/18
@@ -314,7 +315,7 @@ class ExplainTensorTracer:
             return
 
         # Don't generate a statement visualization more than once
-        h = self.hash(code)
+        h = hash(code)
         if h in self.done:
             return
         self.done.add(h)
@@ -349,7 +350,8 @@ class ExplainTensorTracer:
             view.show()
         return view
 
-    def hash(self, statement):
+    @staticmethod
+    def hash(statement):
         """
         We want to avoid generating a visualization more than once.
         For now, assume that the code for a statement is the unique identifier.
