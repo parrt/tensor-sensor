@@ -43,7 +43,7 @@ class clarify:
     nesting = 0
 
     def __init__(self,
-                 fontname='Consolas', fontsize=13,
+                 fontname=('Consolas', 'DejaVu Sans Mono'), fontsize=13,
                  dimfontname='Arial', dimfontsize=9, matrixcolor="#cfe2d4",
                  vectorcolor="#fefecd", char_sep_scale=1.8, fontcolor='#444443',
                  underline_color='#C2C2C2', ignored_color='#B4B4B4', error_op_color='#A40227',
@@ -155,7 +155,7 @@ class clarify:
 
 class explain:
     def __init__(self,
-                 fontname='Consolas', fontsize=13,
+                 fontname=('Consolas', 'DejaVu Sans Mono'), fontsize=13,
                  dimfontname='Arial', dimfontsize=9, matrixcolor="#cfe2d4",
                  vectorcolor="#fefecd", char_sep_scale=1.8, fontcolor='#444443',
                  underline_color='#C2C2C2', ignored_color='#B4B4B4', error_op_color='#A40227',
