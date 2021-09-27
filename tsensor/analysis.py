@@ -501,11 +501,19 @@ def istensor(x):
 
 def _dtype(v) -> str:
     if hasattr(v, "dtype"):
-        if v.dtype.__class__.__module__ == "torch":
-            # ugly but works
-            return str(v.dtype).replace("torch.", "")
-        return v.dtype.name
-    return None
+        dtype = v.dtype
+    elif "dtype" in v.__class__.__name__:
+        dtype = v
+    else:
+        return None
+
+    if dtype.__class__.__module__ == "torch":
+        # ugly but works
+        return str(dtype).replace("torch.", "")
+    if hasattr(dtype, "names") and dtype.names is not None and hasattr(dtype, "fields"):
+        # structured dtype: https://numpy.org/devdocs/user/basics.rec.html
+        return ",".join([_dtype(val) for val, _ in dtype.fields.values()])
+    return dtype.name
 
 
 def _shape(v):
