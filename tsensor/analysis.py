@@ -48,7 +48,7 @@ class clarify:
                  vectorcolor="#fefecd", char_sep_scale=1.8, fontcolor='#444443',
                  underline_color='#C2C2C2', ignored_color='#B4B4B4', error_op_color='#A40227',
                  show:(None,'viz')='viz',
-                 hush_errors=True, dtypes=False):
+                 hush_errors=True, dtypes=False, legend=True):
         """
         Augment tensor-related exceptions generated from numpy, pytorch, and tensorflow.
         Also display a visual representation of the offending Python line that
@@ -109,16 +109,17 @@ class clarify:
                             unhandled code caught by my parser are ignored. Turn this off
                             to see what the error messages are coming from my parser.
         :param show: Show visualization upon tensor error if show='viz'.
-        :param dtypes: Display the matrix elementwise type below the vector/matrix (default: False).
+        :param dtypes: Display the matrix element-wise type below the vector/matrix (default: False).
+        :param legend: Display color legend
         """
         self.show, self.fontname, self.fontsize, self.dimfontname, self.dimfontsize, \
         self.matrixcolor, self.vectorcolor, self.char_sep_scale,\
         self.fontcolor, self.underline_color, self.ignored_color, \
-        self.error_op_color, self.hush_errors, self.dtypes = \
+        self.error_op_color, self.hush_errors, self.dtypes, self.legend = \
             show, fontname, fontsize, dimfontname, dimfontsize, \
             matrixcolor, vectorcolor, char_sep_scale, \
             fontcolor, underline_color, ignored_color, error_op_color, hush_errors, \
-            dtypes
+            dtypes,legend
 
     def __enter__(self):
         self.frame = sys._getframe().f_back # where do we start tracking? Hmm...not sure we use this
@@ -148,7 +149,8 @@ class clarify:
                                               self.underline_color, self.ignored_color,
                                               self.error_op_color,
                                               hush_errors=self.hush_errors,
-                                              dtypes=self.dtypes)
+                                              dtypes=self.dtypes,
+                                              legend=self.legend)
                 if self.view is not None: # Ignore if we can't process code causing exception (I use a subparser)
                     if self.show=='viz':
                         self.view.show()
@@ -161,7 +163,7 @@ class explain:
                  dimfontname='Arial', dimfontsize=9, matrixcolor="#cfe2d4",
                  vectorcolor="#fefecd", char_sep_scale=1.8, fontcolor='#444443',
                  underline_color='#C2C2C2', ignored_color='#B4B4B4', error_op_color='#A40227',
-                 savefig=None, hush_errors=True, dtypes=False):
+                 savefig=None, hush_errors=True, dtypes=False, legend=True):
         """
         As the Python virtual machine executes lines of code, generate a
         visualization for tensor-related expressions using from numpy, pytorch,
@@ -230,16 +232,17 @@ class explain:
                             to see what the error messages are coming from my parser.
         :param savefig: A string indicating where to save the visualization; don't save
                         a file if None.
-        :param dtypes: Display the matrix elementwise type below the vector/matrix (default: False).
+        :param dtypes: Display the matrix element-wise type below the vector/matrix (default: False).
+        :param legend: Display color legend
         """
         self.savefig, self.fontname, self.fontsize, self.dimfontname, self.dimfontsize, \
         self.matrixcolor, self.vectorcolor, self.char_sep_scale,\
         self.fontcolor, self.underline_color, self.ignored_color, \
-        self.error_op_color, self.hush_errors, self.dtypes = \
+        self.error_op_color, self.hush_errors, self.dtypes, self.legend = \
             savefig, fontname, fontsize, dimfontname, dimfontsize, \
             matrixcolor, vectorcolor, char_sep_scale, \
             fontcolor, underline_color, ignored_color, error_op_color, hush_errors, \
-            dtypes
+            dtypes, legend
 
     def __enter__(self):
         # print("ON trace", sys._getframe())
@@ -342,7 +345,8 @@ class ExplainTensorTracer:
                                  self.explainer.underline_color, self.explainer.ignored_color,
                                  self.explainer.error_op_color,
                                  hush_errors=self.explainer.hush_errors,
-                                 dtypes=self.explainer.dtypes)
+                                 dtypes=self.explainer.dtypes,
+                                 legend=self.explainer.legend)
         self.views.append(view)
         if self.explainer.savefig is not None:
             file_path = Path(self.explainer.savefig)
