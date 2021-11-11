@@ -46,7 +46,22 @@ class PyVizView:
     with visual annotations.
     """
     def __init__(self, statement, fontname, fontsize, dimfontname, dimfontsize,
-                 matrixcolor, vectorcolor, char_sep_scale, dpi, dtypes):
+                 matrixcolor, vectorcolor, char_sep_scale, dpi, dtypes, dtype_colors=None):
+        if dtype_colors is None:
+            # based on tab20c
+            dtype_colors = [
+                ('#ffffcc', '#f2eb9d', '#f2e56d', '#f2c230'),  # yellows (custom)
+                ('#c7e9c0', '#a1d99b', '#74c476', '#31a354'),  # greens
+                ('#c6dbef', '#9ecae1', '#6baed6', '#3182bd'),  # blues
+                ('#dadaeb', '#bcbddc', '#9e9ac8', '#756bb1'),  # purples
+                ('#fdd0a2', '#fdae6b', '#fd8d3c', '#e6550d'),  # oranges
+                ('#d9d9d9', '#bdbdbd', '#969696', '#636363'),  # greys
+            ]
+
+        if not isinstance(dtype_colors, list) or (len(dtype_colors) > 0 and not isinstance(dtype_colors[0], tuple)):
+            raise TypeError(
+                "dtype_colors should be a list of tuples (corresponding with dtype names and precision)."
+            )
         self.statement = statement
         self.fontsize = fontsize
         self.fontname = fontname
@@ -57,6 +72,9 @@ class PyVizView:
         self.char_sep_scale = char_sep_scale
         self.dpi = dpi
         self.dtypes = dtypes
+        self.dtype_colors = dtype_colors
+        self._dtype_name2color = {}
+        self._dtype_precision2color = {}
         self.wchar = self.char_sep_scale * self.fontsize
         self.hchar = self.char_sep_scale * self.fontsize
         self.dim_ypadding = 5
@@ -71,6 +89,62 @@ class PyVizView:
         self.cause = None # Did an exception occurred during evaluation?
         self.offending_expr = None
         self.fignumber = None
+
+    def get_shape_color(self, shape):
+        """Get color based on shape. Current logic distinguishes vector/N-d tensor."""
+        if shape == 1:
+            return self.vectorcolor
+        elif shape > 1:
+            return self.matrixcolor
+        else:
+            raise ValueError("Empty shape unsupported.")
+
+    @staticmethod
+    def _split_dtype_precision(s):
+        """Split the final integer part from a string"""
+        head = s.rstrip('0123456789')
+        tail = s[len(head):]
+        return head, tail
+
+    def _get_dtype_color_indices(self, dtype_name, dtype_precision):
+        if dtype_name not in self._dtype_name2color:
+            if len(self._dtype_name2color) == 0:
+                next_value = 0
+            else:
+                next_value = max(self._dtype_name2color.values()) + 1
+            self._dtype_name2color[dtype_name] = next_value
+            self._dtype_precision2color[dtype_name] = {}
+
+        name_idx = self._dtype_name2color[dtype_name]
+
+        if dtype_precision not in self._dtype_precision2color[dtype_name]:
+            if len(self._dtype_precision2color[dtype_name]) == 0:
+                next_value = 0
+            else:
+                next_value = max(self._dtype_precision2color[dtype_name].values()) + 1
+            self._dtype_precision2color[dtype_name][dtype_precision] = next_value
+
+        precision_idx = self._dtype_precision2color[dtype_name][dtype_precision]
+        return name_idx, precision_idx
+
+    def get_dtype_legend_patches(self):
+        labels, colors = [], []
+        for k1, v in self._dtype_precision2color.items():
+            for k2 in v.keys():
+                name = f"{k1}{k2}"
+                labels.append(name)
+                colors.append(self.get_dtype_color(name))
+        return labels, colors
+
+    def get_shape_legend_patches(self):
+        labels, colors = ["vector", "matrix"], [self.vectorcolor, self.matrixcolor]
+        return labels, colors
+
+    def get_dtype_color(self, dtype):
+        """Get color based on dtype. """
+        dtype_name, dtype_precision = self._split_dtype_precision(dtype)
+        name_idx, precision_idx = self._get_dtype_color_indices(dtype_name, dtype_precision)
+        return self.dtype_colors[name_idx][precision_idx]
 
     def set_locations(self, maxh):
         """
@@ -154,13 +228,12 @@ class PyVizView:
         elif len(sh) > 1 and sh[0] == 1 and sh[1] == 1:
             # A special case where we have a 1x1 matrix extending into the screen.
             # Make the 1x1 part a little bit wider than a vector so it's more readable
-            return (2*self.vector_size_scaler * self.wchar, 2*self.vector_size_scaler * self.wchar)
+            return 2 * self.vector_size_scaler * self.wchar, 2 * self.vector_size_scaler * self.wchar
         elif len(sh) > 1 and sh[1] == 1:
-            return (
-            self.vector_size_scaler * self.wchar, self.matrix_size_scaler * self.wchar)
+            return self.vector_size_scaler * self.wchar, self.matrix_size_scaler * self.wchar
         elif len(sh)>1 and sh[0]==1:
-            return (self.matrix_size_scaler * self.wchar, self.vector_size_scaler * self.wchar)
-        return (self.matrix_size_scaler * self.wchar, self.matrix_size_scaler * self.wchar)
+            return self.matrix_size_scaler * self.wchar, self.vector_size_scaler * self.wchar
+        return self.matrix_size_scaler * self.wchar, self.matrix_size_scaler * self.wchar
 
     def vector_size(self, sh):
         """
@@ -168,7 +241,7 @@ class PyVizView:
         we make a row vector with same width as a matrix but height of just one char.
         For consistency with matrix_size(), I pass in shape, though it's ignored.
         """
-        return (self.matrix_size_scaler * self.wchar, self.vector_size_scaler * self.wchar)
+        return self.matrix_size_scaler * self.wchar, self.vector_size_scaler * self.wchar
 
     def draw(self, ax, sub):
         sh = tsensor.analysis._shape(sub.value)
@@ -181,11 +254,15 @@ class PyVizView:
     def draw_vector(self,ax,sub, sh, ty: str):
         mid = (sub.leftx + sub.rightx) / 2
         w,h = self.vector_size(sh)
+        if not self.dtypes:
+            color = self.get_shape_color(1)
+        else:
+            color = self.get_dtype_color(ty)
         rect1 = patches.Rectangle(xy=(mid - w/2, self.box_topy-h),
                                   width=w,
                                   height=h,
                                   linewidth=self.linewidth,
-                                  facecolor=self.vectorcolor,
+                                  facecolor=color,
                                   edgecolor='grey',
                                   fill=True)
         ax.add_patch(rect1)
@@ -195,22 +272,21 @@ class PyVizView:
                 horizontalalignment='center',
                 fontname=self.dimfontname, fontsize=self.dimfontsize)
 
-        if self.dtypes:
-            # Text below vector rectangle
-            ax.text(mid, self.box_topy - h - self.dim_ypadding, ty,
-                    verticalalignment='top', horizontalalignment='center',
-                    fontname=self.dimfontname, fontsize=self.dimfontsize)
-
     def draw_matrix(self,ax,sub, sh, ty):
         mid = (sub.leftx + sub.rightx) / 2
         w,h = self.matrix_size(sh)
         box_left = mid - w / 2
-        if len(sh) >2:
+        if not self.dtypes:
+            color = self.get_shape_color(len(sh))
+        else:
+            color = self.get_dtype_color(ty)
+
+        if len(sh) > 2:
             back_rect = patches.Rectangle(xy=(box_left + self.shift3D, self.box_topy - h + self.shift3D),
                                           width=w,
                                           height=h,
                                           linewidth=self.linewidth,
-                                          facecolor=self.matrixcolor,
+                                          facecolor=color,
                                           edgecolor='grey',
                                           fill=True)
             ax.add_patch(back_rect)
@@ -218,7 +294,7 @@ class PyVizView:
                                   width=w,
                                   height=h,
                                   linewidth=self.linewidth,
-                                  facecolor=self.matrixcolor,
+                                  facecolor=color,
                                   edgecolor='grey',
                                   fill=True)
         ax.add_patch(rect)
@@ -228,33 +304,29 @@ class PyVizView:
                 verticalalignment='center', horizontalalignment='right',
                 fontname=self.dimfontname, fontsize=self.dimfontsize, rotation=90)
 
-        # Note: always true since matrix...
-        if len(sh)>1:
-            textx = mid
-            texty = self.box_topy + self.dim_ypadding
-            if len(sh) > 2:
-                texty += self.dim_ypadding
-                textx += self.shift3D
+        # Note: this was always true since matrix...
+        # if len(sh) > 1:
+        textx = mid
+        texty = self.box_topy + self.dim_ypadding
+        if len(sh) > 2:
+            texty += self.dim_ypadding
+            textx += self.shift3D
 
-            # Text to the left
-            ax.text(textx, texty, self.nabbrev(sh[1]), horizontalalignment='center',
-                    fontname=self.dimfontname, fontsize=self.dimfontsize)
-        if len(sh)>2:
+        # Text to the left
+        ax.text(textx, texty, self.nabbrev(sh[1]), horizontalalignment='center',
+                fontname=self.dimfontname, fontsize=self.dimfontsize)
+
+        if len(sh) > 2:
             # Text to the right
             ax.text(box_left+w, self.box_topy - h/2, self.nabbrev(sh[2]),
                     verticalalignment='center', horizontalalignment='right',
                     fontname=self.dimfontname, fontsize=self.dimfontsize,
                     rotation=45)
-        if len(sh)>3:
+
+        if len(sh) > 3:
             # Text below
             remaining = r"$\cdots\mathsf{x}$"+r"$\mathsf{x}$".join([self.nabbrev(sh[i]) for i in range(3,len(sh))])
             ax.text(mid, self.box_topy - h - self.dim_ypadding, remaining,
-                    verticalalignment='top', horizontalalignment='center',
-                    fontname=self.dimfontname, fontsize=self.dimfontsize)
-
-        if self.dtypes:
-            # Text below, second line
-            ax.text(mid, self.box_topy - h - self.box2line - self.dim_ypadding, ty,
                     verticalalignment='top', horizontalalignment='center',
                     fontname=self.dimfontname, fontsize=self.dimfontsize)
 
@@ -272,7 +344,7 @@ def pyviz(statement: str, frame=None,
           dimfontname='Arial', dimfontsize=9, matrixcolor="#cfe2d4",
           vectorcolor="#fefecd", char_sep_scale=1.8, fontcolor='#444443',
           underline_color='#C2C2C2', ignored_color='#B4B4B4', error_op_color='#A40227',
-          ax=None, dpi=200, hush_errors=True, dtypes=False) -> PyVizView:
+          ax=None, dpi=200, hush_errors=True, dtypes=False, legend=True) -> PyVizView:
     """
     Parse and evaluate the Python code in the statement string passed in using
     the indicated execution frame. The execution frame of the invoking function
@@ -313,7 +385,7 @@ def pyviz(statement: str, frame=None,
                            when you change the font size.
     :param fontcolor:  The color of the Python code.
     :param underline_color:  The color of the lines that underscore tensor subexpressions; default is grey
-    :param ignored_color: The de-highlighted color for deemphasizing code not involved in an erroneous sub expression
+    :param ignored_color: The de-highlighted color for de-emphasizing code not involved in an erroneous sub expression
     :param error_op_color: The color to use for characters associated with the erroneous operator
     :param ax: If not none, this is the matplotlib drawing region in which to draw the visualization
     :param dpi: This library tries to generate SVG files, which are vector graphics not
@@ -325,7 +397,7 @@ def pyviz(statement: str, frame=None,
     :param hush_errors: Normally, error messages from true syntax errors but also
                         unhandled code caught by my parser are ignored. Turn this off
                         to see what the error messages are coming from my parser.
-    :param dtypes: Display the matrix elementwise type below the vector/matrix (default: False).
+    :param dtypes: Display the matrix element-wise type below the vector/matrix (default: False).
     :return: Returns a PyVizView holding info about the visualization; from a notebook
              an SVG image will appear. Return none upon parsing error in statement.
     """
@@ -352,13 +424,6 @@ def pyviz(statement: str, frame=None,
         # an exception will be thrown at that time. Then explain/clarify
         # will update the error message
     subexprs = tsensor.analysis.smallest_matrix_subexpr(root_to_viz)
-
-    # print(statement) # For debugging
-    # for i in range(8):
-    #     for j in range(10):
-    #         print(j,end='')
-    # print()
-
     if ax is None:
         fig, ax = plt.subplots(1, 1, dpi=dpi)
     else:
@@ -431,12 +496,24 @@ def pyviz(statement: str, frame=None,
         view.draw(ax, sub)
 
     fig_width = charx[-1] + view.wchar + rpad[-1]
-    fig_width_inches = (fig_width) / dpi
+    fig_width_inches = fig_width / dpi
     fig_height_inches = view.maxy / dpi
     fig.set_size_inches(fig_width_inches, fig_height_inches)
 
-    ax.set_xlim(0, (fig_width))
+    ax.set_xlim(0, fig_width)
     ax.set_ylim(0, view.maxy)
+
+    if legend:
+        if view.dtypes:
+            labels, colors = view.get_dtype_legend_patches()
+        else:
+            labels, colors = view.get_shape_legend_patches()
+        legend_patches = [
+            patches.Patch(facecolor=c, label=l, edgecolor='grey')
+            for c, l in zip(colors, labels)
+        ]
+        leg = plt.figlegend(legend_patches, labels, loc='lower right', fontsize=6)
+        ax.add_artist(leg)
 
     return view
 
