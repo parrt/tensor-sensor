@@ -46,7 +46,7 @@ class PyVizView:
     with visual annotations.
     """
     def __init__(self, statement, fontname, fontsize, dimfontname, dimfontsize,
-                 matrixcolor, vectorcolor, char_sep_scale, dpi, dtypes, dtype_colors=None):
+                 matrixcolor, vectorcolor, char_sep_scale, dpi, dtypes, dtype_colors=None, legend=True):
         if dtype_colors is None:
             # based on tab20c
             dtype_colors = [
@@ -75,6 +75,7 @@ class PyVizView:
         self.dtype_colors = dtype_colors
         self._dtype_name2color = {}
         self._dtype_precision2color = {}
+        self.legend = legend
         self.wchar = self.char_sep_scale * self.fontsize
         self.hchar = self.char_sep_scale * self.fontsize
         self.dim_ypadding = 5
@@ -156,10 +157,10 @@ class PyVizView:
         That is why this is a separate function not part of the constructor.
         """
         line2text = self.hchar / 1.7
-        self.box2line  = line2text*2.6
+        self.box2line = line2text*2.6
         self.texty = self.bottomedge + maxh + self.box2line + line2text
         self.liney = self.bottomedge + maxh + self.box2line
-        self.box_topy  = self.bottomedge + maxh
+        self.box_topy = self.bottomedge + maxh
         self.maxy = self.texty + 1.4 * self.fontsize
 
     def _repr_svg_(self):
@@ -183,7 +184,7 @@ class PyVizView:
         if plt.fignum_exists(self.fignumber):
             # If the matplotlib figure is still active, save it
             self.filename = filename # Remember the file so we can pull it back
-            plt.savefig(filename, dpi = self.dpi, bbox_inches = 'tight', pad_inches = 0)
+            plt.savefig(filename, dpi=self.dpi, bbox_inches='tight', pad_inches=0)
         else: # we have already closed it so try to copy to new filename from the previous
             if filename!=self.filename:
                 f,ext = os.path.splitext(filename)
@@ -344,7 +345,7 @@ def pyviz(statement: str, frame=None,
           dimfontname='Arial', dimfontsize=9, matrixcolor="#cfe2d4",
           vectorcolor="#fefecd", char_sep_scale=1.8, fontcolor='#444443',
           underline_color='#C2C2C2', ignored_color='#B4B4B4', error_op_color='#A40227',
-          ax=None, dpi=200, hush_errors=True, dtypes=False, legend=True) -> PyVizView:
+          ax=None, dpi=200, hush_errors=True, dtypes=False, dtype_colors=None, legend=True) -> PyVizView:
     """
     Parse and evaluate the Python code in the statement string passed in using
     the indicated execution frame. The execution frame of the invoking function
@@ -398,11 +399,12 @@ def pyviz(statement: str, frame=None,
                         unhandled code caught by my parser are ignored. Turn this off
                         to see what the error messages are coming from my parser.
     :param dtypes: Display the matrix element-wise type below the vector/matrix (default: False).
+    :param dtype_colors: list of tuples for colors of dtypes (corresponding to dtype name and precision)
     :return: Returns a PyVizView holding info about the visualization; from a notebook
              an SVG image will appear. Return none upon parsing error in statement.
     """
     view = PyVizView(statement, fontname, fontsize, dimfontname, dimfontsize, matrixcolor,
-                     vectorcolor, char_sep_scale, dpi, dtypes)
+                     vectorcolor, char_sep_scale, dpi, dtypes, dtype_colors, legend)
 
     if frame is None: # use frame of caller if not passed in
         frame = sys._getframe().f_back
@@ -503,7 +505,7 @@ def pyviz(statement: str, frame=None,
     ax.set_xlim(0, fig_width)
     ax.set_ylim(0, view.maxy)
 
-    if legend:
+    if view.legend:
         if view.dtypes:
             labels, colors = view.get_dtype_legend_patches()
         else:
@@ -512,8 +514,8 @@ def pyviz(statement: str, frame=None,
             patches.Patch(facecolor=c, label=l, edgecolor='grey')
             for c, l in zip(colors, labels)
         ]
-        leg = plt.figlegend(legend_patches, labels, loc='lower right', fontsize=6)
-        ax.add_artist(leg)
+        view.legend = fig.legend(legend_patches, labels, loc='center left', fontsize=8, bbox_to_anchor=(1, 0.5))
+        ax.add_artist(view.legend)
 
     return view
 
@@ -529,8 +531,7 @@ class QuietGraphvizWrapper(graphviz.Source):
 
     def savefig(self, filename):
         path = Path(filename)
-        if not path.parent.exists:
-            os.makedirs(path.parent)
+        path.parent.mkdir(exist_ok=True)
 
         dotfilename = self.save(directory=path.parent.as_posix(), filename=path.stem)
         format = path.suffix[1:]  # ".svg" -> "svg" etc...
