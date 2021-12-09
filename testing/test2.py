@@ -8,7 +8,7 @@ x = torch.tensor([4, 5], dtype=torch.int32).reshape(2, 1)
 h = torch.tensor([1,2])
 
 with tsensor.explain(legend=True, savefig="/Users/parrt/Desktop/t2.pdf"):
-    W @ torch.eye(2, 2)
+    torch.rand(size=(2,20,2000,10))
 
-with tsensor.explain(legend=True, savefig="/Users/parrt/Desktop/t.pdf") as e:
-    W @ torch.dot(b, b) + torch.eye(2, 2) @ x
+# with tsensor.explain(legend=True, savefig="/Users/parrt/Desktop/t.pdf") as e:
+#     W @ torch.dot(b, b) + torch.eye(2, 2) @ x

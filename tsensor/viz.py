@@ -150,9 +150,9 @@ class PyVizView:
         That is why this is a separate function not part of the constructor.
         """
         line2text = self.hchar / 1.7
-        self.box2line = line2text*2.6
-        self.texty = self.bottomedge + maxh + self.box2line + line2text
-        self.liney = self.bottomedge + maxh + self.box2line
+        box2line = line2text*2.6
+        self.texty = self.bottomedge + maxh + box2line + line2text
+        self.liney = self.bottomedge + maxh + box2line
         self.box_topy = self.bottomedge + maxh
         self.maxy = self.texty + 1.4 * self.fontsize
 
@@ -294,7 +294,6 @@ class PyVizView:
                 fontname=self.dimfontname, fontsize=self.dimfontsize, rotation=90)
 
         # Note: this was always true since matrix...
-        # if len(sh) > 1:
         textx = mid
         texty = self.box_topy + self.dim_ypadding
         if len(sh) > 2:
@@ -308,7 +307,7 @@ class PyVizView:
         if len(sh) > 2:
             # Text to the right
             ax.text(box_left+w, self.box_topy - h/2, self.nabbrev(sh[2]),
-                    verticalalignment='center', horizontalalignment='right',
+                    verticalalignment='center', horizontalalignment='center',
                     fontname=self.dimfontname, fontsize=self.dimfontsize,
                     rotation=45)
 
