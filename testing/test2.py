@@ -1,16 +1,11 @@
-import torch
+import numpy as np
 import tsensor
-nhidden = 256
-n = 200         # number of instances
-d = 764         # number of instance features
-n_neurons = 100 # how many neurons in this layer?
+import torch
 
-Whh_ = torch.eye(nhidden, nhidden)
-Uxh_ = torch.randn(nhidden, d)
-bh_  = torch.zeros(nhidden, 1)
-h = torch.randn(nhidden, 1)  # fake previous hidden state h
-r = torch.randn(nhidden, 1)  # fake this computation
-X = torch.rand(n,d)          # fake input
+W = torch.tensor([[1, 2], [3, 4]])
+b = torch.tensor([9, 10], dtype=int).reshape(2, 1)
+x = torch.tensor([4, 5]).reshape(2, 1)
+h = torch.tensor([1,2])
 
-g = tsensor.astviz("h_ = torch.tanh(Whh_ @ (r*h) + Uxh_ @ X.T + bh_)")
-g.savefig("/tmp/torch-gru-ast-shapes.svg")
+with tsensor.clarify(legend=True):
+    W @ torch.dot(b, b) + torch.eye(2, 2) @ x

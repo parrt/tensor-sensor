@@ -46,7 +46,7 @@ class PyVizView:
     with visual annotations.
     """
     def __init__(self, statement, fontname, fontsize, dimfontname, dimfontsize,
-                 matrixcolor, vectorcolor, char_sep_scale, dpi, dtypes, dtype_colors=None, legend=True):
+                 matrixcolor, vectorcolor, char_sep_scale, dpi, dtype_colors=None, legend=False):
         if dtype_colors is None:
             # based on tab20c
             dtype_colors = [
@@ -71,7 +71,6 @@ class PyVizView:
         self.vectorcolor = vectorcolor
         self.char_sep_scale = char_sep_scale
         self.dpi = dpi
-        self.dtypes = dtypes
         self.dtype_colors = dtype_colors
         self._dtype_name2color = {}
         self._dtype_precision2color = {}
@@ -90,15 +89,6 @@ class PyVizView:
         self.cause = None # Did an exception occurred during evaluation?
         self.offending_expr = None
         self.fignumber = None
-
-    def get_shape_color(self, shape):
-        """Get color based on shape. Current logic distinguishes vector/N-d tensor."""
-        if shape == 1:
-            return self.vectorcolor
-        elif shape > 1:
-            return self.matrixcolor
-        else:
-            raise ValueError("Empty shape unsupported.")
 
     @staticmethod
     def _split_dtype_precision(s):
@@ -135,10 +125,6 @@ class PyVizView:
                 name = f"{k1}{k2}"
                 labels.append(name)
                 colors.append(self.get_dtype_color(name))
-        return labels, colors
-
-    def get_shape_legend_patches(self):
-        labels, colors = ["vector", "matrix"], [self.vectorcolor, self.matrixcolor]
         return labels, colors
 
     def get_dtype_color(self, dtype):
@@ -255,10 +241,7 @@ class PyVizView:
     def draw_vector(self,ax,sub, sh, ty: str):
         mid = (sub.leftx + sub.rightx) / 2
         w,h = self.vector_size(sh)
-        if not self.dtypes:
-            color = self.get_shape_color(1)
-        else:
-            color = self.get_dtype_color(ty)
+        color = self.get_dtype_color(ty)
         rect1 = patches.Rectangle(xy=(mid - w/2, self.box_topy-h),
                                   width=w,
                                   height=h,
@@ -277,10 +260,7 @@ class PyVizView:
         mid = (sub.leftx + sub.rightx) / 2
         w,h = self.matrix_size(sh)
         box_left = mid - w / 2
-        if not self.dtypes:
-            color = self.get_shape_color(len(sh))
-        else:
-            color = self.get_dtype_color(ty)
+        color = self.get_dtype_color(ty)
 
         if len(sh) > 2:
             back_rect = patches.Rectangle(xy=(box_left + self.shift3D, self.box_topy - h + self.shift3D),
@@ -345,7 +325,7 @@ def pyviz(statement: str, frame=None,
           dimfontname='Arial', dimfontsize=9, matrixcolor="#cfe2d4",
           vectorcolor="#fefecd", char_sep_scale=1.8, fontcolor='#444443',
           underline_color='#C2C2C2', ignored_color='#B4B4B4', error_op_color='#A40227',
-          ax=None, dpi=200, hush_errors=True, dtypes=False, dtype_colors=None, legend=True) -> PyVizView:
+          ax=None, dpi=200, hush_errors=True, dtype_colors=None, legend=False) -> PyVizView:
     """
     Parse and evaluate the Python code in the statement string passed in using
     the indicated execution frame. The execution frame of the invoking function
@@ -398,13 +378,12 @@ def pyviz(statement: str, frame=None,
     :param hush_errors: Normally, error messages from true syntax errors but also
                         unhandled code caught by my parser are ignored. Turn this off
                         to see what the error messages are coming from my parser.
-    :param dtypes: Display the matrix element-wise type below the vector/matrix (default: False).
     :param dtype_colors: list of tuples for colors of dtypes (corresponding to dtype name and precision)
     :return: Returns a PyVizView holding info about the visualization; from a notebook
              an SVG image will appear. Return none upon parsing error in statement.
     """
     view = PyVizView(statement, fontname, fontsize, dimfontname, dimfontsize, matrixcolor,
-                     vectorcolor, char_sep_scale, dpi, dtypes, dtype_colors, legend)
+                     vectorcolor, char_sep_scale, dpi, dtype_colors, legend)
 
     if frame is None: # use frame of caller if not passed in
         frame = sys._getframe().f_back
@@ -506,10 +485,7 @@ def pyviz(statement: str, frame=None,
     ax.set_ylim(0, view.maxy)
 
     if view.legend:
-        if view.dtypes:
-            labels, colors = view.get_dtype_legend_patches()
-        else:
-            labels, colors = view.get_shape_legend_patches()
+        labels, colors = view.get_dtype_legend_patches()
         legend_patches = [
             patches.Patch(facecolor=c, label=l, edgecolor='grey')
             for c, l in zip(colors, labels)
