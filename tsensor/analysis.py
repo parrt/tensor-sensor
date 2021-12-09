@@ -48,7 +48,9 @@ class clarify:
                  vectorcolor="#fefecd", char_sep_scale=1.8, fontcolor='#444443',
                  underline_color='#C2C2C2', ignored_color='#B4B4B4', error_op_color='#A40227',
                  show:(None,'viz')='viz',
-                 hush_errors=True, dtype_colors=None, legend=False):
+                 hush_errors=True,
+                 dtype_colors=None, dtype_precisions=None,
+                 dtype_alpha_range=None, legend=False):
         """
         Augment tensor-related exceptions generated from numpy, pytorch, and tensorflow.
         Also display a visual representation of the offending Python line that
@@ -109,18 +111,24 @@ class clarify:
                             unhandled code caught by my parser are ignored. Turn this off
                             to see what the error messages are coming from my parser.
         :param show: Show visualization upon tensor error if show='viz'.
-        :param dtype_colors: list of tuples for colors of dtypes (corresponding to dtype name and precision)
-        :param legend: Display color legend for matrix element-wise types
+        :param dtype_colors: map from dtype w/o precision like 'int' to color
+        :param dtype_precisions: list of bit precisions to colorize, such as [32,64,128]
+        :param dtype_alpha_range: all tensors of the same type are drawn to the same color,
+                                  and the alpha channel is used to show precision; the
+                                  smaller the bit size, the lower the alpha channel. You
+                                  can play with the range to get better visual dynamic range
+                                  depending on how many precisions you want to display.
+        :param legend: boolean: should a legend for the types encountered be presented?
         """
         self.show, self.fontname, self.fontsize, self.dimfontname, self.dimfontsize, \
         self.matrixcolor, self.vectorcolor, self.char_sep_scale,\
         self.fontcolor, self.underline_color, self.ignored_color, \
         self.error_op_color, self.hush_errors, \
-        self.dtype_colors, self.legend = \
+        self.dtype_colors, self.dtype_precisions, self.dtype_alpha_range, self.legend = \
             show, fontname, fontsize, dimfontname, dimfontsize, \
             matrixcolor, vectorcolor, char_sep_scale, \
             fontcolor, underline_color, ignored_color, error_op_color, hush_errors, \
-            dtype_colors, legend
+            dtype_colors, dtype_precisions, dtype_alpha_range, legend
 
     def __enter__(self):
         self.frame = sys._getframe().f_back # where do we start tracking? Hmm...not sure we use this
@@ -164,7 +172,9 @@ class explain:
                  dimfontname='Arial', dimfontsize=9, matrixcolor="#cfe2d4",
                  vectorcolor="#fefecd", char_sep_scale=1.8, fontcolor='#444443',
                  underline_color='#C2C2C2', ignored_color='#B4B4B4', error_op_color='#A40227',
-                 savefig=None, hush_errors=True, dtype_colors=None, legend=False):
+                 savefig=None, hush_errors=True,
+                 dtype_colors=None, dtype_precisions=None,
+                 dtype_alpha_range=None, legend=False):
         """
         As the Python virtual machine executes lines of code, generate a
         visualization for tensor-related expressions using from numpy, pytorch,
@@ -233,18 +243,24 @@ class explain:
                             to see what the error messages are coming from my parser.
         :param savefig: A string indicating where to save the visualization; don't save
                         a file if None.
-        :param dtype_colors: list of tuples for colors of dtypes (corresponding to dtype name and precision)
-        :param legend: Display color legend for matrix element-wise type
+        :param dtype_colors: map from dtype w/o precision like 'int' to color
+        :param dtype_precisions: list of bit precisions to colorize, such as [32,64,128]
+        :param dtype_alpha_range: all tensors of the same type are drawn to the same color,
+                                  and the alpha channel is used to show precision; the
+                                  smaller the bit size, the lower the alpha channel. You
+                                  can play with the range to get better visual dynamic range
+                                  depending on how many precisions you want to display.
+        :param legend: boolean: should a legend for the types encountered be presented?
         """
         self.savefig, self.fontname, self.fontsize, self.dimfontname, self.dimfontsize, \
         self.matrixcolor, self.vectorcolor, self.char_sep_scale,\
         self.fontcolor, self.underline_color, self.ignored_color, \
         self.error_op_color, self.hush_errors, \
-        self.dtype_colors, self.legend = \
+        self.dtype_colors, self.dtype_precisions, self.dtype_alpha_range, self.legend = \
             savefig, fontname, fontsize, dimfontname, dimfontsize, \
             matrixcolor, vectorcolor, char_sep_scale, \
             fontcolor, underline_color, ignored_color, error_op_color, hush_errors, \
-            dtype_colors, legend
+            dtype_colors, dtype_precisions, dtype_alpha_range, legend
 
     def __enter__(self):
         # print("ON trace", sys._getframe())
@@ -348,6 +364,8 @@ class ExplainTensorTracer:
                                  self.explainer.error_op_color,
                                  hush_errors=self.explainer.hush_errors,
                                  dtype_colors=self.explainer.dtype_colors,
+                                 dtype_precisions=self.explainer.dtype_precisions,
+                                 dtype_alpha_range=self.explainer.dtype_alpha_range,
                                  legend=self.explainer.legend)
         self.views.append(view)
         if self.explainer.savefig is not None:

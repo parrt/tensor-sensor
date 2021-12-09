@@ -2,10 +2,13 @@ import numpy as np
 import tsensor
 import torch
 
-W = torch.tensor([[1, 2], [3, 4]])
-b = torch.tensor([9, 10], dtype=int).reshape(2, 1)
-x = torch.tensor([4, 5]).reshape(2, 1)
+W = torch.tensor([[1, 2], [3, 4]], dtype=torch.float32)
+b = torch.tensor([9, 10]).reshape(2, 1)
+x = torch.tensor([4, 5], dtype=torch.int32).reshape(2, 1)
 h = torch.tensor([1,2])
 
-with tsensor.clarify(legend=True):
+with tsensor.explain(legend=True, savefig="/Users/parrt/Desktop/t2.pdf"):
+    W @ torch.eye(2, 2)
+
+with tsensor.explain(legend=True, savefig="/Users/parrt/Desktop/t.pdf") as e:
     W @ torch.dot(b, b) + torch.eye(2, 2) @ x

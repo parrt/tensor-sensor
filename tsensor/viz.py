@@ -30,6 +30,7 @@ import graphviz.backend
 import token
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
+import matplotlib.colors as mc
 from IPython.display import display, SVG
 from IPython import get_ipython
 
@@ -46,21 +47,24 @@ class PyVizView:
     with visual annotations.
     """
     def __init__(self, statement, fontname, fontsize, dimfontname, dimfontsize,
-                 matrixcolor, vectorcolor, char_sep_scale, dpi, dtype_colors=None, legend=False):
+                 matrixcolor, vectorcolor, char_sep_scale, dpi,
+                 dtype_colors=None, dtype_precisions=None,
+                 dtype_alpha_range=None, legend=False):
         if dtype_colors is None:
-            # based on tab20c
-            dtype_colors = [
-                ('#ffffcc', '#f2eb9d', '#f2e56d', '#f2c230'),  # yellows (custom)
-                ('#c7e9c0', '#a1d99b', '#74c476', '#31a354'),  # greens
-                ('#c6dbef', '#9ecae1', '#6baed6', '#3182bd'),  # blues
-                ('#dadaeb', '#bcbddc', '#9e9ac8', '#756bb1'),  # purples
-                ('#fdd0a2', '#fdae6b', '#fd8d3c', '#e6550d'),  # oranges
-                ('#d9d9d9', '#bdbdbd', '#969696', '#636363'),  # greys
-            ]
+            orangeish = '#FDD66C'
+            limeish = '#A8E1B0'
+            blueish = '#7FA4D3'
+            dtype_colors = {'float':limeish, 'int':blueish, 'complex':orangeish}
+        if dtype_precisions is None:
+            dtype_precisions = [4, 8, 16, 32, 64, 128]
+        if dtype_alpha_range is None:
+            dtype_alpha_range = (0.1, 1.0)
+        nshades = len(dtype_precisions)
 
-        if not isinstance(dtype_colors, list) or (len(dtype_colors) > 0 and not isinstance(dtype_colors[0], tuple)):
+        if not isinstance(dtype_colors, dict) or (len(dtype_colors) > 0 and \
+           not isinstance(list(dtype_colors.values())[0], str)):
             raise TypeError(
-                "dtype_colors should be a list of tuples (corresponding with dtype names and precision)."
+                "dtype_colors should be a dict mapping type name to color name or color hex RGB values."
             )
         self.statement = statement
         self.fontsize = fontsize
@@ -72,8 +76,12 @@ class PyVizView:
         self.char_sep_scale = char_sep_scale
         self.dpi = dpi
         self.dtype_colors = dtype_colors
-        self._dtype_name2color = {}
-        self._dtype_precision2color = {}
+        self.dtype_precisions = dtype_precisions
+        self._dtype_encountered = set() # which types, like 'int64', did we find in one plot?
+        self._dtype_shades = {}
+        for c, v in dtype_colors.items():
+            self._dtype_shades[c] = \
+                PyVizView._get_alpha_shades(v, n=nshades, alpha_range=dtype_alpha_range)
         self.legend = legend
         self.wchar = self.char_sep_scale * self.fontsize
         self.hchar = self.char_sep_scale * self.fontsize
@@ -91,47 +99,46 @@ class PyVizView:
         self.fignumber = None
 
     @staticmethod
+    def _get_alpha_shades(color, n=5, alpha_range=(0.1, 1.0)):
+        """
+        For a given color name or '#hex' rgb string, return a matrix with
+        n RGB+alpha rows. The alpha range is split into n values.  E.g.,
+        get_alpha_shades('#A8E1B0', n=5) returns:
+
+        [[0.65882353 0.88235294 0.69019608 0.1       ]
+         [0.65882353 0.88235294 0.69019608 0.325     ]
+         [0.65882353 0.88235294 0.69019608 0.55      ]
+         [0.65882353 0.88235294 0.69019608 0.775     ]
+         [0.65882353 0.88235294 0.69019608 1.        ]]
+        """
+        if color[0] != '#':
+            color = mc.cnames[color]
+        color = mc.hex2color(color) if color[0] == '#' else mc.cnames[color]
+        colors = np.array([color] * n)
+        alphas = np.linspace(*alpha_range, n).reshape(-1, 1)
+        colors = np.hstack([colors, alphas])
+        return colors
+
+    @staticmethod
     def _split_dtype_precision(s):
         """Split the final integer part from a string"""
         head = s.rstrip('0123456789')
         tail = s[len(head):]
         return head, tail
 
-    def _get_dtype_color_indices(self, dtype_name, dtype_precision):
-        if dtype_name not in self._dtype_name2color:
-            if len(self._dtype_name2color) == 0:
-                next_value = 0
-            else:
-                next_value = max(self._dtype_name2color.values()) + 1
-            self._dtype_name2color[dtype_name] = next_value
-            self._dtype_precision2color[dtype_name] = {}
-
-        name_idx = self._dtype_name2color[dtype_name]
-
-        if dtype_precision not in self._dtype_precision2color[dtype_name]:
-            if len(self._dtype_precision2color[dtype_name]) == 0:
-                next_value = 0
-            else:
-                next_value = max(self._dtype_precision2color[dtype_name].values()) + 1
-            self._dtype_precision2color[dtype_name][dtype_precision] = next_value
-
-        precision_idx = self._dtype_precision2color[dtype_name][dtype_precision]
-        return name_idx, precision_idx
-
     def get_dtype_legend_patches(self):
         labels, colors = [], []
-        for k1, v in self._dtype_precision2color.items():
-            for k2 in v.keys():
-                name = f"{k1}{k2}"
-                labels.append(name)
-                colors.append(self.get_dtype_color(name))
+        for name in self._dtype_encountered:
+            labels.append(name)
+            colors.append(self.get_dtype_color(name))
         return labels, colors
 
     def get_dtype_color(self, dtype):
-        """Get color based on dtype. """
+        """Get color based on type and precision."""
         dtype_name, dtype_precision = self._split_dtype_precision(dtype)
-        name_idx, precision_idx = self._get_dtype_color_indices(dtype_name, dtype_precision)
-        return self.dtype_colors[name_idx][precision_idx]
+        precision_idx = self.dtype_precisions.index(int(dtype_precision))
+        # TODO what if type or precision is not one of those given? make it gray or something
+        return self._dtype_shades[dtype_name][precision_idx]
 
     def set_locations(self, maxh):
         """
@@ -233,6 +240,7 @@ class PyVizView:
     def draw(self, ax, sub):
         sh = tsensor.analysis._shape(sub.value)
         ty = tsensor.analysis._dtype(sub.value)
+        self._dtype_encountered.add(ty)
         if len(sh) == 1:
             self.draw_vector(ax, sub, sh, ty)
         else:
@@ -325,7 +333,9 @@ def pyviz(statement: str, frame=None,
           dimfontname='Arial', dimfontsize=9, matrixcolor="#cfe2d4",
           vectorcolor="#fefecd", char_sep_scale=1.8, fontcolor='#444443',
           underline_color='#C2C2C2', ignored_color='#B4B4B4', error_op_color='#A40227',
-          ax=None, dpi=200, hush_errors=True, dtype_colors=None, legend=False) -> PyVizView:
+          ax=None, dpi=200, hush_errors=True,
+          dtype_colors=None, dtype_precisions=None,
+          dtype_alpha_range=None, legend=False) -> PyVizView:
     """
     Parse and evaluate the Python code in the statement string passed in using
     the indicated execution frame. The execution frame of the invoking function
@@ -378,12 +388,20 @@ def pyviz(statement: str, frame=None,
     :param hush_errors: Normally, error messages from true syntax errors but also
                         unhandled code caught by my parser are ignored. Turn this off
                         to see what the error messages are coming from my parser.
-    :param dtype_colors: list of tuples for colors of dtypes (corresponding to dtype name and precision)
+    :param dtype_colors: map from dtype w/o precision like 'int' to color
+    :param dtype_precisions: list of bit precisions to colorize, such as [32,64,128]
+    :param dtype_alpha_range: all tensors of the same type are drawn to the same color,
+                              and the alpha channel is used to show precision; the
+                              smaller the bit size, the lower the alpha channel. You
+                              can play with the range to get better visual dynamic range
+                              depending on how many precisions you want to display.
+    :param legend: boolean: should a legend for the types encountered be presented?
     :return: Returns a PyVizView holding info about the visualization; from a notebook
              an SVG image will appear. Return none upon parsing error in statement.
     """
     view = PyVizView(statement, fontname, fontsize, dimfontname, dimfontsize, matrixcolor,
-                     vectorcolor, char_sep_scale, dpi, dtype_colors, legend)
+                     vectorcolor, char_sep_scale, dpi,
+                     dtype_colors, dtype_precisions, dtype_alpha_range, legend)
 
     if frame is None: # use frame of caller if not passed in
         frame = sys._getframe().f_back
@@ -513,7 +531,10 @@ class QuietGraphvizWrapper(graphviz.Source):
         format = path.suffix[1:]  # ".svg" -> "svg" etc...
         cmd = ["dot", f"-T{format}", "-o", filename, dotfilename]
         # print(' '.join(cmd))
-        graphviz.backend.run(cmd, capture_output=True, check=True, quiet=False)
+        if graphviz.__version__ <= '0.17':
+            graphviz.backend.run(cmd, capture_output=True, check=True, quiet=False)
+        else:
+            graphviz.backend.execute.run_check(cmd, capture_output=True, check=True, quiet=False)
 
 
 def astviz(statement:str, frame='current') -> graphviz.Source:
@@ -564,6 +585,7 @@ def astviz_dot(statement:str, frame='current') -> str:
         ordering=out; # keep order of leaves
     """
 
+    # TODO:  change this to use the type color not based upon the shape
     matrixcolor = "#cfe2d4"
     vectorcolor = "#fefecd"
     fontname="Consolas"
