@@ -54,11 +54,12 @@ class PyVizView:
             orangeish = '#FDD66C'
             limeish = '#A8E1B0'
             blueish = '#7FA4D3'
-            dtype_colors = {'float':limeish, 'int':blueish, 'complex':orangeish}
+            grey = '#EFEFF0'
+            dtype_colors = {'float':limeish, 'int':blueish, 'complex':orangeish, 'other':grey}
         if dtype_precisions is None:
-            dtype_precisions = [4, 8, 16, 32, 64, 128]
+            dtype_precisions = [32, 64, 128] # hard to see diff if we use [4, 8, 16, 32, 64, 128]
         if dtype_alpha_range is None:
-            dtype_alpha_range = (0.1, 1.0)
+            dtype_alpha_range = (0.5, 1.0)   # use (0.1, 1.0) if more precision values
         nshades = len(dtype_precisions)
 
         if not isinstance(dtype_colors, dict) or (len(dtype_colors) > 0 and \
@@ -136,8 +137,12 @@ class PyVizView:
     def get_dtype_color(self, dtype):
         """Get color based on type and precision."""
         dtype_name, dtype_precision = self._split_dtype_precision(dtype)
-        precision_idx = self.dtype_precisions.index(int(dtype_precision))
-        # TODO what if type or precision is not one of those given? make it gray or something
+        if dtype_name not in self.dtype_colors:
+            return self.dtype_colors['other']
+        dtype_precision = int(dtype_precision)
+        if dtype_precision not in self.dtype_precisions:
+            return self.dtype_colors['other']
+        precision_idx = self.dtype_precisions.index(dtype_precision)
         return self._dtype_shades[dtype_name][precision_idx]
 
     def set_locations(self, maxh):
