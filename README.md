@@ -44,7 +44,7 @@ TensorSensor augments the message with more information about which operator cau
 Cause: @ on tensor operand W w/shape (764, 100) and operand X.T w/shape (764, 200)
 ```
 
-You can also get the full computation graph for an expression that includes all of these sub result shapes.
+You can also get the full computation graph for an expression that includes all of the sub-expression shapes.
  
 ```python
 W = torch.rand(size=(2000,2000), dtype=torch.float64)
