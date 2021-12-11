@@ -83,6 +83,7 @@ class PyVizView:
             self._dtype_shades[c] = \
                 PyVizView._get_alpha_shades(v, n=nshades, alpha_range=dtype_alpha_range)
         self.wchar = self.char_sep_scale * self.fontsize
+        self.wchar_small = self.char_sep_scale * (self.fontsize - 2)  # for <int32> typenames
         self.hchar = self.char_sep_scale * self.fontsize
         self.dim_ypadding = 5
         self.dim_xpadding = 0
@@ -248,7 +249,7 @@ class PyVizView:
 
     def draw_vector(self,ax,sub, sh, ty: str):
         mid = (sub.leftx + sub.rightx) / 2
-        w,h = self.vector_size(sh)
+        w,h = self.vector_size(sh, ty)
         color = self.get_dtype_color(ty)
         rect1 = patches.Rectangle(xy=(mid - w/2, self.box_topy-h),
                                   width=w,
@@ -263,6 +264,10 @@ class PyVizView:
         ax.text(mid, self.box_topy + self.dim_ypadding, self.nabbrev(sh[0]),
                 horizontalalignment='center',
                 fontname=self.dimfontname, fontsize=self.dimfontsize)
+        # Type info at the bottom of everything
+        ax.text(mid, self.box_topy - self.hchar, '<${\mathit{'+ty+'}}$>',
+                verticalalignment='top', horizontalalignment='center',
+                fontname=self.dimfontname, fontsize=self.dimfontsize-2)
 
     def draw_matrix(self,ax,sub, sh, ty):
         mid = (sub.leftx + sub.rightx) / 2
@@ -446,8 +451,8 @@ def pyviz(statement: str, frame=None,
         w, h = view.boxsize(sub.value)
         # update width to include horizontal room for type text like int32
         ty = tsensor.analysis._dtype(sub.value)
-        w_typename = len(ty)/2 * view.wchar
-        w += w_typename
+        w_typename = len(ty) * view.wchar_small
+        w = max(w, w_typename)
         maxh = max(h, maxh)
         nexpr = sub.stop.cstop_idx - sub.start.cstart_idx
         if (sub.start.cstart_idx-1)>0 and statement[sub.start.cstart_idx - 1]== ' ':  # if char to left is space
