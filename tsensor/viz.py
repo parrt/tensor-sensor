@@ -205,27 +205,31 @@ class PyVizView:
         How wide and tall should we draw the box representing a vector or matrix.
         """
         sh = tsensor.analysis._shape(v)
+        ty = tsensor.analysis._dtype(v)
         if sh is None: return None
-        if len(sh)==1: return self.vector_size(sh)
-        return self.matrix_size(sh)
+        if len(sh)==1: return self.vector_size(sh, ty)
+        return self.matrix_size(sh, ty)
 
-    def matrix_size(self, sh):
+    def matrix_size(self, sh, ty):
         """
         How wide and tall should we draw the box representing a matrix.
         """
         if len(sh)==1 and sh[0]==1:
-            return self.vector_size(sh)
-        elif len(sh) > 1 and sh[0] == 1 and sh[1] == 1:
+            return self.vector_size(sh, ty)
+
+        if len(sh) > 1 and sh[0] == 1 and sh[1] == 1:
             # A special case where we have a 1x1 matrix extending into the screen.
             # Make the 1x1 part a little bit wider than a vector so it's more readable
-            return 2 * self.vector_size_scaler * self.wchar, 2 * self.vector_size_scaler * self.wchar
+            w, h = 2 * self.vector_size_scaler * self.wchar, 2 * self.vector_size_scaler * self.wchar
         elif len(sh) > 1 and sh[1] == 1:
-            return self.vector_size_scaler * self.wchar, self.matrix_size_scaler * self.wchar
+            w, h = self.vector_size_scaler * self.wchar, self.matrix_size_scaler * self.wchar
         elif len(sh)>1 and sh[0]==1:
-            return self.matrix_size_scaler * self.wchar, self.vector_size_scaler * self.wchar
-        return self.matrix_size_scaler * self.wchar, self.matrix_size_scaler * self.wchar
+            w, h = self.matrix_size_scaler * self.wchar, self.vector_size_scaler * self.wchar
+        else:
+            w, h = self.matrix_size_scaler * self.wchar, self.matrix_size_scaler * self.wchar
+        return w, h
 
-    def vector_size(self, sh):
+    def vector_size(self, sh, ty):
         """
         How wide and tall is a vector?  It's not a function of vector length; instead
         we make a row vector with same width as a matrix but height of just one char.
@@ -262,7 +266,7 @@ class PyVizView:
 
     def draw_matrix(self,ax,sub, sh, ty):
         mid = (sub.leftx + sub.rightx) / 2
-        w,h = self.matrix_size(sh)
+        w,h = self.matrix_size(sh, ty)
         box_left = mid - w / 2
         color = self.get_dtype_color(ty)
 
@@ -440,13 +444,17 @@ def pyviz(statement: str, frame=None,
     maxh = 0
     for sub in subexprs:
         w, h = view.boxsize(sub.value)
+        # update width to include horizontal room for type text like int32
+        ty = tsensor.analysis._dtype(sub.value)
+        w_typename = len(ty)/2 * view.wchar
+        w += w_typename
         maxh = max(h, maxh)
         nexpr = sub.stop.cstop_idx - sub.start.cstart_idx
-        if (sub.start.cstart_idx-1)>0 and statement[sub.start.cstart_idx - 1]== ' ': # if char to left is space
+        if (sub.start.cstart_idx-1)>0 and statement[sub.start.cstart_idx - 1]== ' ':  # if char to left is space
             nexpr += 1
-        if sub.stop.cstop_idx<len(statement) and statement[sub.stop.cstop_idx]== ' ':     # if char to right is space
+        if sub.stop.cstop_idx<len(statement) and statement[sub.stop.cstop_idx]== ' ': # if char to right is space
             nexpr += 1
-        if w>view.wchar * nexpr:
+        if w > view.wchar * nexpr:
             lpad[sub.start.cstart_idx] += (w - view.wchar) / 2
             rpad[sub.stop.cstop_idx - 1] += (w - view.wchar) / 2
 
