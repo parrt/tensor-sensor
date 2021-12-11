@@ -324,7 +324,7 @@ class PyVizView:
             ax.text(mid, bottom_text_line, remaining,
                     verticalalignment='top', horizontalalignment='center',
                     fontname=self.dimfontname, fontsize=self.dimfontsize)
-            bottom_text_line -= self.hchar
+            bottom_text_line -= self.hchar + self.dim_ypadding
 
         # Type info at the bottom of everything
         ax.text(mid, bottom_text_line, '<${\mathit{'+ty+'}}$>',

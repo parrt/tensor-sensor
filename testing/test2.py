@@ -6,8 +6,8 @@ W = np.array([[1, 2], [3, 4]])
 b = np.array([9, 10]).reshape(2, 1)
 x = np.array([4, 5]).reshape(2, 1)
 h = np.array([1, 2])
-with tsensor.explain(savefig="/Users/parrt/Desktop/foo.pdf"):
-    W @ np.dot(b,b) + np.eye(2,2)@x
+# with tsensor.explain(savefig="/Users/parrt/Desktop/foo.pdf"):
+#     W @ np.dot(b,b) + np.eye(2,2)@x
 
 
 W = torch.tensor([[1, 2], [3, 4]], dtype=torch.float32)
