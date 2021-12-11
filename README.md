@@ -8,47 +8,57 @@ See article [Clarifying exceptions and visualizing tensor operations in deep lea
 
 To help myself and other programmers debug tensor code, I built this library.  TensorSensor clarifies exceptions by augmenting messages and visualizing Python code to indicate the shape of tensor variables (see figure to the right for a teaser). It works with [Tensorflow](https://www.tensorflow.org/), [PyTorch](https://pytorch.org/), [JAX](https://github.com/google/jax), and [Numpy](https://numpy.org/), as well as higher-level libraries like [Keras](https://keras.io/) and [fastai](https://www.fast.ai/).
 
-*TensorSensor is currently at 0.1.2 (May 2021) so I'm happy to receive issues created at this repo or direct email*.
+*TensorSensor is currently at 1.0 (December 2021)*.
 
 ## Visualizations
 
 For more, see [examples.ipynb](testing/examples.ipynb).
 
 ```python
-import torch
-import tsensor
-W = torch.rand(d,n_neurons)
-b = torch.rand(n_neurons,1)
-X = torch.rand(n,d)
-with tsensor.clarify():
+import numpy as np
+
+n = 200         # number of instances
+d = 764         # number of instance features
+n_neurons = 100 # how many neurons in this layer?
+
+W = np.random.rand(d,n_neurons)
+b = np.random.rand(n_neurons,1)
+X = np.random.rand(n,d)
+with tsensor.clarify() as c:
     Y = W @ X.T + b
 ```
 
 Displays this in a jupyter notebook or separate window:
 
-<img src="https://explained.ai/tensor-sensor/images/mm.svg">
+<img src="images/mm.svg">
 
 Instead of the following default exception message:
 
 ```
-RuntimeError: size mismatch, m1: [764 x 100], m2: [764 x 200] at /tmp/pip-req-build-as628lz5/aten/src/TH/generic/THTensorMath.cpp:41
+ValueError: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 764 is different from 100)
 ```
 
 TensorSensor augments the message with more information about which operator caused the problem and includes the shape of the operands:
 
 ```
-Cause: @ on tensor operand W w/shape [764, 100] and operand X.T w/shape [764, 200]
+Cause: @ on tensor operand W w/shape (764, 100) and operand X.T w/shape (764, 200)
 ```
 
 You can also get the full computation graph for an expression that includes all of these sub result shapes.
  
 ```python
-tsensor.astviz("b = W@b + (h+3).dot(h) + torch.abs(torch.tensor(34))", sys._getframe())
+W = torch.rand(size=(2000,2000), dtype=torch.float64)
+b = torch.rand(size=(2000,1), dtype=torch.float64)
+h = torch.zeros(size=(1_000_000,), dtype=int)
+x = torch.rand(size=(2000,1))
+z = torch.rand(size=(2000,1), dtype=torch.complex64)
+
+tsensor.astviz("b = W@b + (h+3).dot(h) + z", sys._getframe())
 ```
 
 yields the following abstract syntax tree with shapes:
 
-<img src="images/ast.svg" width="400">
+<img src="images/ast.svg" width="250">
 
 ## Install
 
@@ -70,7 +80,7 @@ $ pip list | grep -i numpy
 numpy                              1.19.5
 numpydoc                           1.1.0
 $ pip list | grep -i torch
-torch                              1.9.0
+torch                              1.10.0
 torchvision                        0.10.0
 $ pip list | grep -i jax
 jax                                0.2.20
