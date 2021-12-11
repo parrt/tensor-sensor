@@ -48,7 +48,8 @@ class clarify:
                  vectorcolor="#fefecd", char_sep_scale=1.8, fontcolor='#444443',
                  underline_color='#C2C2C2', ignored_color='#B4B4B4', error_op_color='#A40227',
                  show:(None,'viz')='viz',
-                 hush_errors=True):
+                 hush_errors=True,
+                 dtype_colors=None, dtype_precisions=None, dtype_alpha_range=None):
         """
         Augment tensor-related exceptions generated from numpy, pytorch, and tensorflow.
         Also display a visual representation of the offending Python line that
@@ -109,15 +110,23 @@ class clarify:
                             unhandled code caught by my parser are ignored. Turn this off
                             to see what the error messages are coming from my parser.
         :param show: Show visualization upon tensor error if show='viz'.
+        :param dtype_colors: map from dtype w/o precision like 'int' to color
+        :param dtype_precisions: list of bit precisions to colorize, such as [32,64,128]
+        :param dtype_alpha_range: all tensors of the same type are drawn to the same color,
+                                  and the alpha channel is used to show precision; the
+                                  smaller the bit size, the lower the alpha channel. You
+                                  can play with the range to get better visual dynamic range
+                                  depending on how many precisions you want to display.
         """
-        self.show = show
-        self.fontname, self.fontsize, self.dimfontname, self.dimfontsize, \
+        self.show, self.fontname, self.fontsize, self.dimfontname, self.dimfontsize, \
         self.matrixcolor, self.vectorcolor, self.char_sep_scale,\
         self.fontcolor, self.underline_color, self.ignored_color, \
-        self.error_op_color, self.hush_errors = \
-            fontname, fontsize, dimfontname, dimfontsize, \
+        self.error_op_color, self.hush_errors, \
+        self.dtype_colors, self.dtype_precisions, self.dtype_alpha_range = \
+            show, fontname, fontsize, dimfontname, dimfontsize, \
             matrixcolor, vectorcolor, char_sep_scale, \
-            fontcolor, underline_color, ignored_color, error_op_color, hush_errors
+            fontcolor, underline_color, ignored_color, error_op_color, hush_errors, \
+            dtype_colors, dtype_precisions, dtype_alpha_range
 
     def __enter__(self):
         self.frame = sys._getframe().f_back # where do we start tracking? Hmm...not sure we use this
@@ -146,7 +155,10 @@ class clarify:
                                               self.char_sep_scale, self.fontcolor,
                                               self.underline_color, self.ignored_color,
                                               self.error_op_color,
-                                              hush_errors=self.hush_errors)
+                                              hush_errors=self.hush_errors,
+                                              dtype_colors=self.dtype_colors,
+                                              dtype_precisions=self.dtype_precisions,
+                                              dtype_alpha_range=self.dtype_alpha_range)
                 if self.view is not None: # Ignore if we can't process code causing exception (I use a subparser)
                     if self.show=='viz':
                         self.view.show()
@@ -159,8 +171,8 @@ class explain:
                  dimfontname='Arial', dimfontsize=9, matrixcolor="#cfe2d4",
                  vectorcolor="#fefecd", char_sep_scale=1.8, fontcolor='#444443',
                  underline_color='#C2C2C2', ignored_color='#B4B4B4', error_op_color='#A40227',
-                 savefig=None,
-                 hush_errors=True):
+                 savefig=None, hush_errors=True,
+                 dtype_colors=None, dtype_precisions=None, dtype_alpha_range=None):
         """
         As the Python virtual machine executes lines of code, generate a
         visualization for tensor-related expressions using from numpy, pytorch,
@@ -229,15 +241,23 @@ class explain:
                             to see what the error messages are coming from my parser.
         :param savefig: A string indicating where to save the visualization; don't save
                         a file if None.
+        :param dtype_colors: map from dtype w/o precision like 'int' to color
+        :param dtype_precisions: list of bit precisions to colorize, such as [32,64,128]
+        :param dtype_alpha_range: all tensors of the same type are drawn to the same color,
+                                  and the alpha channel is used to show precision; the
+                                  smaller the bit size, the lower the alpha channel. You
+                                  can play with the range to get better visual dynamic range
+                                  depending on how many precisions you want to display.
         """
-        self.savefig = savefig
-        self.fontname, self.fontsize, self.dimfontname, self.dimfontsize, \
+        self.savefig, self.fontname, self.fontsize, self.dimfontname, self.dimfontsize, \
         self.matrixcolor, self.vectorcolor, self.char_sep_scale,\
         self.fontcolor, self.underline_color, self.ignored_color, \
-        self.error_op_color, self.hush_errors = \
-            fontname, fontsize, dimfontname, dimfontsize, \
+        self.error_op_color, self.hush_errors, \
+        self.dtype_colors, self.dtype_precisions, self.dtype_alpha_range = \
+            savefig, fontname, fontsize, dimfontname, dimfontsize, \
             matrixcolor, vectorcolor, char_sep_scale, \
-            fontcolor, underline_color, ignored_color, error_op_color, hush_errors
+            fontcolor, underline_color, ignored_color, error_op_color, hush_errors, \
+            dtype_colors, dtype_precisions, dtype_alpha_range
 
     def __enter__(self):
         # print("ON trace", sys._getframe())
@@ -301,6 +321,7 @@ class ExplainTensorTracer:
         filename, line = info.filename, info.lineno
         name = info.function
 
+        # Note: always true since L292 above...
         if event=='line':
             self.line_listener(module, name, filename, line, info, frame)
 
@@ -338,7 +359,10 @@ class ExplainTensorTracer:
                                  self.explainer.char_sep_scale, self.explainer.fontcolor,
                                  self.explainer.underline_color, self.explainer.ignored_color,
                                  self.explainer.error_op_color,
-                                 hush_errors=self.explainer.hush_errors)
+                                 hush_errors=self.explainer.hush_errors,
+                                 dtype_colors=self.explainer.dtype_colors,
+                                 dtype_precisions=self.explainer.dtype_precisions,
+                                 dtype_alpha_range=self.explainer.dtype_alpha_range)
         self.views.append(view)
         if self.explainer.savefig is not None:
             file_path = Path(self.explainer.savefig)
@@ -493,6 +517,23 @@ def _smallest_matrix_subexpr(t, nodes) -> bool:
 
 def istensor(x):
     return _shape(x) is not None
+
+
+def _dtype(v) -> str:
+    if hasattr(v, "dtype"):
+        dtype = v.dtype
+    elif "dtype" in v.__class__.__name__:
+        dtype = v
+    else:
+        return None
+
+    if dtype.__class__.__module__ == "torch":
+        # ugly but works
+        return str(dtype).replace("torch.", "")
+    if hasattr(dtype, "names") and dtype.names is not None and hasattr(dtype, "fields"):
+        # structured dtype: https://numpy.org/devdocs/user/basics.rec.html
+        return ",".join([_dtype(val) for val, _ in dtype.fields.values()])
+    return dtype.name
 
 
 def _shape(v):
