@@ -591,8 +591,8 @@ def astviz_dot(statement:str, frame='current') -> str:
     """
 
     # TODO:  change this to use the type color not based upon the shape
-    matrixcolor = "#cfe2d4"
-    vectorcolor = "#fefecd"
+    # matrixcolor = "#cfe2d4"
+    # vectorcolor = "#fefecd"
     fontname="Consolas"
     fontsize=12
     dimfontsize = 9
@@ -633,6 +633,8 @@ def astviz_dot(statement:str, frame='current') -> str:
 
     # Draw internal ops nodes
     for nd in ops:
+        ty = tsensor.analysis._dtype(nd.value)
+        color = self.get_dtype_color(ty)
         label = internal_label(nd)
         sh = tsensor.analysis._shape(nd.value)
         if sh is None:
