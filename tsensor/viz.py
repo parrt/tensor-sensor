@@ -316,12 +316,20 @@ class PyVizView:
                     fontname=self.dimfontname, fontsize=self.dimfontsize,
                     rotation=45)
 
+        bottom_text_line = self.box_topy - h - self.dim_ypadding
         if len(sh) > 3:
             # Text below
             remaining = r"$\cdots\mathsf{x}$"+r"$\mathsf{x}$".join([self.nabbrev(sh[i]) for i in range(3,len(sh))])
-            ax.text(mid, self.box_topy - h - self.dim_ypadding, remaining,
+            bottom_text_line = self.box_topy - h - self.dim_ypadding
+            ax.text(mid, bottom_text_line, remaining,
                     verticalalignment='top', horizontalalignment='center',
                     fontname=self.dimfontname, fontsize=self.dimfontsize)
+            bottom_text_line -= self.hchar
+
+        # Type info at the bottom of everything
+        ax.text(mid, bottom_text_line, '<${\mathit{'+ty+'}}$>',
+                verticalalignment='top', horizontalalignment='center',
+                fontname=self.dimfontname, fontsize=self.dimfontsize-2)
 
     @staticmethod
     def nabbrev(n: int) -> str:
