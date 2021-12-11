@@ -48,8 +48,7 @@ class PyVizView:
     """
     def __init__(self, statement, fontname, fontsize, dimfontname, dimfontsize,
                  matrixcolor, vectorcolor, char_sep_scale, dpi,
-                 dtype_colors=None, dtype_precisions=None,
-                 dtype_alpha_range=None, legend=False):
+                 dtype_colors=None, dtype_precisions=None, dtype_alpha_range=None):
         if dtype_colors is None:
             orangeish = '#FDD66C'
             limeish = '#A8E1B0'
@@ -83,7 +82,6 @@ class PyVizView:
         for c, v in dtype_colors.items():
             self._dtype_shades[c] = \
                 PyVizView._get_alpha_shades(v, n=nshades, alpha_range=dtype_alpha_range)
-        self.legend = legend
         self.wchar = self.char_sep_scale * self.fontsize
         self.hchar = self.char_sep_scale * self.fontsize
         self.dim_ypadding = 5
@@ -126,13 +124,6 @@ class PyVizView:
         head = s.rstrip('0123456789')
         tail = s[len(head):]
         return head, tail
-
-    def get_dtype_legend_patches(self):
-        labels, colors = [], []
-        for name in self._dtype_encountered:
-            labels.append(name)
-            colors.append(self.get_dtype_color(name))
-        return labels, colors
 
     def get_dtype_color(self, dtype):
         """Get color based on type and precision."""
@@ -346,8 +337,7 @@ def pyviz(statement: str, frame=None,
           vectorcolor="#fefecd", char_sep_scale=1.8, fontcolor='#444443',
           underline_color='#C2C2C2', ignored_color='#B4B4B4', error_op_color='#A40227',
           ax=None, dpi=200, hush_errors=True,
-          dtype_colors=None, dtype_precisions=None,
-          dtype_alpha_range=None, legend=False) -> PyVizView:
+          dtype_colors=None, dtype_precisions=None, dtype_alpha_range=None) -> PyVizView:
     """
     Parse and evaluate the Python code in the statement string passed in using
     the indicated execution frame. The execution frame of the invoking function
@@ -407,13 +397,12 @@ def pyviz(statement: str, frame=None,
                               smaller the bit size, the lower the alpha channel. You
                               can play with the range to get better visual dynamic range
                               depending on how many precisions you want to display.
-    :param legend: boolean: should a legend for the types encountered be presented?
     :return: Returns a PyVizView holding info about the visualization; from a notebook
              an SVG image will appear. Return none upon parsing error in statement.
     """
     view = PyVizView(statement, fontname, fontsize, dimfontname, dimfontsize, matrixcolor,
                      vectorcolor, char_sep_scale, dpi,
-                     dtype_colors, dtype_precisions, dtype_alpha_range, legend)
+                     dtype_colors, dtype_precisions, dtype_alpha_range)
 
     if frame is None: # use frame of caller if not passed in
         frame = sys._getframe().f_back
@@ -513,15 +502,6 @@ def pyviz(statement: str, frame=None,
 
     ax.set_xlim(0, fig_width)
     ax.set_ylim(0, view.maxy)
-
-    if view.legend:
-        labels, colors = view.get_dtype_legend_patches()
-        legend_patches = [
-            patches.Patch(facecolor=c, label=l, edgecolor='grey')
-            for c, l in zip(colors, labels)
-        ]
-        view.legend = fig.legend(legend_patches, labels, loc='center left', fontsize=8, bbox_to_anchor=(1, 0.5))
-        ax.add_artist(view.legend)
 
     return view
 
