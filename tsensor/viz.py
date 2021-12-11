@@ -41,47 +41,73 @@ import tsensor.analysis
 import tsensor.parsing
 
 
-class PyVizView:
+class DTypeColorInfo:
     """
-    An object that collects relevant information about viewing Python code
-    with visual annotations.
+    Track the colors for various types, the transparency range, and bit precisions.
+    By default, green indicates floating-point, blue indicates integer, and orange
+    indicates complex numbers. The more saturated the color (lower transparency),
+    the higher the precision.
     """
-    def __init__(self, statement, fontname, fontsize, dimfontname, dimfontsize,
-                 matrixcolor, vectorcolor, char_sep_scale, dpi,
-                 dtype_colors=None, dtype_precisions=None, dtype_alpha_range=None):
+    orangeish = '#FDD66C'
+    limeish = '#A8E1B0'
+    blueish = '#7FA4D3'
+    grey = '#EFEFF0'
+    default_dtype_colors = {'float': limeish, 'int': blueish, 'complex': orangeish, 'other': grey}
+    default_dtype_precisions = [32, 64, 128]  # hard to see diff if we use [4, 8, 16, 32, 64, 128]
+    default_dtype_alpha_range = (0.5, 1.0)    # use (0.1, 1.0) if more precision values
+
+    def __init__(self, dtype_colors=None, dtype_precisions=None, dtype_alpha_range=None):
         if dtype_colors is None:
-            orangeish = '#FDD66C'
-            limeish = '#A8E1B0'
-            blueish = '#7FA4D3'
-            grey = '#EFEFF0'
-            dtype_colors = {'float':limeish, 'int':blueish, 'complex':orangeish, 'other':grey}
+            dtype_colors = DTypeColorInfo.default_dtype_colors
         if dtype_precisions is None:
-            dtype_precisions = [32, 64, 128] # hard to see diff if we use [4, 8, 16, 32, 64, 128]
+            dtype_precisions = DTypeColorInfo.default_dtype_precisions
         if dtype_alpha_range is None:
-            dtype_alpha_range = (0.5, 1.0)   # use (0.1, 1.0) if more precision values
-        nshades = len(dtype_precisions)
+            dtype_alpha_range = DTypeColorInfo.default_dtype_alpha_range
 
         if not isinstance(dtype_colors, dict) or (len(dtype_colors) > 0 and \
            not isinstance(list(dtype_colors.values())[0], str)):
             raise TypeError(
                 "dtype_colors should be a dict mapping type name to color name or color hex RGB values."
             )
+
+        self.dtype_colors, self.dtype_precisions, self.dtype_alpha_range = \
+            dtype_colors, dtype_precisions, dtype_alpha_range
+
+    def color(self, dtype):
+        """Get color based on type and precision. Return list of RGB and alpha"""
+        dtype_name, dtype_precision = PyVizView._split_dtype_precision(dtype)
+        if dtype_name not in self.dtype_colors:
+            return self.dtype_colors['other']
+        color = self.dtype_colors[dtype_name]
+        dtype_precision = int(dtype_precision)
+        if dtype_precision not in self.dtype_precisions:
+            return self.dtype_colors['other']
+
+        color = mc.hex2color(color) if color[0] == '#' else mc.cnames[color]
+        precision_idx = self.dtype_precisions.index(dtype_precision)
+        nshades = len(self.dtype_precisions)
+        alphas = np.linspace(*self.dtype_alpha_range, nshades)
+        alpha = alphas[precision_idx]
+        return list(color) + [alpha]
+
+
+class PyVizView:
+    """
+    An object that collects relevant information about viewing Python code
+    with visual annotations.
+    """
+    def __init__(self, statement, fontname, fontsize, dimfontname, dimfontsize,
+                 char_sep_scale, dpi,
+                 dtype_colors=None, dtype_precisions=None, dtype_alpha_range=None):
         self.statement = statement
         self.fontsize = fontsize
         self.fontname = fontname
         self.dimfontsize = dimfontsize
         self.dimfontname = dimfontname
-        self.matrixcolor = matrixcolor
-        self.vectorcolor = vectorcolor
         self.char_sep_scale = char_sep_scale
         self.dpi = dpi
-        self.dtype_colors = dtype_colors
-        self.dtype_precisions = dtype_precisions
+        self.dtype_color_info = DTypeColorInfo(dtype_colors, dtype_precisions, dtype_alpha_range)
         self._dtype_encountered = set() # which types, like 'int64', did we find in one plot?
-        self._dtype_shades = {}
-        for c, v in dtype_colors.items():
-            self._dtype_shades[c] = \
-                PyVizView._get_alpha_shades(v, n=nshades, alpha_range=dtype_alpha_range)
         self.wchar = self.char_sep_scale * self.fontsize
         self.wchar_small = self.char_sep_scale * (self.fontsize - 2)  # for <int32> typenames
         self.hchar = self.char_sep_scale * self.fontsize
@@ -99,43 +125,11 @@ class PyVizView:
         self.fignumber = None
 
     @staticmethod
-    def _get_alpha_shades(color, n=5, alpha_range=(0.1, 1.0)):
-        """
-        For a given color name or '#hex' rgb string, return a matrix with
-        n RGB+alpha rows. The alpha range is split into n values.  E.g.,
-        get_alpha_shades('#A8E1B0', n=5) returns:
-
-        [[0.65882353 0.88235294 0.69019608 0.1       ]
-         [0.65882353 0.88235294 0.69019608 0.325     ]
-         [0.65882353 0.88235294 0.69019608 0.55      ]
-         [0.65882353 0.88235294 0.69019608 0.775     ]
-         [0.65882353 0.88235294 0.69019608 1.        ]]
-        """
-        if color[0] != '#':
-            color = mc.cnames[color]
-        color = mc.hex2color(color) if color[0] == '#' else mc.cnames[color]
-        colors = np.array([color] * n)
-        alphas = np.linspace(*alpha_range, n).reshape(-1, 1)
-        colors = np.hstack([colors, alphas])
-        return colors
-
-    @staticmethod
     def _split_dtype_precision(s):
         """Split the final integer part from a string"""
         head = s.rstrip('0123456789')
         tail = s[len(head):]
         return head, tail
-
-    def get_dtype_color(self, dtype):
-        """Get color based on type and precision."""
-        dtype_name, dtype_precision = self._split_dtype_precision(dtype)
-        if dtype_name not in self.dtype_colors:
-            return self.dtype_colors['other']
-        dtype_precision = int(dtype_precision)
-        if dtype_precision not in self.dtype_precisions:
-            return self.dtype_colors['other']
-        precision_idx = self.dtype_precisions.index(dtype_precision)
-        return self._dtype_shades[dtype_name][precision_idx]
 
     def set_locations(self, maxh):
         """
@@ -250,7 +244,7 @@ class PyVizView:
     def draw_vector(self,ax,sub, sh, ty: str):
         mid = (sub.leftx + sub.rightx) / 2
         w,h = self.vector_size(sh, ty)
-        color = self.get_dtype_color(ty)
+        color = self.dtype_color_info.color(ty)
         rect1 = patches.Rectangle(xy=(mid - w/2, self.box_topy-h),
                                   width=w,
                                   height=h,
@@ -273,7 +267,7 @@ class PyVizView:
         mid = (sub.leftx + sub.rightx) / 2
         w,h = self.matrix_size(sh, ty)
         box_left = mid - w / 2
-        color = self.get_dtype_color(ty)
+        color = self.dtype_color_info.color(ty)
 
         if len(sh) > 2:
             back_rect = patches.Rectangle(xy=(box_left + self.shift3D, self.box_topy - h + self.shift3D),
@@ -342,8 +336,7 @@ class PyVizView:
 
 def pyviz(statement: str, frame=None,
           fontname='Consolas', fontsize=13,
-          dimfontname='Arial', dimfontsize=9, matrixcolor="#cfe2d4",
-          vectorcolor="#fefecd", char_sep_scale=1.8, fontcolor='#444443',
+          dimfontname='Arial', dimfontsize=9, char_sep_scale=1.8, fontcolor='#444443',
           underline_color='#C2C2C2', ignored_color='#B4B4B4', error_op_color='#A40227',
           ax=None, dpi=200, hush_errors=True,
           dtype_colors=None, dtype_precisions=None, dtype_alpha_range=None) -> PyVizView:
@@ -373,8 +366,6 @@ def pyviz(statement: str, frame=None,
                      larger font size means larger image.
     :param dimfontname:  The name of the font used to display the dimensions on the matrix and vector boxes
     :param dimfontsize: The  size of the font used to display the dimensions on the matrix and vector boxes
-    :param matrixcolor:  The  color of matrix boxes
-    :param vectorcolor: The color of vector boxes; only for tensors whose shape is (n,).
     :param char_sep_scale: It is notoriously difficult to discover how wide and tall
                            text is when plotted in matplotlib. In fact there's probably,
                            no hope to discover this information accurately in all cases.
@@ -409,8 +400,7 @@ def pyviz(statement: str, frame=None,
     :return: Returns a PyVizView holding info about the visualization; from a notebook
              an SVG image will appear. Return none upon parsing error in statement.
     """
-    view = PyVizView(statement, fontname, fontsize, dimfontname, dimfontsize, matrixcolor,
-                     vectorcolor, char_sep_scale, dpi,
+    view = PyVizView(statement, fontname, fontsize, dimfontname, dimfontsize, char_sep_scale, dpi,
                      dtype_colors, dtype_precisions, dtype_alpha_range)
 
     if frame is None: # use frame of caller if not passed in
@@ -542,7 +532,8 @@ class QuietGraphvizWrapper(graphviz.Source):
             graphviz.backend.execute.run_check(cmd, capture_output=True, check=True, quiet=False)
 
 
-def astviz(statement:str, frame='current') -> graphviz.Source:
+def astviz(statement:str, frame='current',
+           dtype_colors=None, dtype_precisions=None, dtype_alpha_range=None) -> graphviz.Source:
     """
     Display the abstract syntax tree (AST) for the indicated Python code
     in statement. Evaluate that code in the context of frame. If the frame
@@ -554,18 +545,25 @@ def astviz(statement:str, frame='current') -> graphviz.Source:
     you can also call `savefig()` to save the file and in a variety of formats,
     according to the file extension.
     """
-    return QuietGraphvizWrapper(astviz_dot(statement, frame))
+    return QuietGraphvizWrapper(
+        astviz_dot(statement, frame,
+                   dtype_colors, dtype_precisions, dtype_alpha_range)
+    )
 
 
-def astviz_dot(statement:str, frame='current') -> str:
+def astviz_dot(statement:str, frame='current',
+               dtype_colors=None, dtype_precisions=None, dtype_alpha_range=None) -> str:
     def internal_label(node):
-        text = ''.join(str(t) for t in node.optokens)
         sh = tsensor.analysis._shape(node.value)
+        ty = tsensor.analysis._dtype(node.value)
+        text = ''.join(str(t) for t in node.optokens)
         if sh is None:
-            return f'<font face="{fontname}" color="" point-size="{fontsize}">{text}</font>'
+            return f'<font face="{fontname}" point-size="{fontsize}">{text}</font>'
 
         sz = 'x'.join([PyVizView.nabbrev(sh[i]) for i in range(len(sh))])
-        return f"""<font face="Consolas" color="#444443" point-size="{fontsize}">{text}</font><br/><font face="Arial" color="#444443" point-size="{dimfontsize}">{sz}</font>"""
+        return f"""<font face="Consolas" color="#444443" point-size="{fontsize}">{text}</font><br/><font face="Arial" color="#444443" point-size="{dimfontsize}">{sz}</font><br/><font face="Arial" color="#444443" point-size="{dimfontsize}">&lt;{ty}&gt;</font>"""
+
+    dtype_color_info = DTypeColorInfo(dtype_colors, dtype_precisions, dtype_alpha_range)
 
     root, tokens = tsensor.parsing.parse(statement)
 
@@ -590,9 +588,6 @@ def astviz_dot(statement:str, frame='current') -> str:
         ordering=out; # keep order of leaves
     """
 
-    # TODO:  change this to use the type color not based upon the shape
-    # matrixcolor = "#cfe2d4"
-    # vectorcolor = "#fefecd"
     fontname="Consolas"
     fontsize=12
     dimfontsize = 9
@@ -633,17 +628,15 @@ def astviz_dot(statement:str, frame='current') -> str:
 
     # Draw internal ops nodes
     for nd in ops:
-        ty = tsensor.analysis._dtype(nd.value)
-        color = self.get_dtype_color(ty)
         label = internal_label(nd)
         sh = tsensor.analysis._shape(nd.value)
         if sh is None:
             color = ""
         else:
-            if len(sh)==1:
-                color = f'fillcolor="{vectorcolor}" style=filled'
-            else:
-                color = f'fillcolor="{matrixcolor}" style=filled'
+            ty = tsensor.analysis._dtype(nd.value)
+            color = dtype_color_info.color(ty)
+            color = mc.rgb2hex(color, keep_alpha=True)
+            color = f'fillcolor="{color}" style=filled'
         gr += f'node{id(nd)} [shape=box {color} penwidth=0 margin=0 width=.25 height=.2 label=<{label}>]\n'
 
     # Link internal nodes to other nodes or leaves

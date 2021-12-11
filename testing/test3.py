@@ -14,11 +14,13 @@ h = torch.tensor([1,2])
 # # view.savefig("/Users/parrt/Desktop/foo.pdf")
 # plt.show()
 
-W = torch.rand(size=(2000,2000))
-b = torch.rand(size=(2000,1))
-h = torch.rand(size=(1_000_000,))
+W = torch.rand(size=(2000,2000), dtype=torch.float64)
+b = torch.rand(size=(2000,1), dtype=torch.float64)
+h = torch.zeros(size=(1_000_000,), dtype=int)
 x = torch.rand(size=(2000,1))
-g = tsensor.astviz("b = W@b + (h+3).dot(h) + torch.abs(torch.tensor(34))", sys._getframe()) # eval, highlight vectors
+z = torch.rand(size=(2000,1), dtype=torch.complex64)
+g = tsensor.astviz("b = W@b + (h+3).dot(h) + z",
+                   sys._getframe()) # eval, highlight vectors
 g.view()
 
 # with tsensor.explain():

@@ -44,8 +44,7 @@ class clarify:
 
     def __init__(self,
                  fontname=('Consolas', 'DejaVu Sans Mono'), fontsize=13,
-                 dimfontname='Arial', dimfontsize=9, matrixcolor="#cfe2d4",
-                 vectorcolor="#fefecd", char_sep_scale=1.8, fontcolor='#444443',
+                 dimfontname='Arial', dimfontsize=9, char_sep_scale=1.8, fontcolor='#444443',
                  underline_color='#C2C2C2', ignored_color='#B4B4B4', error_op_color='#A40227',
                  show:(None,'viz')='viz',
                  hush_errors=True,
@@ -83,8 +82,6 @@ class clarify:
                          larger font size means larger image.
         :param dimfontname:  The name of the font used to display the dimensions on the matrix and vector boxes
         :param dimfontsize: The  size of the font used to display the dimensions on the matrix and vector boxes
-        :param matrixcolor:  The  color of matrix boxes
-        :param vectorcolor: The color of vector boxes; only for tensors whose shape is (n,).
         :param char_sep_scale: It is notoriously difficult to discover how wide and tall
                                text is when plotted in matplotlib. In fact there's probably,
                                no hope to discover this information accurately in all cases.
@@ -119,13 +116,12 @@ class clarify:
                                   depending on how many precisions you want to display.
         """
         self.show, self.fontname, self.fontsize, self.dimfontname, self.dimfontsize, \
-        self.matrixcolor, self.vectorcolor, self.char_sep_scale,\
-        self.fontcolor, self.underline_color, self.ignored_color, \
+        self.char_sep_scale, self.fontcolor, self.underline_color, self.ignored_color, \
         self.error_op_color, self.hush_errors, \
         self.dtype_colors, self.dtype_precisions, self.dtype_alpha_range = \
             show, fontname, fontsize, dimfontname, dimfontsize, \
-            matrixcolor, vectorcolor, char_sep_scale, \
-            fontcolor, underline_color, ignored_color, error_op_color, hush_errors, \
+            char_sep_scale, fontcolor, underline_color, ignored_color, \
+            error_op_color, hush_errors, \
             dtype_colors, dtype_precisions, dtype_alpha_range
 
     def __enter__(self):
@@ -151,7 +147,7 @@ class clarify:
             if code is not None:
                 self.view = tsensor.viz.pyviz(code, exc_frame,
                                               self.fontname, self.fontsize, self.dimfontname,
-                                              self.dimfontsize, self.matrixcolor, self.vectorcolor,
+                                              self.dimfontsize,
                                               self.char_sep_scale, self.fontcolor,
                                               self.underline_color, self.ignored_color,
                                               self.error_op_color,
@@ -168,8 +164,7 @@ class clarify:
 class explain:
     def __init__(self,
                  fontname=('Consolas', 'DejaVu Sans Mono'), fontsize=13,
-                 dimfontname='Arial', dimfontsize=9, matrixcolor="#cfe2d4",
-                 vectorcolor="#fefecd", char_sep_scale=1.8, fontcolor='#444443',
+                 dimfontname='Arial', dimfontsize=9, char_sep_scale=1.8, fontcolor='#444443',
                  underline_color='#C2C2C2', ignored_color='#B4B4B4', error_op_color='#A40227',
                  savefig=None, hush_errors=True,
                  dtype_colors=None, dtype_precisions=None, dtype_alpha_range=None):
@@ -213,8 +208,6 @@ class explain:
                          larger font size means larger image.
         :param dimfontname:  The name of the font used to display the dimensions on the matrix and vector boxes
         :param dimfontsize: The  size of the font used to display the dimensions on the matrix and vector boxes
-        :param matrixcolor:  The  color of matrix boxes
-        :param vectorcolor: The color of vector boxes; only for tensors whose shape is (n,).
         :param char_sep_scale: It is notoriously difficult to discover how wide and tall
                                text is when plotted in matplotlib. In fact there's probably,
                                no hope to discover this information accurately in all cases.
@@ -250,13 +243,12 @@ class explain:
                                   depending on how many precisions you want to display.
         """
         self.savefig, self.fontname, self.fontsize, self.dimfontname, self.dimfontsize, \
-        self.matrixcolor, self.vectorcolor, self.char_sep_scale,\
-        self.fontcolor, self.underline_color, self.ignored_color, \
+        self.char_sep_scale, self.fontcolor, self.underline_color, self.ignored_color, \
         self.error_op_color, self.hush_errors, \
         self.dtype_colors, self.dtype_precisions, self.dtype_alpha_range = \
             savefig, fontname, fontsize, dimfontname, dimfontsize, \
-            matrixcolor, vectorcolor, char_sep_scale, \
-            fontcolor, underline_color, ignored_color, error_op_color, hush_errors, \
+            char_sep_scale, fontcolor, underline_color, ignored_color, \
+            error_op_color, hush_errors, \
             dtype_colors, dtype_precisions, dtype_alpha_range
 
     def __enter__(self):
@@ -354,8 +346,7 @@ class ExplainTensorTracer:
         view = tsensor.viz.pyviz(code, frame,
                                  self.explainer.fontname, self.explainer.fontsize,
                                  self.explainer.dimfontname,
-                                 self.explainer.dimfontsize, self.explainer.matrixcolor,
-                                 self.explainer.vectorcolor,
+                                 self.explainer.dimfontsize,
                                  self.explainer.char_sep_scale, self.explainer.fontcolor,
                                  self.explainer.underline_color, self.explainer.ignored_color,
                                  self.explainer.error_op_color,
