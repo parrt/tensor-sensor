@@ -12,7 +12,7 @@ To help myself and other programmers debug tensor code, I built this library.  T
 
 ## Visualizations
 
-For more, see [examples.ipynb](testing/examples.ipynb).
+For more, see [examples.ipynb at colab](https://colab.research.google.com/github/parrt/tensor-sensor/blob/master/testing/examples.ipynb). (The github rendering does not show images for some reason: [examples.ipynb](testing/examples.ipynb).)
 
 ```python
 import numpy as np
